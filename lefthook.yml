@@ -1,0 +1,41 @@
+# Git hooks. Installed by `make setup` (or `make hooks`).
+# Fast, staged-file-scoped checks on commit; the full suite runs in CI.
+
+pre-commit:
+  parallel: true
+  jobs:
+    - name: be-format
+      root: be/
+      glob: "*.go"
+      exclude:
+        - "**/*.gen.go"
+      run: golangci-lint fmt {staged_files}
+      stage_fixed: true
+
+    - name: be-lint
+      root: be/
+      glob: "*.go"
+      run: golangci-lint run ./...
+
+    - name: be-contract-lint
+      root: be/
+      glob: "be/api/openapi.yaml"
+      run: make api-lint
+
+    - name: fe-format
+      root: fe/
+      glob: "*.{ts,tsx,js,mjs,json,css,md}"
+      exclude:
+        - "**/*.gen.ts"
+      run: npx prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+
+    - name: fe-lint
+      root: fe/
+      glob: "*.{ts,tsx,js,mjs}"
+      run: npx eslint --max-warnings=0 --no-warn-ignored {staged_files}
+
+pre-push:
+  jobs:
+    - name: contract-drift
+      run: make drift-check

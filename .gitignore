@@ -1,0 +1,13 @@
+# Repository-wide ignores. Project-specific rules live in be/.gitignore and fe/.gitignore.
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Environment — only examples are committed
+.env
+.env.*
+!.env.example

@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.pdf binary
+*.ico binary
+
+# Generated from be/api/openapi.yaml — collapsed in diffs, excluded from language stats.
+be/internal/api/api.gen.go linguist-generated=true -diff
+fe/src/lib/api/schema.gen.ts linguist-generated=true -diff

@@ -1,0 +1,103 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GOLANGCI_LINT_VERSION: v2.14.0
+
+jobs:
+  contract:
+    name: API contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: be/go.mod
+          cache-dependency-path: |
+            be/go.sum
+            be/tools/go.sum
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: fe/.nvmrc
+          cache: npm
+          cache-dependency-path: fe/package-lock.json
+
+      - name: Install frontend dependencies
+        run: make -C fe setup
+
+      - name: Lint OpenAPI document
+        run: make -C be api-lint
+
+      - name: Generated code matches the contract
+        run: make drift-check
+
+  be:
+    name: Backend (be)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: be
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: be/go.mod
+          cache-dependency-path: |
+            be/go.sum
+            be/tools/go.sum
+
+      - name: Verify module files are tidy
+        run: make tidy-check
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
+          working-directory: be
+
+      - name: Check formatting
+        run: test -z "$(golangci-lint fmt --diff ./... 2>&1)" || { golangci-lint fmt --diff ./...; exit 1; }
+
+      - name: Test
+        run: make cover
+
+      - name: Build
+        run: make build VERSION=${{ github.sha }}
+
+  fe:
+    name: Frontend (fe)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: fe
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: fe/.nvmrc
+          cache: npm
+          cache-dependency-path: fe/package-lock.json
+
+      - run: make setup
+      - run: make check
+      - run: make audit

@@ -1,0 +1,20 @@
+module github.com/omeryilmazbusiness/digital-profile/be
+
+go 1.27.0
+
+require (
+	github.com/caarlos0/env/v11 v11.4.1
+	github.com/getkin/kin-openapi v0.149.0
+	github.com/go-chi/chi/v5 v5.3.2
+)
+
+require (
+	github.com/go-openapi/jsonpointer v0.22.5 // indirect
+	github.com/go-openapi/swag/jsonname v0.25.5 // indirect
+	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
+	github.com/oasdiff/yaml v0.1.1 // indirect
+	github.com/oasdiff/yaml3 v0.0.14 // indirect
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
+	golang.org/x/text v0.14.0 // indirect
+)

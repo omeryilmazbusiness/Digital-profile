@@ -1,0 +1,14 @@
+extends:
+  - recommended
+
+apis:
+  main:
+    root: api/openapi.yaml
+
+rules:
+  operation-4xx-response: off # probes have no client-error cases; every operation declares a default problem response
+  info-license-strict: error
+  no-unused-components: error
+  operation-operationId: error
+  operation-summary: error
+  tag-description: error
