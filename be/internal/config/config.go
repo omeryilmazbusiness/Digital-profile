@@ -40,12 +40,24 @@ const (
 )
 
 type Config struct {
-	Env       Environment `env:"APP_ENV" envDefault:"development"`
-	HTTP      HTTP        `envPrefix:"HTTP_"`
-	Log       Log         `envPrefix:"LOG_"`
-	DB        DB          `envPrefix:"DATABASE_"`
-	CORS      CORS        `envPrefix:"CORS_"`
-	RateLimit RateLimit   `envPrefix:"RATE_LIMIT_"`
+	Env Environment `env:"APP_ENV" envDefault:"development"`
+	// PublicOrigin is the browser-facing origin (scheme://host[:port]) serving the site and API.
+	// State-changing requests from any other origin are rejected (CSRF defence).
+	PublicOrigin string    `env:"APP_PUBLIC_ORIGIN" envDefault:"http://localhost:3000"`
+	HTTP         HTTP      `envPrefix:"HTTP_"`
+	Log          Log       `envPrefix:"LOG_"`
+	DB           DB        `envPrefix:"DATABASE_"`
+	CORS         CORS      `envPrefix:"CORS_"`
+	RateLimit    RateLimit `envPrefix:"RATE_LIMIT_"`
+	Auth         Auth      `envPrefix:"AUTH_"`
+}
+
+// CLI is the subset of configuration operational commands need. It deliberately omits
+// secrets such as AUTH_JWT_KEYS, so migrations can run with database credentials alone.
+type CLI struct {
+	Env Environment `env:"APP_ENV" envDefault:"development"`
+	Log Log         `envPrefix:"LOG_"`
+	DB  DB          `envPrefix:"DATABASE_"`
 }
 
 type HTTP struct {
@@ -106,7 +118,7 @@ type RateLimit struct {
 	// Strict policy for abuse-prone endpoints (login, public forms).
 	StrictRPS   float64  `env:"STRICT_RPS"   envDefault:"0.2"`
 	StrictBurst int      `env:"STRICT_BURST" envDefault:"5"`
-	StrictPaths []string `env:"STRICT_PATHS" envDefault:"/api/v1/auth/login,/api/v1/public/leads" envSeparator:","`
+	StrictPaths []string `env:"STRICT_PATHS" envDefault:"/api/v1/auth/login,/api/v1/auth/password,/api/v1/public/leads" envSeparator:","`
 	// IdleTTL evicts per-client state that has not been used for this long.
 	IdleTTL time.Duration `env:"IDLE_TTL" envDefault:"10m"`
 }
@@ -118,14 +130,40 @@ func Load() (Config, error) {
 
 // LoadFrom reads configuration from the given variables. It never touches the process environment.
 func LoadFrom(vars map[string]string) (Config, error) {
-	cfg, err := env.ParseAsWithOptions[Config](env.Options{Environment: vars})
+	return load[Config](vars)
+}
+
+// LoadCLI reads the CLI subset from the process environment.
+func LoadCLI() (CLI, error) {
+	return LoadCLIFrom(env.ToMap(os.Environ()))
+}
+
+func LoadCLIFrom(vars map[string]string) (CLI, error) {
+	return load[CLI](vars)
+}
+
+func load[T interface{ Validate() error }](vars map[string]string) (T, error) {
+	var zero T
+	cfg, err := env.ParseAsWithOptions[T](env.Options{Environment: vars})
 	if err != nil {
-		return Config{}, fmt.Errorf("parse config: %w", err)
+		return zero, fmt.Errorf("parse config: %w", err)
 	}
 	if err := cfg.Validate(); err != nil {
-		return Config{}, fmt.Errorf("invalid config: %w", err)
+		return zero, fmt.Errorf("invalid config: %w", err)
 	}
 	return cfg, nil
+}
+
+func (c CLI) Validate() error {
+	var errs []error
+	if !c.Env.Valid() {
+		errs = append(errs, fmt.Errorf("APP_ENV %q is not one of development|test|staging|production", c.Env))
+	}
+	if c.Log.Format != LogFormatJSON && c.Log.Format != LogFormatText {
+		errs = append(errs, fmt.Errorf("LOG_FORMAT %q is not one of json|text", c.Log.Format))
+	}
+	errs = append(errs, c.DB.validate()...)
+	return errors.Join(errs...)
 }
 
 func (c Config) Validate() error {
@@ -139,7 +177,11 @@ func (c Config) Validate() error {
 		errs = append(errs, fmt.Errorf("LOG_FORMAT %q is not one of json|text", c.Log.Format))
 	}
 	errs = append(errs, c.DB.validate()...)
+	if err := validateOrigin("APP_PUBLIC_ORIGIN", c.PublicOrigin, c.IsProduction()); err != nil {
+		errs = append(errs, err)
+	}
 	errs = append(errs, c.CORS.validate(c.IsProduction())...)
+	errs = append(errs, c.Auth.validate(c.IsProduction())...)
 	errs = append(errs, c.RateLimit.validate()...)
 
 	return errors.Join(errs...)
@@ -188,16 +230,24 @@ func (d DB) validate() []error {
 func (c CORS) validate(production bool) []error {
 	var errs []error
 	for _, o := range c.AllowedOrigins {
-		u, err := url.Parse(o)
-		if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || (u.Path != "" && u.Path != "/") || u.RawQuery != "" {
-			errs = append(errs, fmt.Errorf("CORS_ALLOWED_ORIGINS: %q is not an origin (scheme://host[:port])", o))
-			continue
-		}
-		if production && u.Scheme != "https" {
-			errs = append(errs, fmt.Errorf("CORS_ALLOWED_ORIGINS: %q must use https in production", o))
+		if err := validateOrigin("CORS_ALLOWED_ORIGINS", o, production); err != nil {
+			errs = append(errs, err)
 		}
 	}
 	return errs
+}
+
+// validateOrigin requires an exact browser origin, as compared against the Origin header:
+// scheme and host, optional port, no path, no trailing slash.
+func validateOrigin(name, o string, production bool) error {
+	u, err := url.Parse(o)
+	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.Path != "" || u.RawQuery != "" || u.Fragment != "" || u.User != nil {
+		return fmt.Errorf("%s: %q is not an origin (scheme://host[:port], no trailing slash)", name, o)
+	}
+	if production && u.Scheme != "https" {
+		return fmt.Errorf("%s: %q must use https in production", name, o)
+	}
+	return nil
 }
 
 func (r RateLimit) validate() []error {

@@ -7,15 +7,31 @@ info:
     Next.js frontend. Server stubs and the typed client are generated from this file.
 
     All error responses use RFC 9457 `application/problem+json`.
+
+    ## Authentication
+    Operations are protected by default (global `cookieAuth`); public operations opt out
+    explicitly. Login sets two `HttpOnly; SameSite=Strict` cookies: a short-lived access token
+    (`dp_access`, `__Host-dp_access` over HTTPS) and a rotating refresh token (`dp_refresh`,
+    `__Secure-dp_refresh` over HTTPS) scoped to `/api/v1/auth`. Browsers send them automatically;
+    clients never handle tokens.
+
+    ## CSRF
+    State-changing requests (`POST`, `PUT`, `PATCH`, `DELETE`) under `/api/v1/auth` and
+    `/api/v1/admin` must send `X-CSRF-Protection: 1`, and their `Origin`, when present, must be
+    the site origin. Otherwise the API answers `403`.
   license:
     name: Proprietary
     url: https://github.com/omeryilmazbusiness/Digital-profile
 servers:
   - url: /
     description: Same origin — the reverse proxy routes API paths to the backend
+security:
+  - cookieAuth: []
 tags:
   - name: system
     description: Operational endpoints (liveness / readiness probes)
+  - name: auth
+    description: Admin session management
 
 paths:
   /healthz:
@@ -58,7 +74,154 @@ paths:
         default:
           $ref: "#/components/responses/Problem"
 
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: Sign in
+      description: |
+        Verifies the credentials and starts a session. The response never reveals whether the
+        email exists or the account is temporarily locked after repeated failures.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Signed in; session cookies are set
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookies"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refreshSession
+      summary: Rotate the session tokens
+      description: |
+        Exchanges the refresh cookie for a new access and refresh token. Each refresh token
+        works once; presenting a used one again revokes every session of the account.
+        `409` means a concurrent request already rotated the token: retry the original
+        request with the cookies it set.
+      security: []
+      responses:
+        "200":
+          description: Tokens rotated; session cookies are set
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookies"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SessionInfo"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: Sign out
+      description: Revokes the current session and clears the cookies. Idempotent.
+      security: []
+      responses:
+        "204":
+          description: Signed out; session cookies are cleared
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookies"
+        "403":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/auth/me:
+    get:
+      tags: [auth]
+      operationId: getCurrentAdmin
+      summary: Current admin
+      responses:
+        "200":
+          description: The signed-in admin
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminUser"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/auth/password:
+    put:
+      tags: [auth]
+      operationId: changePassword
+      summary: Change password
+      description: |
+        Changes the password, signs out every other session and starts a fresh one for the
+        caller (new cookies are set).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+      responses:
+        "204":
+          description: Password changed; new session cookies are set
+          headers:
+            Set-Cookie:
+              $ref: "#/components/headers/SessionCookies"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        "429":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
 components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: dp_access
+      description: Access token cookie (`__Host-dp_access` when served over HTTPS)
+
+  headers:
+    SessionCookies:
+      description: Access and refresh token cookies (HttpOnly, SameSite=Strict)
+      schema:
+        type: string
+
   responses:
     Problem:
       description: Error response (RFC 9457)
@@ -144,3 +307,75 @@ components:
         message:
           type: string
           example: must be after checkIn
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          maxLength: 254
+          example: momen@example.com
+        password:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 1024
+
+    ChangePasswordRequest:
+      type: object
+      additionalProperties: false
+      required: [currentPassword, newPassword]
+      properties:
+        currentPassword:
+          type: string
+          format: password
+          minLength: 1
+          maxLength: 1024
+        newPassword:
+          type: string
+          format: password
+          minLength: 12
+          maxLength: 128
+          description: 12–128 characters, different from the current password and the email
+
+    AdminUser:
+      type: object
+      additionalProperties: false
+      required: [id, email, passwordChangedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        lastLoginAt:
+          type: string
+          format: date-time
+        passwordChangedAt:
+          type: string
+          format: date-time
+
+    SessionInfo:
+      type: object
+      additionalProperties: false
+      required: [accessTokenExpiresAt]
+      properties:
+        accessTokenExpiresAt:
+          type: string
+          format: date-time
+          description: When to refresh; the access cookie stops being sent after this instant
+
+    LoginResponse:
+      type: object
+      additionalProperties: false
+      required: [admin, accessTokenExpiresAt]
+      properties:
+        admin:
+          $ref: "#/components/schemas/AdminUser"
+        accessTokenExpiresAt:
+          type: string
+          format: date-time

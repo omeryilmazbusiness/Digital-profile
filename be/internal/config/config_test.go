@@ -11,11 +11,15 @@ import (
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/config"
 )
 
-const testDSN = "postgres://app:secret@localhost:5432/app?sslmode=disable"
+const (
+	testDSN = "postgres://app:secret@localhost:5432/app?sslmode=disable"
+	// 32 bytes of zeros, base64: valid length, obviously not a real key.
+	testKey = "k1:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+)
 
 // vars returns the minimal valid environment plus overrides.
 func vars(overrides map[string]string) map[string]string {
-	v := map[string]string{"DATABASE_URL": testDSN}
+	v := map[string]string{"DATABASE_URL": testDSN, "AUTH_JWT_KEYS": testKey}
 	maps.Copy(v, overrides)
 	return v
 }
@@ -42,8 +46,20 @@ func TestLoadFrom_Defaults(t *testing.T) {
 		t.Errorf("CORS.AllowedOrigins = %v, want none", cfg.CORS.AllowedOrigins)
 	}
 	rl := cfg.RateLimit
-	if !rl.Enabled || rl.RPS != 10 || rl.Burst != 20 || rl.StrictBurst != 5 || len(rl.StrictPaths) != 2 {
+	if !rl.Enabled || rl.RPS != 10 || rl.Burst != 20 || rl.StrictBurst != 5 || len(rl.StrictPaths) != 3 {
 		t.Errorf("RateLimit = %+v", rl)
+	}
+
+	if cfg.PublicOrigin != "http://localhost:3000" {
+		t.Errorf("PublicOrigin = %q", cfg.PublicOrigin)
+	}
+	a := cfg.Auth
+	if a.AccessTTL != 15*time.Minute || a.RefreshTTL != 7*24*time.Hour || !a.CookieSecure || a.LockoutThreshold != 5 {
+		t.Errorf("Auth = %+v", a)
+	}
+	keys, err := a.SigningKeys()
+	if err != nil || len(keys) != 1 || keys[0].ID != "k1" || len(keys[0].Secret) != 32 {
+		t.Errorf("SigningKeys() = %+v, %v", keys, err)
 	}
 
 	prefixes, err := cfg.HTTP.TrustedProxyPrefixes()
@@ -59,6 +75,8 @@ func TestLoadFrom_Defaults(t *testing.T) {
 func TestLoadFrom_Overrides(t *testing.T) {
 	cfg, err := config.LoadFrom(vars(map[string]string{
 		"APP_ENV":                "production",
+		"APP_PUBLIC_ORIGIN":      "https://momen.example",
+		"AUTH_JWT_KEYS":          "new:" + strings.Repeat("A", 44) + "," + testKey,
 		"HTTP_ADDR":              "127.0.0.1:9000",
 		"HTTP_TRUSTED_PROXIES":   "10.0.0.0/8, 192.168.1.7/24",
 		"LOG_LEVEL":              "debug",
@@ -87,6 +105,9 @@ func TestLoadFrom_Overrides(t *testing.T) {
 	}
 	if cfg.RateLimit.Enabled {
 		t.Error("RateLimit.Enabled = true, want false")
+	}
+	if keys, _ := cfg.Auth.SigningKeys(); len(keys) != 2 || keys[0].ID != "new" {
+		t.Errorf("first key must be the signer: %+v", keys)
 	}
 
 	prefixes, err := cfg.HTTP.TrustedProxyPrefixes()
@@ -120,6 +141,19 @@ func TestLoadFrom_Invalid(t *testing.T) {
 		{"cors http in production", vars(map[string]string{"APP_ENV": "production", "CORS_ALLOWED_ORIGINS": "http://a.example"}), "https in production"},
 		{"zero rate", vars(map[string]string{"RATE_LIMIT_RPS": "0"}), "RATE_LIMIT_RPS"},
 		{"zero burst", vars(map[string]string{"RATE_LIMIT_STRICT_BURST": "0"}), "RATE_LIMIT_BURST"},
+		{"missing jwt keys", vars(map[string]string{"AUTH_JWT_KEYS": ""}), "AUTH_JWT_KEYS"},
+		{"jwt key without kid", vars(map[string]string{"AUTH_JWT_KEYS": strings.Repeat("A", 44)}), "kid:base64secret"},
+		{"short jwt key", vars(map[string]string{"AUTH_JWT_KEYS": "k1:c2hvcnQ="}), "at least 32 bytes"},
+		{"jwt key not base64", vars(map[string]string{"AUTH_JWT_KEYS": "k1:!!!"}), "not valid base64"},
+		{"duplicate kid", vars(map[string]string{"AUTH_JWT_KEYS": testKey + "," + testKey}), "duplicate kid"},
+		{"access ttl too long", vars(map[string]string{"AUTH_ACCESS_TTL": "2h"}), "AUTH_ACCESS_TTL"},
+		{"refresh not longer than access", vars(map[string]string{"AUTH_REFRESH_TTL": "15m"}), "AUTH_REFRESH_TTL"},
+		{"session shorter than refresh", vars(map[string]string{"AUTH_SESSION_MAX_AGE": "1h"}), "AUTH_SESSION_MAX_AGE"},
+		{"insecure cookies in production", vars(map[string]string{"APP_ENV": "production", "APP_PUBLIC_ORIGIN": "https://a.example", "AUTH_COOKIE_SECURE": "false"}), "AUTH_COOKIE_SECURE"},
+		{"zero lockout threshold", vars(map[string]string{"AUTH_LOCKOUT_THRESHOLD": "0"}), "AUTH_LOCKOUT_THRESHOLD"},
+		{"lockout max below base", vars(map[string]string{"AUTH_LOCKOUT_MAX": "10s"}), "AUTH_LOCKOUT_MAX"},
+		{"public origin with slash", vars(map[string]string{"APP_PUBLIC_ORIGIN": "https://a.example/"}), "APP_PUBLIC_ORIGIN"},
+		{"public origin http in production", vars(map[string]string{"APP_ENV": "production"}), "APP_PUBLIC_ORIGIN"},
 		{"idle ttl shorter than refill", vars(map[string]string{"RATE_LIMIT_IDLE_TTL": "10s"}), "RATE_LIMIT_IDLE_TTL"},
 	}
 
@@ -151,5 +185,18 @@ func TestLoadFrom_ReportsAllErrors(t *testing.T) {
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("error %q does not mention %q", err, want)
 		}
+	}
+}
+
+func TestLoadCLIFrom_NeedsOnlyDatabase(t *testing.T) {
+	cfg, err := config.LoadCLIFrom(map[string]string{"DATABASE_URL": testDSN})
+	if err != nil {
+		t.Fatalf("LoadCLIFrom() error = %v", err)
+	}
+	if cfg.DB.URL != testDSN {
+		t.Errorf("DB.URL = %q", cfg.DB.URL)
+	}
+	if _, err := config.LoadCLIFrom(map[string]string{"DATABASE_URL": "mysql://x"}); err == nil {
+		t.Error("invalid DATABASE_URL accepted")
 	}
 }

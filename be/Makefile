@@ -79,6 +79,23 @@ migrate-force: .env ## Clear a dirty state after a manual fix (version=N)
 	@test -n "$(version)" || { echo "usage: make migrate-force version=N"; exit 2; }
 	$(LOAD_ENV) && go run ./cmd/cli migrate force -version $(version)
 
+# --- Admin account -------------------------------------------------------------
+# The password is prompted for (no echo), never passed as an argument.
+
+.PHONY: admin-create
+admin-create: .env ## Create the single admin account (email=...)
+	@test -n "$(email)" || { echo "usage: make admin-create email=you@example.com"; exit 2; }
+	@$(LOAD_ENV) && go run ./cmd/cli admin create -email "$(email)"
+
+.PHONY: admin-reset-password
+admin-reset-password: .env ## Set a new admin password, unlock and sign out everywhere (email=...)
+	@test -n "$(email)" || { echo "usage: make admin-reset-password email=you@example.com"; exit 2; }
+	@$(LOAD_ENV) && go run ./cmd/cli admin reset-password -email "$(email)"
+
+.PHONY: jwt-key
+jwt-key: ## Print a new AUTH_JWT_KEYS entry
+	@go run ./cmd/cli jwt-key
+
 .PHONY: migrate-create
 migrate-create: ## Create an empty up/down migration pair (name=snake_case_name)
 	@[[ "$(name)" =~ ^[a-z0-9_]+$$ ]] || { echo "usage: make migrate-create name=snake_case_name"; exit 2; }

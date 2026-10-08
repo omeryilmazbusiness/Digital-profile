@@ -21,6 +21,11 @@ type RouterConfig struct {
 	CORSOrigins    []string
 	HSTS           bool
 	MaxBodyBytes   int64
+	// CSRFOrigins are the origins allowed to make state-changing requests to CSRFPrefixes.
+	CSRFOrigins  []string
+	CSRFPrefixes []string
+	// StrictMiddlewares wrap every generated operation handler (e.g. authentication).
+	StrictMiddlewares []api.StrictMiddlewareFunc
 	// RateLimiter is optional; nil disables rate limiting.
 	RateLimiter *RateLimiter
 }
@@ -60,6 +65,7 @@ func NewRouter(cfg RouterConfig) (http.Handler, error) {
 		r.Use(cfg.RateLimiter.Middleware)
 	}
 	r.Use(BodyLimit(cfg.MaxBodyBytes))
+	r.Use(CSRF(cfg.CSRFOrigins, cfg.CSRFPrefixes))
 	r.Use(validate)
 
 	r.NotFound(func(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +75,7 @@ func NewRouter(cfg RouterConfig) (http.Handler, error) {
 		Error(w, r, http.StatusMethodNotAllowed, "")
 	})
 
-	strict := api.NewStrictHandlerWithOptions(cfg.Server, nil, api.StrictHTTPServerOptions{
+	strict := api.NewStrictHandlerWithOptions(cfg.Server, cfg.StrictMiddlewares, api.StrictHTTPServerOptions{
 		RequestErrorHandlerFunc: func(w http.ResponseWriter, r *http.Request, err error) {
 			ew.Write(w, r, decodeError(err))
 		},

@@ -214,25 +214,37 @@ handler (HTTP, DTO, validasyon)
 
 ---
 
-### EPIC 2 — Kimlik Doğrulama / JWT (`AUTH`)
+### EPIC 2 — Kimlik Doğrulama / JWT (`AUTH`) ✅ Tamamlandı
 
-| ID | Task | Öncelik | Tahmin | Bağımlılık |
-|---|---|---|---|---|
-| AUTH-01 | `admin_users`, `refresh_tokens` migration’ları | P0 | 0.25 | BE-03 |
-| AUTH-02 | CLI: `admin create`, `admin reset-password` (public kayıt yok) | P0 | 0.5 | AUTH-01 |
-| AUTH-03 | Parola hash’leme (argon2id), sabit zamanlı karşılaştırma | P0 | 0.25 | AUTH-01 |
-| AUTH-04 | JWT servisi: access token (15 dk, `HS256` veya `EdDSA`), `iss`/`aud`/`exp`/`jti` claim’leri, key rotation desteği (`kid`) | P0 | 1 | BE-01 |
-| AUTH-05 | Refresh token: opak, DB’de SHA-256 hash, 7 gün, **rotasyon + reuse tespiti** (çalınmış token kullanılırsa tüm family iptal) | P0 | 1 | AUTH-04 |
-| AUTH-06 | `login` / `refresh` / `logout` / `me` / `password` uçları | P0 | 1 | AUTH-05 |
-| AUTH-07 | Cookie stratejisi: `HttpOnly; Secure; SameSite=Strict`, refresh cookie `Path=/api/v1/auth` | P0 | 0.25 | AUTH-06 |
-| AUTH-08 | CSRF koruması: SameSite + state değiştiren isteklerde `Origin` kontrolü ve özel header zorunluluğu | P0 | 0.5 | AUTH-07 |
-| AUTH-09 | Auth middleware: admin route grubunu korur, claim’leri context’e koyar | P0 | 0.5 | AUTH-04 |
-| AUTH-10 | Brute-force koruması: başarısız denemede artan gecikme + geçici kilit, audit log | P0 | 0.5 | AUTH-06, BE-08 |
+| ID | Task | Öncelik | Tahmin | Bağımlılık | Durum |
+|---|---|---|---|---|---|
+| AUTH-01 | `admin_users`, `refresh_tokens` migration’ları | P0 | 0.25 | BE-03 | ✅ |
+| AUTH-02 | CLI: `admin create`, `admin reset-password` (public kayıt yok) | P0 | 0.5 | AUTH-01 | ✅ |
+| AUTH-03 | Parola hash’leme (argon2id), sabit zamanlı karşılaştırma | P0 | 0.25 | AUTH-01 | ✅ |
+| AUTH-04 | JWT servisi: access token (15 dk, `HS256` veya `EdDSA`), `iss`/`aud`/`exp`/`jti` claim’leri, key rotation desteği (`kid`) | P0 | 1 | BE-01 | ✅ |
+| AUTH-05 | Refresh token: opak, DB’de SHA-256 hash, 7 gün, **rotasyon + reuse tespiti** (çalınmış token kullanılırsa tüm family iptal) | P0 | 1 | AUTH-04 | ✅ |
+| AUTH-06 | `login` / `refresh` / `logout` / `me` / `password` uçları | P0 | 1 | AUTH-05 | ✅ |
+| AUTH-07 | Cookie stratejisi: `HttpOnly; Secure; SameSite=Strict`, refresh cookie `Path=/api/v1/auth` | P0 | 0.25 | AUTH-06 | ✅ |
+| AUTH-08 | CSRF koruması: SameSite + state değiştiren isteklerde `Origin` kontrolü ve özel header zorunluluğu | P0 | 0.5 | AUTH-07 | ✅ |
+| AUTH-09 | Auth middleware: admin route grubunu korur, claim’leri context’e koyar | P0 | 0.5 | AUTH-04 | ✅ |
+| AUTH-10 | Brute-force koruması: başarısız denemede artan gecikme + geçici kilit, audit log | P0 | 0.5 | AUTH-06, BE-08 | ✅ |
 
 **AC:**
 - Token’sız veya süresi dolmuş token’la admin uçları `401` döner.
 - Kullanılmış refresh token tekrar kullanılırsa tüm oturumlar iptal edilir.
 - Login hatası e-postanın var olup olmadığını sızdırmaz.
+
+**Uygulama notları:**
+- **Token ailesi = oturum:** Planlanan `family_id` kolonu yerine her login bir `auth_sessions` satırı açar; o oturumun tüm refresh token’ları aynı aileye aittir. Access JWT `sid` taşır ve middleware oturumun aktif olduğunu DB’den doğrular; böylece logout, parola değişikliği ve reuse tespiti access token’ları da **anında** geçersiz kılar (15 dk beklemeden).
+- **Reuse tespiti:** Kullanılmış refresh token 10 sn içinde (`AUTH_REFRESH_REUSE_GRACE`) tekrar gelirse eşzamanlı sekme yarışı sayılır: `409`, token verilmez, oturum düşmez. Sonrasında gelirse hesabın **tüm** oturumları iptal edilir, `401` döner ve audit’e yazılır. Oturumun mutlak ömrü (`AUTH_SESSION_MAX_AGE`, 30 gün) refresh ile uzamaz.
+- **Hesap sızdırmama:** Bilinmeyen e-postada da argon2id çalışır (sahte hash ile); bilinmeyen e-posta, yanlış parola ve kilitli hesap aynı `401` mesajını alır, kilitliyken doğru parola da reddedilir.
+- **Brute-force:** Eşikten (`AUTH_LOCKOUT_THRESHOLD`, 5) sonra kilit süresi her hatada ikiye katlanır (1 dk → 2 → 4 … en çok 1 sa). IP bazlı sıkı rate limit (BE-08) ile birlikte çalışır. Tüm olaylar `auth_audit_events` tablosuna IP ve user-agent ile yazılır.
+- **Parolalar:** argon2id (64 MiB, t=3, p=2, PHC formatı); eş zamanlı hash sayısı sınırlı (bellek koruması); parametreler yükseltilince eski hash’ler login’de yeniden hash’lenir. Politika: 12–128 karakter, e-postaya eşit ya da tek karakter tekrarı olamaz.
+- **JWT:** HS256, `kid` ile anahtar halkası (`AUTH_JWT_KEYS`, ilk anahtar imzalar), `iss`/`aud`/`exp`/`iat`/`jti`/`sid` zorunlu; `alg` sabitlenmiş, bilinmeyen `kid` reddedilir.
+- **Varsayılan korumalı:** Kimlik doğrulama OpenAPI sözleşmesinden türetilir; global `security` tanımlı, public uçlar açıkça `security: []` ile işaretlenir. Public uç listesi bir testle sabitlenmiştir.
+- **CSRF:** `SameSite=Strict` + `/api/v1/auth/` ve `/api/v1/admin/` altındaki state değiştiren isteklerde `X-CSRF-Protection: 1` zorunlu + `Origin` varsa `APP_PUBLIC_ORIGIN`/CORS listesinde olmalı; aksi halde `403`.
+- **Tek admin:** DB’de singleton unique index ile garanti; hesap yalnızca CLI ile açılır/sıfırlanır (`make -C be admin-create email=…`). Parola argüman olarak alınmaz (TTY’de gizli prompt, otomasyonda stdin).
+- **Bakım:** Süresi dolan ya da iptal edilip 24 saati geçen oturumlar saatlik bir iş ile temizlenir; audit kayıtları korunur.
 
 ---
 

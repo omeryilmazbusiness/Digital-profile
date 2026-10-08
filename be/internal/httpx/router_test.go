@@ -18,8 +18,10 @@ import (
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 )
 
-// stubServer lets each test decide how the handlers behave.
+// stubServer lets each test decide how the handlers behave. Operations the transport tests
+// never reach are left to the nil embedded interface.
 type stubServer struct {
+	api.StrictServerInterface
 	liveness func() (api.GetLivenessResponseObject, error)
 }
 

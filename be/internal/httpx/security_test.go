@@ -33,7 +33,7 @@ func TestCORS(t *testing.T) {
 		req := httptest.NewRequest(http.MethodOptions, "/api/v1/x", http.NoBody)
 		req.Header.Set("Origin", origin)
 		req.Header.Set("Access-Control-Request-Method", http.MethodPost)
-		req.Header.Set("Access-Control-Request-Headers", "Authorization, Content-Type")
+		req.Header.Set("Access-Control-Request-Headers", "Content-Type, "+httpx.HeaderCSRF)
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
 		return rec

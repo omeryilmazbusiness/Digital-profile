@@ -13,8 +13,20 @@ export interface ApiClientOptions {
   headers?: HeadersInit;
 }
 
+/**
+ * The API rejects state-changing auth/admin requests without this header (CSRF defence);
+ * cross-site forms cannot set it, and cross-origin scripts are stopped by CORS.
+ */
+export const CSRF_HEADER = "X-CSRF-Protection";
+
+/**
+ * Session tokens live in HttpOnly cookies, so requests must include credentials and the
+ * client never handles tokens itself.
+ */
 export function createApiClient({ baseUrl, fetch, headers }: ApiClientOptions) {
-  return createClient<paths>({ baseUrl, fetch, headers });
+  const merged = new Headers(headers);
+  merged.set(CSRF_HEADER, "1");
+  return createClient<paths>({ baseUrl, fetch, headers: merged, credentials: "include" });
 }
 
 /** Error thrown for every non-2xx response, always carrying an RFC 9457 problem. */

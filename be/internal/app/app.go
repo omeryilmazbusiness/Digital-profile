@@ -8,27 +8,46 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"sync"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/omeryilmazbusiness/digital-profile/be/db"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/config"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/auth"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/health"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/database"
 )
+
+// maxConcurrentHashes bounds argon2id memory: each hash allocates Argon2Params.MemoryKiB.
+const maxConcurrentHashes = 4
 
 type App struct {
 	cfg     config.Config
 	log     *slog.Logger
 	version string
 	handler http.Handler
+	jobs    []func(context.Context)
 	closers []func()
 }
 
+type options struct {
+	argon2 auth.Argon2Params
+	now    func() time.Time
+}
+
+// Option customises Build, mainly so tests can use a cheap password hash and a fixed clock.
+type Option func(*options)
+
+func WithArgon2Params(p auth.Argon2Params) Option { return func(o *options) { o.argon2 = p } }
+func WithClock(now func() time.Time) Option       { return func(o *options) { o.now = now } }
+
 // Bootstrap connects to the database, applies migrations when DATABASE_AUTO_MIGRATE is set,
 // and builds the App. The returned App owns the pool; call Close when done.
-func Bootstrap(ctx context.Context, cfg config.Config, log *slog.Logger, version string) (*App, error) {
+func Bootstrap(ctx context.Context, cfg config.Config, log *slog.Logger, version string, opts ...Option) (*App, error) {
 	pool, err := database.Open(ctx, cfg.DB, log)
 	if err != nil {
 		return nil, err
@@ -41,7 +60,7 @@ func Bootstrap(ctx context.Context, cfg config.Config, log *slog.Logger, version
 		}
 	}
 
-	a, err := Build(cfg, log, version, pool)
+	a, err := Build(ctx, cfg, log, version, pool, opts...)
 	if err != nil {
 		pool.Close()
 		return nil, err
@@ -69,22 +88,31 @@ func migrateUp(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) error 
 }
 
 // Build assembles the HTTP stack around an existing pool, which the caller keeps owning.
-// A nil pool builds the app without database checks, for tests of the transport layer.
-func Build(cfg config.Config, log *slog.Logger, version string, pool *pgxpool.Pool) (*App, error) {
+// The pool connects lazily, so transport-level tests can pass one for an unreachable server.
+func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version string, pool *pgxpool.Pool, opts ...Option) (*App, error) {
+	if pool == nil {
+		return nil, errors.New("app: database pool is required")
+	}
+	o := options{argon2: auth.DefaultArgon2Params, now: utcNow}
+	for _, opt := range opts {
+		opt(&o)
+	}
 	a := &App{cfg: cfg, log: log, version: version}
 
-	checks := []health.Checker{}
-	if pool != nil {
-		expected, err := database.LatestVersion(db.Migrations, db.MigrationsDir)
-		if err != nil {
-			return nil, err
-		}
-		checks = append(checks,
-			health.NewCheck("database", database.PingCheck(pool, log)),
-			health.NewCheck("migrations", database.SchemaCheck(pool, expected, log)),
-		)
+	expected, err := database.LatestVersion(db.Migrations, db.MigrationsDir)
+	if err != nil {
+		return nil, err
 	}
-	healthSvc := health.NewService(health.DefaultCheckTimeout, checks...)
+	healthSvc := health.NewService(health.DefaultCheckTimeout,
+		health.NewCheck("database", database.PingCheck(pool, log)),
+		health.NewCheck("migrations", database.SchemaCheck(pool, expected, log)),
+	)
+
+	authSvc, guard, authHandler, err := buildAuth(ctx, cfg, log, pool, o)
+	if err != nil {
+		return nil, err
+	}
+	a.jobs = append(a.jobs, sessionJanitor(authSvc, log))
 
 	trusted, err := cfg.HTTP.TrustedProxyPrefixes()
 	if err != nil {
@@ -98,13 +126,16 @@ func Build(cfg config.Config, log *slog.Logger, version string, pool *pgxpool.Po
 	}
 
 	handler, err := httpx.NewRouter(httpx.RouterConfig{
-		Log:            log,
-		Server:         &Server{Handler: health.NewHandler(healthSvc, version)},
-		TrustedProxies: trusted,
-		CORSOrigins:    cfg.CORS.AllowedOrigins,
-		HSTS:           cfg.IsProduction(),
-		MaxBodyBytes:   cfg.HTTP.MaxBodyBytes,
-		RateLimiter:    limiter,
+		Log:               log,
+		Server:            &Server{Handler: health.NewHandler(healthSvc, version), AuthHandler: authHandler},
+		TrustedProxies:    trusted,
+		CORSOrigins:       cfg.CORS.AllowedOrigins,
+		HSTS:              cfg.IsProduction(),
+		MaxBodyBytes:      cfg.HTTP.MaxBodyBytes,
+		RateLimiter:       limiter,
+		CSRFOrigins:       append([]string{cfg.PublicOrigin}, cfg.CORS.AllowedOrigins...),
+		CSRFPrefixes:      []string{"/api/v1/auth/", "/api/v1/admin/"},
+		StrictMiddlewares: []api.StrictMiddlewareFunc{guard.Middleware},
 	})
 	if err != nil {
 		a.Close()
@@ -112,6 +143,53 @@ func Build(cfg config.Config, log *slog.Logger, version string, pool *pgxpool.Po
 	}
 	a.handler = handler
 	return a, nil
+}
+
+func buildAuth(ctx context.Context, cfg config.Config, log *slog.Logger, pool *pgxpool.Pool, o options) (*auth.Service, *auth.Guard, *auth.Handler, error) {
+	keys, err := cfg.Auth.SigningKeys()
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	tokens, err := auth.NewTokenIssuer(keys, cfg.Auth.JWTIssuer, cfg.Auth.JWTAudience, cfg.Auth.AccessTTL, o.now)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	hasher := auth.NewPasswordHasher(o.argon2, maxConcurrentHashes)
+	svc, err := auth.NewService(ctx, pool, hasher, tokens, auth.PolicyFrom(cfg.Auth), o.now, log)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	spec, err := api.GetSpec()
+	if err != nil {
+		return nil, nil, nil, fmt.Errorf("load openapi spec: %w", err)
+	}
+	cookies := auth.Cookies{Secure: cfg.Auth.CookieSecure}
+	return svc, auth.NewGuard(spec, svc, cookies), auth.NewHandler(svc, cookies, o.now), nil
+}
+
+// sessionJanitor deletes long-expired sessions hourly so the tables stay small.
+func sessionJanitor(svc *auth.Service, log *slog.Logger) func(context.Context) {
+	const (
+		interval = time.Hour
+		retain   = 24 * time.Hour
+	)
+	return func(ctx context.Context) {
+		t := time.NewTicker(interval)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-t.C:
+				n, err := svc.PurgeExpiredSessions(ctx, retain)
+				if err != nil {
+					log.WarnContext(ctx, "purge expired sessions", "error", err)
+				} else if n > 0 {
+					log.InfoContext(ctx, "purged expired sessions", "count", n)
+				}
+			}
+		}
+	}
 }
 
 // Handler exposes the fully assembled HTTP handler, mainly for tests.
@@ -147,6 +225,16 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 		BaseContext:       func(net.Listener) context.Context { return context.WithoutCancel(ctx) },
 	}
 
+	jobsCtx, stopJobs := context.WithCancel(context.WithoutCancel(ctx))
+	var jobs sync.WaitGroup
+	for _, job := range a.jobs {
+		jobs.Go(func() { job(jobsCtx) })
+	}
+	defer func() {
+		stopJobs()
+		jobs.Wait()
+	}()
+
 	serveErr := make(chan error, 1)
 	go func() {
 		a.log.InfoContext(ctx, "http server started", "addr", ln.Addr().String(), "env", a.cfg.Env, "version", a.version)
@@ -173,3 +261,6 @@ func (a *App) Serve(ctx context.Context, ln net.Listener) error {
 	a.log.InfoContext(shutdownCtx, "http server stopped")
 	return nil
 }
+
+// utcNow keeps every timestamp the API emits in UTC, independent of the host time zone.
+func utcNow() time.Time { return time.Now().UTC() }

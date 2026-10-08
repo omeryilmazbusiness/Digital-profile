@@ -20,6 +20,8 @@ func SecurityHeaders(hsts bool) func(http.Handler) http.Handler {
 			h.Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
 			h.Set("Cross-Origin-Opener-Policy", "same-origin")
 			h.Set("Cross-Origin-Resource-Policy", "same-origin")
+			// API responses are private by default; handlers serving cacheable content override it.
+			h.Set("Cache-Control", "no-store")
 			if hsts {
 				h.Set("Strict-Transport-Security", "max-age=63072000; includeSubDomains")
 			}
@@ -37,7 +39,7 @@ func CORS(origins []string) func(http.Handler) http.Handler {
 	return cors.Handler(cors.Options{
 		AllowedOrigins:   origins,
 		AllowedMethods:   []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodPatch, http.MethodDelete},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", HeaderRequestID},
+		AllowedHeaders:   []string{"Accept", "Content-Type", HeaderRequestID, HeaderCSRF},
 		ExposedHeaders:   []string{HeaderRequestID, "Retry-After"},
 		AllowCredentials: true,
 		MaxAge:           int((10 * time.Minute).Seconds()),

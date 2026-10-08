@@ -34,7 +34,7 @@ func TestContract(t *testing.T) {
 	}
 
 	pool := dbtest.New(t)
-	a, err := app.Build(testConfig(t, nil), discardLogger(), "1.0.0", pool)
+	a, err := app.Build(t.Context(), testConfig(t, nil), discardLogger(), "1.0.0", pool, app.WithArgon2Params(fastArgon2))
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}

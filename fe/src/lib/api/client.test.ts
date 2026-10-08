@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { ApiError, createApiClient, isProblem, unwrap } from "./client";
+import { ApiError, CSRF_HEADER, createApiClient, isProblem, unwrap } from "./client";
 
 function jsonResponse(body: unknown, init: ResponseInit & { contentType?: string } = {}) {
   const { contentType = "application/json", ...rest } = init;
@@ -25,6 +25,16 @@ describe("createApiClient", () => {
     const request = fetch.mock.calls[0]?.[0] as Request;
     expect(request.url).toBe("http://api.test/healthz");
     expect(request.method).toBe("GET");
+  });
+
+  it("sends cookies and the CSRF header on every request", async () => {
+    const { api, fetch } = clientReturning(new Response(null, { status: 204 }));
+
+    await api.POST("/api/v1/auth/logout");
+
+    const request = fetch.mock.calls[0]?.[0] as Request;
+    expect(request.credentials).toBe("include");
+    expect(request.headers.get(CSRF_HEADER)).toBe("1");
   });
 });
 

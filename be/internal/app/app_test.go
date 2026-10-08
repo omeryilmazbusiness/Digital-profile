@@ -11,11 +11,19 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/app"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/config"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/auth"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/database/dbtest"
 )
+
+const testJWTKey = "test:dGVzdC1zaWduaW5nLWtleS10aGF0LWlzLWxvbmctZW5vdWdoIQ=="
+
+// fastArgon2 keeps password hashing cheap in tests; production uses auth.DefaultArgon2Params.
+var fastArgon2 = auth.Argon2Params{MemoryKiB: 8 * 1024, Iterations: 1, Parallelism: 1, SaltLen: 16, KeyLen: 32}
 
 func testConfig(t *testing.T, overrides map[string]string) config.Config {
 	t.Helper()
@@ -25,6 +33,8 @@ func testConfig(t *testing.T, overrides map[string]string) config.Config {
 		"HTTP_SHUTDOWN_TIMEOUT": "2s",
 		"DATABASE_URL":          "postgres://unused@127.0.0.1:1/unused?sslmode=disable",
 		"DATABASE_MIN_CONNS":    "0",
+		"AUTH_JWT_KEYS":         testJWTKey,
+		"AUTH_COOKIE_SECURE":    "false",
 	}
 	for k, v := range overrides {
 		vars[k] = v
@@ -40,7 +50,13 @@ func discardLogger() *slog.Logger { return slog.New(slog.DiscardHandler) }
 
 func build(t *testing.T, cfg config.Config) *app.App {
 	t.Helper()
-	a, err := app.Build(cfg, discardLogger(), "9.9.9", nil)
+	// The pool connects lazily, so an unreachable DATABASE_URL is fine for transport tests.
+	pool, err := pgxpool.New(t.Context(), cfg.DB.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(pool.Close)
+	a, err := app.Build(t.Context(), cfg, discardLogger(), "9.9.9", pool, app.WithArgon2Params(fastArgon2))
 	if err != nil {
 		t.Fatalf("Build: %v", err)
 	}
@@ -115,7 +131,11 @@ func TestApp_RunFailsOnBusyPort(t *testing.T) {
 }
 
 func TestApp_ProductionSendsHSTS(t *testing.T) {
-	a := build(t, testConfig(t, map[string]string{"APP_ENV": "production"}))
+	a := build(t, testConfig(t, map[string]string{
+		"APP_ENV":            "production",
+		"APP_PUBLIC_ORIGIN":  "https://admin.example.com",
+		"AUTH_COOKIE_SECURE": "true",
+	}))
 	res, _ := get(t, a.Handler(), "/healthz")
 	if res.Header.Get("Strict-Transport-Security") == "" {
 		t.Error("HSTS missing in production")

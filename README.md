@@ -83,6 +83,28 @@ Run `make help` (root), `make -C be help` or `make -C fe help` for the full list
 | `make -C be infra-reset`| Wipe local Postgres/storage data                              |
 | `make -C be migrate-create name=x` | New up/down migration pair                         |
 | `make -C be migrate-up` / `migrate-down` / `migrate-version` | Manage the schema by hand |
+| `make -C be admin-create email=x` / `admin-reset-password email=x` | Manage the admin account |
+| `make -C be jwt-key`    | Generate an `AUTH_JWT_KEYS` entry                             |
+
+## Admin access
+
+There is no public sign-up. Create the single admin account from the CLI (the password is
+prompted for, never passed as an argument):
+
+```bash
+make -C be admin-create email=you@example.com
+make -C be admin-reset-password email=you@example.com   # also unlocks and signs out everywhere
+```
+
+- Sessions use two `HttpOnly; SameSite=Strict` cookies: a 15-minute JWT access token and an
+  opaque, single-use refresh token (`Path=/api/v1/auth`). Over HTTPS they are named
+  `__Host-dp_access` / `__Secure-dp_refresh`. Tokens never appear in response bodies.
+- Every operation requires a session unless the OpenAPI contract marks it `security: []`.
+- State-changing requests under `/api/v1/auth/` and `/api/v1/admin/` must send
+  `X-CSRF-Protection: 1` (the generated FE client does) and, from browsers, an allowed `Origin`.
+- `AUTH_JWT_KEYS` is a key ring (`kid:base64`, first key signs). Generate entries with
+  `make -C be jwt-key`; rotate by prepending a new key and dropping the old one after 15 minutes.
+- Production requires `AUTH_COOKIE_SECURE=true` and an `https` `APP_PUBLIC_ORIGIN`.
 
 ## Database
 
@@ -99,7 +121,10 @@ Run `make help` (root), `make -C be help` or `make -C fe help` for the full list
 1. Edit `be/api/openapi.yaml`.
 2. `make generate` — the Go build now fails until every new operation is implemented.
 3. Implement the operation in the owning module and embed its handler in `be/internal/app/server.go`.
-4. Add the endpoint to `be/internal/app/contract_test.go`; it validates real responses against the spec.
+4. Exercise the endpoint in `be/internal/app` tests (`contract_test.go`, or the `browser` helper in
+   `auth_test.go`); both validate real responses against the spec. New operations are
+   authenticated by default; making one public means `security: []` in the spec plus updating
+   `TestGuard_PublicOperations`.
 5. Use the regenerated types in `fe/` through `fe/src/lib/api/client.ts`.
 
 ## Conventions
