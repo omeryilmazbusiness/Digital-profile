@@ -183,24 +183,34 @@ handler (HTTP, DTO, validasyon)
 
 ---
 
-### EPIC 1 — Backend Çekirdeği (`BE`)
+### EPIC 1 — Backend Çekirdeği (`BE`) ✅ Tamamlandı
 
-| ID | Task | Öncelik | Tahmin | Bağımlılık |
-|---|---|---|---|---|
-| BE-01 | Config paketi: env okuma, zorunlu alan doğrulama, fail-fast | P0 | 0.5 | INF-03 |
-| BE-02 | `slog` JSON logger, request-id middleware, access log | P0 | 0.5 | BE-01 |
-| BE-03 | pgx pool, `TxManager`, sqlc konfig, migration runner | P0 | 1 | BE-01 |
-| BE-04 | HTTP sunucu: chi router, graceful shutdown, timeouts, panic recovery | P0 | 0.5 | BE-02 |
-| BE-05 | Hata modeli (RFC 9457 problem+json), domain hata → HTTP eşleme | P0 | 0.5 | BE-04 |
-| BE-06 | Validasyon katmanı (`go-playground/validator`), alan bazlı hata mesajları | P0 | 0.5 | BE-05 |
-| BE-07 | Güvenlik middleware’leri: CORS (tek origin), security header’ları, body size limit | P0 | 0.5 | BE-04 |
-| BE-08 | Rate limiter (IP bazlı, token bucket; public & login uçları için ayrı profiller) | P0 | 0.5 | BE-04 |
-| BE-09 | `/healthz` (liveness), `/readyz` (DB + storage kontrolü) | P0 | 0.25 | BE-03 |
-| BE-10 | Test altyapısı: `testcontainers-go` ile gerçek Postgres entegrasyon testleri | P0 | 1 | BE-03 |
+| ID | Task | Öncelik | Tahmin | Bağımlılık | Durum |
+|---|---|---|---|---|---|
+| BE-01 | Config paketi: env okuma, zorunlu alan doğrulama, fail-fast | P0 | 0.5 | INF-03 | ✅ |
+| BE-02 | `slog` JSON logger, request-id middleware, access log | P0 | 0.5 | BE-01 | ✅ |
+| BE-03 | pgx pool, `TxManager`, sqlc konfig, migration runner | P0 | 1 | BE-01 | ✅ |
+| BE-04 | HTTP sunucu: chi router, graceful shutdown, timeouts, panic recovery | P0 | 0.5 | BE-02 | ✅ |
+| BE-05 | Hata modeli (RFC 9457 problem+json), domain hata → HTTP eşleme | P0 | 0.5 | BE-04 | ✅ |
+| BE-06 | Validasyon katmanı (`go-playground/validator`), alan bazlı hata mesajları | P0 | 0.5 | BE-05 | ✅ |
+| BE-07 | Güvenlik middleware’leri: CORS (tek origin), security header’ları, body size limit | P0 | 0.5 | BE-04 | ✅ |
+| BE-08 | Rate limiter (IP bazlı, token bucket; public & login uçları için ayrı profiller) | P0 | 0.5 | BE-04 | ✅ |
+| BE-09 | `/healthz` (liveness), `/readyz` (DB + storage kontrolü) | P0 | 0.25 | BE-03 | ✅ ² |
+| BE-10 | Test altyapısı: `testcontainers-go` ile gerçek Postgres entegrasyon testleri | P0 | 1 | BE-03 | ✅ |
 
 **AC:**
 - Sunucu SIGTERM’de açık istekleri bitirip kapanır.
 - Tüm hatalar tutarlı problem+json formatında döner; stack trace istemciye sızmaz.
+
+**Uygulama notları:**
+- **Hata modeli:** Servisler `apperr` tipleri döner; HTTP katmanı türü status’a eşler. Sözleşme ihlali (bozuk JSON, şemaya uymayan alan) **400**, iş kuralı ihlali **422** döner; ikisi de alan bazlı `errors[]` içerir. 5xx’lerde neden yalnızca loglanır, istemciye gitmez.
+- **Çift katmanlı doğrulama:** İstekler önce OpenAPI şemasına göre middleware’de doğrulanır (tip, format, zorunlu alan, bilinmeyen alan); iş kuralları (`checkOut > checkIn` gibi) `validation` paketiyle serviste kontrol edilir.
+- **Transaction:** `TxManager.WithinTx` iç içe çağrıları tek transaction’da birleştirir; hata ya da panic’te rollback yapar. Repository’ler `database.Executor(ctx, pool)` ile tx içinde ya da dışında aynı kodla çalışır.
+- **Migration:** Dosyalar binary’ye gömülü. Dev’de `DATABASE_AUTO_MIGRATE=true` açılışta uygular; prod’da `cli migrate up` ayrı bir release adımıdır. `/readyz`, şema sürümü binary’nin beklediğinden farklıysa ya da dirty ise 503 döner.
+- **İstemci IP:** `X-Forwarded-For` yalnızca güvenilen proxy’den (`HTTP_TRUSTED_PROXIES`) gelirse ve sağdan sola okunarak kullanılır; sahte header ile rate limit atlatılamaz.
+- **Rate limit:** Login ve public form uçları ayrı, sıkı bir kovada tutulur. Probe’lar ve CORS preflight sınırlanmaz. Bellek 100k istemciyle sınırlıdır.
+- **Test DB:** Testler `TEST_DATABASE_URL` varsa onu, yoksa Docker üzerinden testcontainers’ı kullanır. Migration’lar bir kez şablon DB’ye uygulanır, her test kendi kopyasını alır (paralel ve izole). DB yoksa yerelde atlanır, CI’da başarısız olur.
+- ² Storage kontrolü, `Storage` arayüzü gelince MED-01 ile eklenecek.
 
 ---
 

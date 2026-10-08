@@ -48,7 +48,7 @@ jobs:
   be:
     name: Backend (be)
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: be
@@ -74,6 +74,8 @@ jobs:
       - name: Check formatting
         run: test -z "$(golangci-lint fmt --diff ./... 2>&1)" || { golangci-lint fmt --diff ./...; exit 1; }
 
+      # Integration tests start PostgreSQL through testcontainers on the runner's Docker.
+      # CI=true makes them fail instead of skip when no database is available.
       - name: Test
         run: make cover
 

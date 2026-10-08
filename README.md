@@ -21,12 +21,17 @@ frontend, and the frontend only touches the backend through the generated, typed
 ```
 be/                       Go backend
   api/openapi.yaml          HTTP contract — single source of truth
-  cmd/api/                  process entrypoint
+  cmd/api/                  API server entrypoint
+  cmd/cli/                  operational commands (migrations)
+  db/migrations/            SQL migrations, embedded into the binaries
+  db/queries/               SQL for sqlc (shared/platform queries)
   internal/api/             generated server interface + models (do not edit)
   internal/app/             wiring, lifecycle, contract tests
+  internal/apperr/          transport-agnostic application errors
   internal/httpx/           problem+json errors, middleware, router
+  internal/validation/      business-rule validation with field errors
   internal/modules/<name>/  one package per bounded context
-  internal/platform/        infrastructure adapters (logger, db, storage, mail…)
+  internal/platform/        infrastructure adapters (logger, database, storage, mail…)
   deploy/                   local infrastructure (docker compose)
   tools/                    pinned developer tools (separate go.mod)
   .env.example              backend configuration
@@ -76,6 +81,18 @@ Run `make help` (root), `make -C be help` or `make -C fe help` for the full list
 | `make build`            | Versioned static Go binary + Next.js standalone build         |
 | `make check`            | Everything CI runs                                            |
 | `make -C be infra-reset`| Wipe local Postgres/storage data                              |
+| `make -C be migrate-create name=x` | New up/down migration pair                         |
+| `make -C be migrate-up` / `migrate-down` / `migrate-version` | Manage the schema by hand |
+
+## Database
+
+- Schema changes are SQL migrations in `be/db/migrations`, embedded into the binaries.
+  In development the API applies them on startup (`DATABASE_AUTO_MIGRATE=true`); in production
+  run `cli migrate up` as a release step. `/readyz` reports 503 while the schema does not match
+  the version the binary expects.
+- Queries are plain SQL compiled to type-safe Go by sqlc (`make generate`).
+- Integration tests run against real PostgreSQL: `TEST_DATABASE_URL` if set, otherwise a
+  throwaway container via testcontainers (Docker). Each test gets its own migrated database.
 
 ## Changing the API
 
@@ -88,6 +105,7 @@ Run `make help` (root), `make -C be help` or `make -C fe help` for the full list
 ## Conventions
 
 - Every error response is RFC 9457 `application/problem+json` with a `requestId`.
+  Contract violations answer 400, business-rule violations 422, both with field-level `errors`.
 - Configuration comes only from environment variables and is validated at startup (fail fast).
 - Generated files (`*.gen.go`, `*.gen.ts`) are committed and never edited by hand.
 - Commits run format + lint on staged files; pushes run the contract drift check.

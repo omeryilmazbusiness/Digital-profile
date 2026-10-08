@@ -11,8 +11,10 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/config"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 )
 
@@ -38,7 +40,86 @@ func newRouter(t *testing.T, s stubServer) (http.Handler, *bytes.Buffer) {
 			return api.GetLiveness200JSONResponse{Status: api.Up, Version: "test"}, nil
 		}
 	}
-	return httpx.NewRouter(log, s), &logs
+	h, err := httpx.NewRouter(httpx.RouterConfig{Log: log, Server: s, MaxBodyBytes: 1 << 10})
+	if err != nil {
+		t.Fatalf("NewRouter: %v", err)
+	}
+	return h, &logs
+}
+
+func TestNewRouter_RequiresDependencies(t *testing.T) {
+	log := slog.New(slog.DiscardHandler)
+	for name, cfg := range map[string]httpx.RouterConfig{
+		"no logger":   {Server: stubServer{}, MaxBodyBytes: 1},
+		"no server":   {Log: log, MaxBodyBytes: 1},
+		"no body cap": {Log: log, Server: stubServer{}},
+	} {
+		if _, err := httpx.NewRouter(cfg); err == nil {
+			t.Errorf("%s: NewRouter succeeded", name)
+		}
+	}
+}
+
+func TestRouter_SecurityHeadersOnEveryResponse(t *testing.T) {
+	h, _ := newRouter(t, stubServer{})
+	for _, path := range []string{"/healthz", "/nope"} {
+		res := serve(h, http.MethodGet, path)
+		_ = res.Body.Close()
+		for _, hdr := range []string{"X-Content-Type-Options", "X-Frame-Options", "Content-Security-Policy", "Referrer-Policy"} {
+			if res.Header.Get(hdr) == "" {
+				t.Errorf("%s: missing %s", path, hdr)
+			}
+		}
+		if res.Header.Get("Strict-Transport-Security") != "" {
+			t.Errorf("%s: HSTS sent although disabled", path)
+		}
+	}
+}
+
+func TestRouter_OversizeBodyIs413(t *testing.T) {
+	h, _ := newRouter(t, stubServer{})
+	req := httptest.NewRequest(http.MethodPost, "/healthz", strings.NewReader(strings.Repeat("x", 2<<10)))
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, req)
+	res := rec.Result()
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d, want 413", res.StatusCode)
+	}
+	decodeProblem(t, res)
+}
+
+func TestRouter_RateLimitedIs429(t *testing.T) {
+	limiter := httpx.NewRateLimiter(config.RateLimit{Enabled: true, RPS: 0.001, Burst: 1, StrictRPS: 1, StrictBurst: 1, IdleTTL: time.Hour})
+	t.Cleanup(limiter.Close)
+	up := stubServer{liveness: func() (api.GetLivenessResponseObject, error) {
+		return api.GetLiveness200JSONResponse{Status: api.Up, Version: "test"}, nil
+	}}
+	h, err := httpx.NewRouter(httpx.RouterConfig{Log: slog.New(slog.DiscardHandler), Server: up, MaxBodyBytes: 1, RateLimiter: limiter})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	first := serve(h, http.MethodGet, "/anything")
+	_ = first.Body.Close()
+	if first.StatusCode != http.StatusNotFound {
+		t.Fatalf("first request status = %d, want 404 (allowed)", first.StatusCode)
+	}
+	res := serve(h, http.MethodGet, "/anything")
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusTooManyRequests {
+		t.Fatalf("status = %d, want 429", res.StatusCode)
+	}
+	if res.Header.Get("Retry-After") == "" {
+		t.Error("Retry-After missing")
+	}
+	decodeProblem(t, res)
+
+	probe := serve(h, http.MethodGet, "/healthz")
+	_ = probe.Body.Close()
+	if probe.StatusCode != http.StatusOK {
+		t.Errorf("probe status = %d, probes must never be rate limited", probe.StatusCode)
+	}
 }
 
 func decodeProblem(t *testing.T, res *http.Response) api.Problem {

@@ -9,9 +9,13 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/omeryilmazbusiness/digital-profile/be/db"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/config"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/health"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/database"
 )
 
 type App struct {
@@ -19,25 +23,107 @@ type App struct {
 	log     *slog.Logger
 	version string
 	handler http.Handler
+	closers []func()
 }
 
-func New(cfg config.Config, log *slog.Logger, version string) *App {
-	healthSvc := health.NewService(health.DefaultCheckTimeout)
-
-	server := &Server{
-		Handler: health.NewHandler(healthSvc, version),
+// Bootstrap connects to the database, applies migrations when DATABASE_AUTO_MIGRATE is set,
+// and builds the App. The returned App owns the pool; call Close when done.
+func Bootstrap(ctx context.Context, cfg config.Config, log *slog.Logger, version string) (*App, error) {
+	pool, err := database.Open(ctx, cfg.DB, log)
+	if err != nil {
+		return nil, err
 	}
 
-	return &App{
-		cfg:     cfg,
-		log:     log,
-		version: version,
-		handler: httpx.NewRouter(log, server),
+	if cfg.DB.AutoMigrate {
+		if err := migrateUp(ctx, pool, log); err != nil {
+			pool.Close()
+			return nil, err
+		}
 	}
+
+	a, err := Build(cfg, log, version, pool)
+	if err != nil {
+		pool.Close()
+		return nil, err
+	}
+	a.closers = append(a.closers, pool.Close)
+	return a, nil
+}
+
+func migrateUp(ctx context.Context, pool *pgxpool.Pool, log *slog.Logger) error {
+	m, err := database.NewMigrator(pool, db.Migrations, db.MigrationsDir, log)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = m.Close() }()
+
+	if err := m.Up(ctx); err != nil {
+		return err
+	}
+	v, _, err := m.Version()
+	if err != nil {
+		return err
+	}
+	log.InfoContext(ctx, "database schema up to date", "version", v)
+	return nil
+}
+
+// Build assembles the HTTP stack around an existing pool, which the caller keeps owning.
+// A nil pool builds the app without database checks, for tests of the transport layer.
+func Build(cfg config.Config, log *slog.Logger, version string, pool *pgxpool.Pool) (*App, error) {
+	a := &App{cfg: cfg, log: log, version: version}
+
+	checks := []health.Checker{}
+	if pool != nil {
+		expected, err := database.LatestVersion(db.Migrations, db.MigrationsDir)
+		if err != nil {
+			return nil, err
+		}
+		checks = append(checks,
+			health.NewCheck("database", database.PingCheck(pool, log)),
+			health.NewCheck("migrations", database.SchemaCheck(pool, expected, log)),
+		)
+	}
+	healthSvc := health.NewService(health.DefaultCheckTimeout, checks...)
+
+	trusted, err := cfg.HTTP.TrustedProxyPrefixes()
+	if err != nil {
+		return nil, err
+	}
+
+	var limiter *httpx.RateLimiter
+	if cfg.RateLimit.Enabled {
+		limiter = httpx.NewRateLimiter(cfg.RateLimit)
+		a.closers = append(a.closers, limiter.Close)
+	}
+
+	handler, err := httpx.NewRouter(httpx.RouterConfig{
+		Log:            log,
+		Server:         &Server{Handler: health.NewHandler(healthSvc, version)},
+		TrustedProxies: trusted,
+		CORSOrigins:    cfg.CORS.AllowedOrigins,
+		HSTS:           cfg.IsProduction(),
+		MaxBodyBytes:   cfg.HTTP.MaxBodyBytes,
+		RateLimiter:    limiter,
+	})
+	if err != nil {
+		a.Close()
+		return nil, err
+	}
+	a.handler = handler
+	return a, nil
 }
 
 // Handler exposes the fully assembled HTTP handler, mainly for tests.
 func (a *App) Handler() http.Handler { return a.handler }
+
+// Close releases resources owned by the App in reverse acquisition order. Idempotent.
+func (a *App) Close() {
+	for i := len(a.closers) - 1; i >= 0; i-- {
+		a.closers[i]()
+	}
+	a.closers = nil
+}
 
 // Run serves HTTP until ctx is cancelled, then drains in-flight requests
 // within the configured shutdown timeout.

@@ -6,7 +6,8 @@ REDOCLY               := npx --yes @redocly/cli@2.60.0
 TOOL                  := go tool -modfile=tools/go.mod
 COMPOSE               := docker compose -f deploy/docker-compose.dev.yml --env-file .env
 LOAD_ENV              := set -a && source ./.env && set +a
-GENERATED             := internal/api
+GENERATED             := internal/api internal/platform/database/dbgen
+MIGRATIONS            := db/migrations
 VERSION               ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS               := -s -w -X github.com/omeryilmazbusiness/digital-profile/be/internal/buildinfo.Version=$(VERSION)
 
@@ -57,6 +58,38 @@ infra-reset: ## Stop infrastructure and DELETE all local data
 infra-logs: ## Follow infrastructure logs
 	$(COMPOSE) logs -f
 
+# --- Database ------------------------------------------------------------------
+# The API applies migrations itself when DATABASE_AUTO_MIGRATE=true (development default).
+# Production runs `cli migrate up` as an explicit release step.
+
+.PHONY: migrate-up
+migrate-up: .env ## Apply all pending migrations
+	$(LOAD_ENV) && go run ./cmd/cli migrate up
+
+.PHONY: migrate-down
+migrate-down: .env ## Roll back migrations (steps=N, default 1)
+	$(LOAD_ENV) && go run ./cmd/cli migrate down -steps $(or $(steps),1)
+
+.PHONY: migrate-version
+migrate-version: .env ## Show applied vs expected schema version
+	$(LOAD_ENV) && go run ./cmd/cli migrate version
+
+.PHONY: migrate-force
+migrate-force: .env ## Clear a dirty state after a manual fix (version=N)
+	@test -n "$(version)" || { echo "usage: make migrate-force version=N"; exit 2; }
+	$(LOAD_ENV) && go run ./cmd/cli migrate force -version $(version)
+
+.PHONY: migrate-create
+migrate-create: ## Create an empty up/down migration pair (name=snake_case_name)
+	@[[ "$(name)" =~ ^[a-z0-9_]+$$ ]] || { echo "usage: make migrate-create name=snake_case_name"; exit 2; }
+	@last=$$(ls $(MIGRATIONS) | sed -nE 's/^([0-9]+)_.*\.up\.sql$$/\1/p' | sort -n | tail -1); \
+	next=$$(printf '%06d' $$((10#$${last:-0} + 1))); \
+	for dir in up down; do \
+		f="$(MIGRATIONS)/$${next}_$(name).$${dir}.sql"; \
+		printf -- '-- %s migration: %s\n' "$$dir" "$(name)" > "$$f"; \
+		echo "created $$f"; \
+	done
+
 # --- API contract --------------------------------------------------------------
 
 .PHONY: api-lint
@@ -64,7 +97,7 @@ api-lint: ## Lint api/openapi.yaml
 	$(REDOCLY) lint --format=stylish
 
 .PHONY: generate
-generate: ## Regenerate server code from api/openapi.yaml
+generate: ## Regenerate code from api/openapi.yaml (oapi-codegen) and db/queries (sqlc)
 	go generate ./...
 
 .PHONY: drift-check
@@ -76,7 +109,7 @@ drift-check: generate ## Fail if generated server code is stale
 		[ -z "$$untracked" ] || printf 'untracked:\n%s\n' "$$untracked"; \
 		exit 1; \
 	fi
-	@echo "be: generated code is in sync with api/openapi.yaml"
+	@echo "be: generated code is in sync with api/openapi.yaml and db/queries"
 
 # --- Quality gates -------------------------------------------------------------
 
@@ -94,6 +127,8 @@ tidy-check: ## Fail if go.mod/go.sum are not tidy
 	go mod tidy -diff
 	cd tools && go mod tidy -diff
 
+# Integration tests use TEST_DATABASE_URL when set, otherwise start PostgreSQL via Docker
+# (testcontainers). Without either they are skipped locally and fail under CI.
 .PHONY: test
 test: ## Run tests with the race detector
 	go test -race -count=1 ./...
@@ -104,8 +139,9 @@ cover: ## Run tests and print coverage
 	go tool cover -func=coverage.out | tail -1
 
 .PHONY: build
-build: ## Build a static, versioned binary into ./bin
+build: ## Build static, versioned binaries (api, cli) into ./bin
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/api ./cmd/api
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/cli ./cmd/cli
 
 .PHONY: check
 check: tidy-check lint test build ## Everything CI runs for the backend

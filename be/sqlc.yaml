@@ -1,0 +1,22 @@
+# Type-safe query code generation. Run via `make generate`.
+# Schema is read from the golang-migrate files (down migrations are ignored).
+# Each bounded context adds its own entry with the same go options:
+# queries in internal/modules/<name>/queries, output in internal/modules/<name>/store.
+version: "2"
+
+sql:
+  - engine: postgresql
+    schema: db/migrations
+    queries: db/queries
+    gen:
+      go:
+        package: dbgen
+        out: internal/platform/database/dbgen
+        sql_package: pgx/v5
+        emit_interface: true
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+        output_db_file_name: db.gen.go
+        output_models_file_name: models.gen.go
+        output_querier_file_name: querier.gen.go
+        output_files_suffix: .gen

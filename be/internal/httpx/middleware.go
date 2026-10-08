@@ -40,6 +40,13 @@ func recoverPanic(log *slog.Logger, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func clientIPString(r *http.Request) string {
+	if ip := ClientIPFrom(r.Context()); ip.IsValid() {
+		return ip.String()
+	}
+	return ""
+}
+
 // RequestLogger emits one structured access log line per request.
 func RequestLogger(log *slog.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -63,6 +70,7 @@ func RequestLogger(log *slog.Logger) func(http.Handler) http.Handler {
 
 			log.LogAttrs(r.Context(), level, "http request",
 				slog.String("request_id", middleware.GetReqID(r.Context())),
+				slog.String("client_ip", clientIPString(r)),
 				slog.String("method", r.Method),
 				slog.String("path", r.URL.Path),
 				slog.Int("status", status),

@@ -34,5 +34,11 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	return app.New(cfg, log, buildinfo.Version).Run(ctx)
+	a, err := app.Bootstrap(ctx, cfg, log, buildinfo.Version)
+	if err != nil {
+		return err
+	}
+	defer a.Close()
+
+	return a.Run(ctx)
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/app"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/database/dbtest"
 )
 
 // TestContract validates that real responses from the assembled app conform to the
@@ -32,7 +33,13 @@ func TestContract(t *testing.T) {
 		t.Fatalf("build spec router: %v", err)
 	}
 
-	handler := app.New(testConfig(t), discardLogger(), "1.0.0").Handler()
+	pool := dbtest.New(t)
+	a, err := app.Build(testConfig(t, nil), discardLogger(), "1.0.0", pool)
+	if err != nil {
+		t.Fatalf("Build: %v", err)
+	}
+	t.Cleanup(a.Close)
+	handler := a.Handler()
 
 	tests := []struct {
 		method, path string
