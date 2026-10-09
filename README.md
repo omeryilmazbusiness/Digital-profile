@@ -161,6 +161,26 @@ The UI is an iOS-style, mobile-first kit in `fe/src/components/ui`, driven by th
 - Browse everything at **http://localhost:3000/design**, with theme and RTL toggles. Production builds
   return 404 there unless `DESIGN_GALLERY=true`.
 
+## Home hero
+
+The home page opens with a scroll-scrubbed film: `ScrollCanvasVideo`
+(`fe/src/components/scroll`) paints WebP frames onto a canvas while the section is pinned, and
+Lenis drives smooth scrolling for the public site. Visitors who prefer reduced motion or have
+Save-Data on get a single poster frame with the same copy instead.
+
+The frames are generated from a video, not edited by hand. To replace the film (needs ffmpeg with
+libwebp; set `FFMPEG` to use a specific binary):
+
+```sh
+cd fe
+scripts/extract-frames.sh ~/path/to/video.mp4 hero src/features/home/hero-frames.gen.ts
+```
+
+The script writes a landscape set (1600 px wide) and a portrait 3:4 crop for phones to
+`public/frames/hero-<hash>/` and updates the manifest. The directory name changes with the content,
+so frames are served with an immutable one-year cache. Keep clips short (about 5 s / 120 frames).
+Scene copy and timing live in `fe/src/features/home/home-hero.tsx`.
+
 ## Changing the API
 
 1. Edit `be/api/openapi.yaml`.

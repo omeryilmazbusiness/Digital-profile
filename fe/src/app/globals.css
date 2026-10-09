@@ -356,6 +356,23 @@
   }
 }
 
+/* Dark glass for surfaces over photos and video, whatever the page's color scheme. (The
+   scheme-adaptive materials above resolve light-dark() at :root, so color-scheme on the
+   element cannot switch them.) */
+@utility material-dark {
+  background-color: rgb(18 18 20 / 0.42);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: rgb(28 28 30 / 0.92);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: rgb(28 28 30);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
 /* Safe-area padding (notch, home indicator), optionally plus spacing: pb-safe, pb-safe-4. */
 @utility pt-safe {
   padding-top: env(safe-area-inset-top, 0px);

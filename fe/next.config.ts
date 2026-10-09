@@ -7,6 +7,15 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  async headers() {
+    return [
+      {
+        // Frame directories are named after their content hash (scripts/extract-frames.sh).
+        source: "/frames/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {
