@@ -19,7 +19,10 @@ import (
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/auth"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/health"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/media"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/database"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/imaging"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/storage"
 )
 
 // maxConcurrentHashes bounds argon2id memory: each hash allocates Argon2Params.MemoryKiB.
@@ -103,19 +106,39 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 	if err != nil {
 		return nil, err
 	}
+	blobs, closeBlobs, err := openStorage(cfg)
+	if err != nil {
+		return nil, err
+	}
+	a.closers = append(a.closers, closeBlobs)
+
 	healthSvc := health.NewService(health.DefaultCheckTimeout,
 		health.NewCheck("database", database.PingCheck(pool, log)),
 		health.NewCheck("migrations", database.SchemaCheck(pool, expected, log)),
+		health.NewCheck("storage", storageCheck(blobs, log)),
 	)
+
+	proc, err := imaging.NewProcessor(imaging.Options{
+		MaxPixels:   cfg.Media.MaxPixels,
+		Quality:     cfg.Media.WebPQuality,
+		Concurrency: cfg.Media.ProcessingConcurrency,
+	})
+	if err != nil {
+		a.Close()
+		return nil, err
+	}
+	mediaSvc := media.NewService(pool, blobs, proc, cfg.Media.PublicBaseURL, log)
 
 	authSvc, guard, authHandler, err := buildAuth(ctx, cfg, log, pool, o)
 	if err != nil {
+		a.Close()
 		return nil, err
 	}
 	a.jobs = append(a.jobs, sessionJanitor(authSvc, log))
 
 	trusted, err := cfg.HTTP.TrustedProxyPrefixes()
 	if err != nil {
+		a.Close()
 		return nil, err
 	}
 
@@ -126,12 +149,20 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 	}
 
 	handler, err := httpx.NewRouter(httpx.RouterConfig{
-		Log:               log,
-		Server:            &Server{Handler: health.NewHandler(healthSvc, version), AuthHandler: authHandler},
-		TrustedProxies:    trusted,
-		CORSOrigins:       cfg.CORS.AllowedOrigins,
-		HSTS:              cfg.IsProduction(),
-		MaxBodyBytes:      cfg.HTTP.MaxBodyBytes,
+		Log: log,
+		Server: &Server{
+			Handler:      health.NewHandler(healthSvc, version),
+			AuthHandler:  authHandler,
+			MediaHandler: media.NewHandler(mediaSvc, cfg.Media.MaxUploadBytes),
+		},
+		TrustedProxies: trusted,
+		CORSOrigins:    cfg.CORS.AllowedOrigins,
+		HSTS:           cfg.IsProduction(),
+		MaxBodyBytes:   cfg.HTTP.MaxBodyBytes,
+		BodyRules: map[string]httpx.BodyRule{
+			// Room for multipart framing on top of the file itself.
+			http.MethodPost + " /api/v1/admin/media": {MaxBytes: cfg.Media.MaxUploadBytes + 64<<10, Timeout: uploadTimeout},
+		},
 		RateLimiter:       limiter,
 		CSRFOrigins:       append([]string{cfg.PublicOrigin}, cfg.CORS.AllowedOrigins...),
 		CSRFPrefixes:      []string{"/api/v1/auth/", "/api/v1/admin/"},
@@ -143,6 +174,36 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 	}
 	a.handler = handler
 	return a, nil
+}
+
+// uploadTimeout covers a large photo over a slow mobile uplink plus processing.
+const uploadTimeout = 3 * time.Minute
+
+func openStorage(cfg config.Config) (storage.Storage, func(), error) {
+	switch cfg.Storage.Driver {
+	case config.StorageS3:
+		s, err := storage.NewS3(storage.S3Config{
+			Endpoint: cfg.S3.Endpoint, Region: cfg.S3.Region, Bucket: cfg.S3.Bucket,
+			AccessKey: cfg.S3.AccessKey, SecretKey: cfg.S3.SecretKey, PathStyle: cfg.S3.PathStyle,
+		})
+		return s, func() {}, err
+	default:
+		l, err := storage.NewLocal(cfg.Storage.LocalDir)
+		if err != nil {
+			return nil, nil, err
+		}
+		return l, func() { _ = l.Close() }, nil
+	}
+}
+
+func storageCheck(s storage.Storage, log *slog.Logger) func(context.Context) error {
+	return func(ctx context.Context) error {
+		if err := s.Ping(ctx); err != nil {
+			log.WarnContext(ctx, "storage health check failed", "error", err)
+			return errors.New("storage unavailable")
+		}
+		return nil
+	}
 }
 
 func buildAuth(ctx context.Context, cfg config.Config, log *slog.Logger, pool *pgxpool.Pool, o options) (*auth.Service, *auth.Guard, *auth.Handler, error) {

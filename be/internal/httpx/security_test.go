@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 )
@@ -72,7 +73,7 @@ func TestCORS_DisabledWithoutOrigins(t *testing.T) {
 
 func TestBodyLimit(t *testing.T) {
 	var readErr error
-	h := httpx.BodyLimit(8)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	h := httpx.BodyLimit(8, nil)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, readErr = io.ReadAll(r.Body)
 		w.WriteHeader(http.StatusNoContent)
 	}))
@@ -102,4 +103,31 @@ func TestBodyLimit(t *testing.T) {
 			t.Fatalf("status = %d, err = %v", rec.Code, readErr)
 		}
 	})
+}
+
+func TestBodyLimit_RouteRule(t *testing.T) {
+	h := httpx.BodyLimit(8, map[string]httpx.BodyRule{
+		"POST /upload": {MaxBytes: 32, Timeout: time.Minute},
+	})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := io.ReadAll(r.Body); err != nil {
+			w.WriteHeader(http.StatusRequestEntityTooLarge)
+			return
+		}
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	body := strings.Repeat("x", 20)
+	for _, tc := range []struct {
+		method, path string
+		want         int
+	}{
+		{http.MethodPost, "/upload", http.StatusNoContent},
+		{http.MethodPut, "/upload", http.StatusRequestEntityTooLarge},
+		{http.MethodPost, "/other", http.StatusRequestEntityTooLarge},
+	} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, strings.NewReader(body)))
+		if rec.Code != tc.want {
+			t.Errorf("%s %s: status = %d, want %d", tc.method, tc.path, rec.Code, tc.want)
+		}
+	}
 }

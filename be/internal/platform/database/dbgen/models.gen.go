@@ -45,6 +45,34 @@ type AuthSession struct {
 	UserAgent    *string
 }
 
+type Media struct {
+	ID               uuid.UUID
+	Checksum         []byte
+	OriginalFilename string
+	SourceType       string
+	SourceBytes      int64
+	Width            int32
+	Height           int32
+	Placeholder      string
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+}
+
+type MediaTranslation struct {
+	MediaID uuid.UUID
+	Locale  string
+	AltText string
+}
+
+type MediaVariant struct {
+	MediaID     uuid.UUID
+	Width       int32
+	Height      int32
+	StorageKey  string
+	ContentType string
+	ByteSize    int64
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	SessionID uuid.UUID

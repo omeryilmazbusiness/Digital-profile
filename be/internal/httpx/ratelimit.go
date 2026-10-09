@@ -38,7 +38,9 @@ type bucket struct {
 
 // RateLimiter throttles requests per client IP (as resolved by ClientIP). Paths listed as
 // strict use a separate, tighter bucket so brute-force attempts on login cannot borrow from
-// a client's general allowance and vice versa. Probe endpoints are never limited.
+// a client's general allowance and vice versa. Probe endpoints are never limited, nor are
+// immutable public assets: a page legitimately loads dozens of them at once, and bandwidth
+// abuse on cacheable files is the CDN/reverse proxy's job.
 type RateLimiter struct {
 	mu      sync.Mutex
 	normal  *bucket
@@ -96,10 +98,17 @@ func normalisePath(p string) string {
 	return p
 }
 
+// ImmutableAssetPrefix is the public path of content-addressed files.
+const ImmutableAssetPrefix = "/api/v1/public/media/"
+
+func isImmutableAsset(r *http.Request) bool {
+	return (r.Method == http.MethodGet || r.Method == http.MethodHead) && strings.HasPrefix(r.URL.Path, ImmutableAssetPrefix)
+}
+
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := normalisePath(r.URL.Path)
-		if _, ok := rl.exempt[path]; ok || r.Method == http.MethodOptions {
+		if _, ok := rl.exempt[path]; ok || r.Method == http.MethodOptions || isImmutableAsset(r) {
 			next.ServeHTTP(w, r)
 			return
 		}

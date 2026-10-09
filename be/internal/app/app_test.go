@@ -35,6 +35,7 @@ func testConfig(t *testing.T, overrides map[string]string) config.Config {
 		"DATABASE_MIN_CONNS":    "0",
 		"AUTH_JWT_KEYS":         testJWTKey,
 		"AUTH_COOKIE_SECURE":    "false",
+		"STORAGE_LOCAL_DIR":     t.TempDir(),
 	}
 	for k, v := range overrides {
 		vars[k] = v
@@ -178,8 +179,8 @@ func TestBootstrap_AutoMigrateThenReady(t *testing.T) {
 			names[c.Name] = c.Status
 		}
 	}
-	if names["database"] != api.Up || names["migrations"] != api.Up {
-		t.Errorf("checks = %v, want database and migrations up", names)
+	if names["database"] != api.Up || names["migrations"] != api.Up || names["storage"] != api.Up {
+		t.Errorf("checks = %v, want database, migrations and storage up", names)
 	}
 }
 

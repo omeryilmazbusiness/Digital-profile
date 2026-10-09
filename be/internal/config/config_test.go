@@ -62,6 +62,13 @@ func TestLoadFrom_Defaults(t *testing.T) {
 		t.Errorf("SigningKeys() = %+v, %v", keys, err)
 	}
 
+	if cfg.Storage.Driver != config.StorageLocal || cfg.Storage.LocalDir == "" {
+		t.Errorf("Storage = %+v", cfg.Storage)
+	}
+	if m := cfg.Media; m.MaxUploadBytes != 20<<20 || m.MaxPixels != 50_000_000 || m.ProcessingConcurrency != 1 || m.PublicBaseURL != "" {
+		t.Errorf("Media = %+v", m)
+	}
+
 	prefixes, err := cfg.HTTP.TrustedProxyPrefixes()
 	if err != nil {
 		t.Fatalf("TrustedProxyPrefixes() error = %v", err)
@@ -155,6 +162,15 @@ func TestLoadFrom_Invalid(t *testing.T) {
 		{"public origin with slash", vars(map[string]string{"APP_PUBLIC_ORIGIN": "https://a.example/"}), "APP_PUBLIC_ORIGIN"},
 		{"public origin http in production", vars(map[string]string{"APP_ENV": "production"}), "APP_PUBLIC_ORIGIN"},
 		{"idle ttl shorter than refill", vars(map[string]string{"RATE_LIMIT_IDLE_TTL": "10s"}), "RATE_LIMIT_IDLE_TTL"},
+		{"unknown storage driver", vars(map[string]string{"STORAGE_DRIVER": "gcs"}), "STORAGE_DRIVER"},
+		{"empty local dir", vars(map[string]string{"STORAGE_LOCAL_DIR": " "}), "STORAGE_LOCAL_DIR"},
+		{"s3 without endpoint", vars(map[string]string{"STORAGE_DRIVER": "s3", "S3_BUCKET": "b", "S3_ACCESS_KEY": "a", "S3_SECRET_KEY": "s"}), "S3_ENDPOINT"},
+		{"s3 without credentials", vars(map[string]string{"STORAGE_DRIVER": "s3", "S3_ENDPOINT": "http://localhost:9000"}), "S3_ACCESS_KEY"},
+		{"tiny upload limit", vars(map[string]string{"MEDIA_MAX_UPLOAD_BYTES": "1000"}), "MEDIA_MAX_UPLOAD_BYTES"},
+		{"huge pixel limit", vars(map[string]string{"MEDIA_MAX_PIXELS": "999999999"}), "MEDIA_MAX_PIXELS"},
+		{"zero processing concurrency", vars(map[string]string{"MEDIA_PROCESSING_CONCURRENCY": "0"}), "MEDIA_PROCESSING_CONCURRENCY"},
+		{"low webp quality", vars(map[string]string{"MEDIA_WEBP_QUALITY": "10"}), "MEDIA_WEBP_QUALITY"},
+		{"media base url with slash", vars(map[string]string{"MEDIA_PUBLIC_BASE_URL": "https://cdn.example/"}), "MEDIA_PUBLIC_BASE_URL"},
 	}
 
 	for _, tt := range tests {

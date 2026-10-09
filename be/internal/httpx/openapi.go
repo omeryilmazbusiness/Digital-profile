@@ -3,6 +3,7 @@ package httpx
 import (
 	"errors"
 	"fmt"
+	"mime"
 	"net/http"
 	"regexp"
 	"slices"
@@ -37,6 +38,10 @@ func RequestValidator(spec *openapi3.T, errs *ErrorWriter) (func(http.Handler) h
 		MultiError:         true,
 		AuthenticationFunc: openapi3filter.NoopAuthenticationFunc,
 	}
+	// Multipart uploads are validated by their handlers while streaming: kin-openapi would
+	// buffer every file part in memory to check it against the schema.
+	multipartOpts := *opts
+	multipartOpts.ExcludeRequestBody = true
 	registerFormats.Do(func() {
 		openapi3.DefineStringFormatValidator("uuid", openapi3.NewRegexpFormatValidator(openapi3.FormatOfStringForUUIDOfRFC9562))
 	})
@@ -48,11 +53,15 @@ func RequestValidator(spec *openapi3.T, errs *ErrorWriter) (func(http.Handler) h
 				next.ServeHTTP(w, r)
 				return
 			}
+			o := opts
+			if isMultipart(r) {
+				o = &multipartOpts
+			}
 			err = openapi3filter.ValidateRequest(r.Context(), &openapi3filter.RequestValidationInput{
 				Request:    r,
 				PathParams: params,
 				Route:      route,
-				Options:    opts,
+				Options:    o,
 			})
 			if err != nil {
 				errs.Write(w, r, requestError(err))
@@ -61,6 +70,11 @@ func RequestValidator(spec *openapi3.T, errs *ErrorWriter) (func(http.Handler) h
 			next.ServeHTTP(w, r)
 		})
 	}, nil
+}
+
+func isMultipart(r *http.Request) bool {
+	mt, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return err == nil && mt == "multipart/form-data"
 }
 
 // requestError converts kin-openapi errors into a 400 apperr with one entry per violation.

@@ -139,7 +139,7 @@ func TestRequestValidator(t *testing.T) {
 
 func TestRequestValidator_OversizeBodyIs413(t *testing.T) {
 	h, _ := newValidated(t)
-	h = httpx.BodyLimit(16)(h)
+	h = httpx.BodyLimit(16, nil)(h)
 	req := httptest.NewRequest(http.MethodPut, validID, io.NopCloser(strings.NewReader(`{"name":"`+strings.Repeat("a", 64)+`","stay":{"nights":1}}`)))
 	req.ContentLength = -1
 	req.Header.Set("Content-Type", "application/json")

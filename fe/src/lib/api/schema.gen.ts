@@ -146,6 +146,99 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/media": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List images
+         * @description Newest first. Pass `nextCursor` from the previous page as `cursor`.
+         */
+        get: operations["listMedia"];
+        put?: never;
+        /**
+         * Upload an image
+         * @description Accepts JPEG, PNG or WebP, identified from the file content rather than its name.
+         *     The original is not stored: responsive WebP variants (480, 960 and 1600 px wide, never
+         *     upscaled) are rendered with EXIF orientation applied and all metadata except the colour
+         *     profile removed. Uploading the same file again returns the existing image with `200`.
+         */
+        post: operations["uploadMedia"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/media/{mediaId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        /** Get an image */
+        get: operations["getMedia"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete an image
+         * @description Fails with `409` while the image is used by any content.
+         */
+        delete: operations["deleteMedia"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/media/{mediaId}/alt-text": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace the alternative text
+         * @description Sets the alt text per language; languages left out are cleared.
+         */
+        put: operations["updateMediaAltText"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/media/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Image variant
+         * @description Serves a variant by its content-hash file name. The bytes behind a name never change,
+         *     so responses are cacheable forever (`immutable`).
+         */
+        get: operations["getPublicMedia"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -235,6 +328,56 @@ export interface components {
             /** Format: date-time */
             accessTokenExpiresAt: string;
         };
+        /** @description Alternative text per interface language */
+        LocalizedAltText: {
+            en?: components["schemas"]["AltText"];
+            id?: components["schemas"]["AltText"];
+            ar?: components["schemas"]["AltText"];
+        };
+        AltText: string;
+        ImageVariant: {
+            /** Format: int32 */
+            width: number;
+            /** Format: int32 */
+            height: number;
+            /**
+             * @description Immutable URL; relative to the API origin unless a CDN base is configured
+             * @example /api/v1/public/media/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08.webp
+             */
+            url: string;
+            /** Format: int64 */
+            byteSize: number;
+        };
+        Media: {
+            /** Format: uuid */
+            id: string;
+            /**
+             * Format: int32
+             * @description Display width after EXIF orientation
+             */
+            width: number;
+            /** Format: int32 */
+            height: number;
+            /** @enum {string} */
+            sourceType: "image/jpeg" | "image/png" | "image/webp";
+            /** Format: int64 */
+            sourceBytes: number;
+            originalFilename: string;
+            /** @description Tiny blurred WebP data URI to show while the image loads */
+            placeholder: string;
+            altText: components["schemas"]["LocalizedAltText"];
+            /** @description Ascending by width; use as `srcset` */
+            variants: components["schemas"]["ImageVariant"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        MediaPage: {
+            items: components["schemas"]["Media"][];
+            /** @description Present when more images exist */
+            nextCursor?: string;
+        };
     };
     responses: {
         /** @description Error response (RFC 9457) */
@@ -247,7 +390,9 @@ export interface components {
             };
         };
     };
-    parameters: never;
+    parameters: {
+        MediaId: string;
+    };
     requestBodies: never;
     headers: {
         /** @description Access and refresh token cookies (HttpOnly, SameSite=Strict) */
@@ -432,6 +577,197 @@ export interface operations {
             403: components["responses"]["Problem"];
             422: components["responses"]["Problem"];
             429: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listMedia: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A page of images */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaPage"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    uploadMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The same file was uploaded before; the existing image is returned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Media"];
+                };
+            };
+            /** @description Image stored */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Media"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            413: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Media"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteMedia: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            409: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateMediaAltText: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mediaId: components["parameters"]["MediaId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LocalizedAltText"];
+            };
+        };
+        responses: {
+            /** @description Updated image */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Media"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPublicMedia: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-None-Match"?: string;
+            };
+            path: {
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The image */
+            200: {
+                headers: {
+                    /** @example public, max-age=31536000, immutable */
+                    "Cache-Control"?: string;
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/webp": string;
+                };
+            };
+            /** @description The client copy is current */
+            304: {
+                headers: {
+                    "Cache-Control"?: string;
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

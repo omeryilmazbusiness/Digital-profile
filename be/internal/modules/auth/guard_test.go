@@ -17,7 +17,7 @@ func TestGuard_PublicOperations(t *testing.T) {
 	}
 	g := NewGuard(spec, nil, Cookies{})
 
-	want := []string{"GetLiveness", "GetReadiness", "Login", "Logout", "RefreshSession"}
+	want := []string{"GetLiveness", "GetPublicMedia", "GetReadiness", "Login", "Logout", "RefreshSession"}
 	if got := slices.Sorted(maps.Keys(g.public)); !slices.Equal(got, want) {
 		t.Fatalf("public operations = %v, want %v", got, want)
 	}

@@ -32,6 +32,8 @@ tags:
     description: Operational endpoints (liveness / readiness probes)
   - name: auth
     description: Admin session management
+  - name: media
+    description: Image library (admin) and immutable image delivery (public)
 
 paths:
   /healthz:
@@ -208,7 +210,228 @@ paths:
         default:
           $ref: "#/components/responses/Problem"
 
+  /api/v1/admin/media:
+    get:
+      tags: [media]
+      operationId: listMedia
+      summary: List images
+      description: Newest first. Pass `nextCursor` from the previous page as `cursor`.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 30
+        - name: cursor
+          in: query
+          schema:
+            type: string
+            maxLength: 128
+            pattern: "^[A-Za-z0-9_-]+$"
+      responses:
+        "200":
+          description: A page of images
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MediaPage"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      tags: [media]
+      operationId: uploadMedia
+      summary: Upload an image
+      description: |
+        Accepts JPEG, PNG or WebP, identified from the file content rather than its name.
+        The original is not stored: responsive WebP variants (480, 960 and 1600 px wide, never
+        upscaled) are rendered with EXIF orientation applied and all metadata except the colour
+        profile removed. Uploading the same file again returns the existing image with `200`.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+            encoding:
+              file:
+                contentType: image/jpeg, image/png, image/webp
+      responses:
+        "200":
+          description: The same file was uploaded before; the existing image is returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "201":
+          description: Image stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/media/{mediaId}:
+    parameters:
+      - $ref: "#/components/parameters/MediaId"
+    get:
+      tags: [media]
+      operationId: getMedia
+      summary: Get an image
+      responses:
+        "200":
+          description: The image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      tags: [media]
+      operationId: deleteMedia
+      summary: Delete an image
+      description: Fails with `409` while the image is used by any content.
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "409":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/media/{mediaId}/alt-text:
+    parameters:
+      - $ref: "#/components/parameters/MediaId"
+    put:
+      tags: [media]
+      operationId: updateMediaAltText
+      summary: Replace the alternative text
+      description: Sets the alt text per language; languages left out are cleared.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LocalizedAltText"
+      responses:
+        "200":
+          description: Updated image
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Media"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/public/media/{file}:
+    get:
+      tags: [media]
+      operationId: getPublicMedia
+      summary: Image variant
+      description: |
+        Serves a variant by its content-hash file name. The bytes behind a name never change,
+        so responses are cacheable forever (`immutable`).
+      security: []
+      parameters:
+        - name: file
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: "^[0-9a-f]{64}\\.webp$"
+        - name: If-None-Match
+          in: header
+          schema:
+            type: string
+            maxLength: 1024
+      responses:
+        "200":
+          description: The image
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+              example: public, max-age=31536000, immutable
+            ETag:
+              schema:
+                type: string
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+        "304":
+          description: The client copy is current
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+            ETag:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
 components:
+  parameters:
+    MediaId:
+      name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
   securitySchemes:
     cookieAuth:
       type: apiKey
@@ -379,3 +602,93 @@ components:
         accessTokenExpiresAt:
           type: string
           format: date-time
+
+    LocalizedAltText:
+      type: object
+      additionalProperties: false
+      description: Alternative text per interface language
+      properties:
+        en:
+          $ref: "#/components/schemas/AltText"
+        id:
+          $ref: "#/components/schemas/AltText"
+        ar:
+          $ref: "#/components/schemas/AltText"
+
+    AltText:
+      type: string
+      minLength: 1
+      maxLength: 300
+
+    ImageVariant:
+      type: object
+      additionalProperties: false
+      required: [width, height, url, byteSize]
+      properties:
+        width:
+          type: integer
+          format: int32
+        height:
+          type: integer
+          format: int32
+        url:
+          type: string
+          description: Immutable URL; relative to the API origin unless a CDN base is configured
+          example: /api/v1/public/media/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08.webp
+        byteSize:
+          type: integer
+          format: int64
+
+    Media:
+      type: object
+      additionalProperties: false
+      required: [id, width, height, sourceType, sourceBytes, originalFilename, placeholder, altText, variants, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        width:
+          type: integer
+          format: int32
+          description: Display width after EXIF orientation
+        height:
+          type: integer
+          format: int32
+        sourceType:
+          type: string
+          enum: [image/jpeg, image/png, image/webp]
+        sourceBytes:
+          type: integer
+          format: int64
+        originalFilename:
+          type: string
+        placeholder:
+          type: string
+          description: Tiny blurred WebP data URI to show while the image loads
+        altText:
+          $ref: "#/components/schemas/LocalizedAltText"
+        variants:
+          type: array
+          description: Ascending by width; use as `srcset`
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ImageVariant"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    MediaPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Media"
+        nextCursor:
+          type: string
+          description: Present when more images exist

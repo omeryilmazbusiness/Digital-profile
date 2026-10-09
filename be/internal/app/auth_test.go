@@ -60,6 +60,11 @@ type authEnv struct {
 
 func newAuthEnv(t *testing.T) *authEnv {
 	t.Helper()
+	return newAuthEnvWith(t, nil)
+}
+
+func newAuthEnvWith(t *testing.T, overrides map[string]string) *authEnv {
+	t.Helper()
 	t.Parallel()
 	pool := dbtest.New(t)
 	clk := &clock{now: time.Now().UTC().Truncate(time.Second)}
@@ -69,12 +74,16 @@ func newAuthEnv(t *testing.T) *authEnv {
 		t.Fatalf("create admin: %v", err)
 	}
 
-	cfg := testConfig(t, map[string]string{
+	vars := map[string]string{
 		"APP_PUBLIC_ORIGIN":        appOrigin,
 		"AUTH_LOCKOUT_THRESHOLD":   "3",
 		"RATE_LIMIT_ENABLED":       "false",
 		"AUTH_REFRESH_REUSE_GRACE": "5s",
-	})
+	}
+	for k, v := range overrides {
+		vars[k] = v
+	}
+	cfg := testConfig(t, vars)
 	a, err := app.Build(t.Context(), cfg, discardLogger(), "1.0.0", pool, app.WithArgon2Params(fastArgon2), app.WithClock(clk.Now))
 	if err != nil {
 		t.Fatalf("Build: %v", err)
@@ -110,6 +119,13 @@ func (b *browser) do(method, path, body string) *httptest.ResponseRecorder {
 		req = httptest.NewRequestWithContext(b.t.Context(), method, "http://localhost"+path, strings.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 	}
+	return b.send(req)
+}
+
+// send attaches the browser's headers and cookies, then validates the response.
+func (b *browser) send(req *http.Request) *httptest.ResponseRecorder {
+	b.t.Helper()
+	path := req.URL.Path
 	for k, v := range b.headers {
 		if v != "" {
 			req.Header.Set(k, v)

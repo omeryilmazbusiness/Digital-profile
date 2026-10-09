@@ -6,6 +6,9 @@ version: "2"
 
 overrides:
   go:
+    # sqlc singularises "media" to "Medium".
+    rename:
+      medium: Media
     overrides:
       - db_type: uuid
         go_type: github.com/google/uuid.UUID
@@ -63,6 +66,22 @@ sql:
       go:
         package: store
         out: internal/modules/auth/store
+        sql_package: pgx/v5
+        emit_interface: true
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+        output_db_file_name: db.gen.go
+        output_models_file_name: models.gen.go
+        output_querier_file_name: querier.gen.go
+        output_files_suffix: .gen
+
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/modules/media/queries
+    gen:
+      go:
+        package: store
+        out: internal/modules/media/store
         sql_package: pgx/v5
         emit_interface: true
         emit_empty_slices: true

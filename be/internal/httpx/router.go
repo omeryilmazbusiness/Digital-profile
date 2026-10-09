@@ -21,6 +21,8 @@ type RouterConfig struct {
 	CORSOrigins    []string
 	HSTS           bool
 	MaxBodyBytes   int64
+	// BodyRules override MaxBodyBytes (and I/O deadlines) per "METHOD /path".
+	BodyRules map[string]BodyRule
 	// CSRFOrigins are the origins allowed to make state-changing requests to CSRFPrefixes.
 	CSRFOrigins  []string
 	CSRFPrefixes []string
@@ -64,7 +66,7 @@ func NewRouter(cfg RouterConfig) (http.Handler, error) {
 	if cfg.RateLimiter != nil {
 		r.Use(cfg.RateLimiter.Middleware)
 	}
-	r.Use(BodyLimit(cfg.MaxBodyBytes))
+	r.Use(BodyLimit(cfg.MaxBodyBytes, cfg.BodyRules))
 	r.Use(CSRF(cfg.CSRFOrigins, cfg.CSRFPrefixes))
 	r.Use(validate)
 

@@ -46,11 +46,30 @@ func CORS(origins []string) func(http.Handler) http.Handler {
 	})
 }
 
+// BodyRule raises the body limit and I/O deadlines for one route, e.g. file uploads, which
+// need more than the server-wide HTTP_READ_TIMEOUT on a slow mobile connection.
+type BodyRule struct {
+	MaxBytes int64
+	Timeout  time.Duration
+}
+
 // BodyLimit caps request bodies. Reads beyond limit fail with *http.MaxBytesError, which
 // ErrorWriter renders as 413. Declared oversize bodies are rejected before any handler runs.
-func BodyLimit(limit int64) func(http.Handler) http.Handler {
+// rules, keyed by "METHOD /path", override the default for specific routes.
+func BodyLimit(def int64, rules map[string]BodyRule) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			limit := def
+			if rule, ok := rules[r.Method+" "+r.URL.Path]; ok {
+				limit = rule.MaxBytes
+				if rule.Timeout > 0 {
+					rc := http.NewResponseController(w)
+					deadline := time.Now().Add(rule.Timeout)
+					// Unsupported only by test recorders; the server-wide timeouts then apply.
+					_ = rc.SetReadDeadline(deadline)
+					_ = rc.SetWriteDeadline(deadline)
+				}
+			}
 			if r.ContentLength > limit {
 				Error(w, r, http.StatusRequestEntityTooLarge, "request body too large")
 				return

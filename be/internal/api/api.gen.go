@@ -9,7 +9,10 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"path"
@@ -18,6 +21,7 @@ import (
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -39,6 +43,27 @@ func (e HealthStatus) Valid() bool {
 	}
 }
 
+// Defines values for MediaSourceType.
+const (
+	Imagejpeg MediaSourceType = "image/jpeg"
+	Imagepng  MediaSourceType = "image/png"
+	Imagewebp MediaSourceType = "image/webp"
+)
+
+// Valid indicates whether the value is a known member of the MediaSourceType enum.
+func (e MediaSourceType) Valid() bool {
+	switch e {
+	case Imagejpeg:
+		return true
+	case Imagepng:
+		return true
+	case Imagewebp:
+		return true
+	default:
+		return false
+	}
+}
+
 // AdminUser defines model for AdminUser.
 type AdminUser struct {
 	Email             openapi_types.Email `json:"email"`
@@ -46,6 +71,9 @@ type AdminUser struct {
 	LastLoginAt       *time.Time          `json:"lastLoginAt,omitempty"`
 	PasswordChangedAt time.Time           `json:"passwordChangedAt"`
 }
+
+// AltText defines model for AltText.
+type AltText = string
 
 // ChangePasswordRequest defines model for ChangePasswordRequest.
 type ChangePasswordRequest struct {
@@ -88,6 +116,25 @@ type HealthReport struct {
 // HealthStatus defines model for HealthStatus.
 type HealthStatus string
 
+// ImageVariant defines model for ImageVariant.
+type ImageVariant struct {
+	ByteSize int64 `json:"byteSize"`
+	Height   int32 `json:"height"`
+
+	// Url Immutable URL; relative to the API origin unless a CDN base is configured
+	//
+	// Example: /api/v1/public/media/9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08.webp
+	Url   string `json:"url"`
+	Width int32  `json:"width"`
+}
+
+// LocalizedAltText Alternative text per interface language
+type LocalizedAltText struct {
+	Ar *AltText `json:"ar,omitempty"`
+	En *AltText `json:"en,omitempty"`
+	Id *AltText `json:"id,omitempty"`
+}
+
 // LoginRequest defines model for LoginRequest.
 type LoginRequest struct {
 	// Email Example: momen@example.com
@@ -99,6 +146,39 @@ type LoginRequest struct {
 type LoginResponse struct {
 	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
 	Admin                AdminUser `json:"admin"`
+}
+
+// Media defines model for Media.
+type Media struct {
+	// AltText Alternative text per interface language
+	AltText          LocalizedAltText   `json:"altText"`
+	CreatedAt        time.Time          `json:"createdAt"`
+	Height           int32              `json:"height"`
+	Id               openapi_types.UUID `json:"id"`
+	OriginalFilename string             `json:"originalFilename"`
+
+	// Placeholder Tiny blurred WebP data URI to show while the image loads
+	Placeholder string          `json:"placeholder"`
+	SourceBytes int64           `json:"sourceBytes"`
+	SourceType  MediaSourceType `json:"sourceType"`
+	UpdatedAt   time.Time       `json:"updatedAt"`
+
+	// Variants Ascending by width; use as `srcset`
+	Variants []ImageVariant `json:"variants"`
+
+	// Width Display width after EXIF orientation
+	Width int32 `json:"width"`
+}
+
+// MediaSourceType defines model for Media.SourceType.
+type MediaSourceType string
+
+// MediaPage defines model for MediaPage.
+type MediaPage struct {
+	Items []Media `json:"items"`
+
+	// NextCursor Present when more images exist
+	NextCursor *string `json:"nextCursor,omitempty"`
 }
 
 // Problem RFC 9457 Problem Details
@@ -130,6 +210,31 @@ type SessionInfo struct {
 	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
 }
 
+// MediaId defines model for MediaId.
+type MediaId = openapi_types.UUID
+
+// ListMediaParams defines parameters for ListMedia.
+type ListMediaParams struct {
+	Limit  *int    `form:"limit,omitempty" json:"limit,omitempty"`
+	Cursor *string `form:"cursor,omitempty" json:"cursor,omitempty"`
+}
+
+// UploadMediaMultipartBody defines parameters for UploadMedia.
+type UploadMediaMultipartBody struct {
+	File openapi_types.File `json:"file"`
+}
+
+// GetPublicMediaParams defines parameters for GetPublicMedia.
+type GetPublicMediaParams struct {
+	IfNoneMatch *string `json:"If-None-Match,omitempty"`
+}
+
+// UploadMediaMultipartRequestBody defines body for UploadMedia for multipart/form-data ContentType.
+type UploadMediaMultipartRequestBody UploadMediaMultipartBody
+
+// UpdateMediaAltTextJSONRequestBody defines body for UpdateMediaAltText for application/json ContentType.
+type UpdateMediaAltTextJSONRequestBody = LocalizedAltText
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -138,6 +243,21 @@ type ChangePasswordJSONRequestBody = ChangePasswordRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ListMedia List images
+	// (GET /api/v1/admin/media)
+	ListMedia(w http.ResponseWriter, r *http.Request, params ListMediaParams)
+	// UploadMedia Upload an image
+	// (POST /api/v1/admin/media)
+	UploadMedia(w http.ResponseWriter, r *http.Request)
+	// DeleteMedia Delete an image
+	// (DELETE /api/v1/admin/media/{mediaId})
+	DeleteMedia(w http.ResponseWriter, r *http.Request, mediaId MediaId)
+	// GetMedia Get an image
+	// (GET /api/v1/admin/media/{mediaId})
+	GetMedia(w http.ResponseWriter, r *http.Request, mediaId MediaId)
+	// UpdateMediaAltText Replace the alternative text
+	// (PUT /api/v1/admin/media/{mediaId}/alt-text)
+	UpdateMediaAltText(w http.ResponseWriter, r *http.Request, mediaId MediaId)
 	// Login Sign in
 	// (POST /api/v1/auth/login)
 	Login(w http.ResponseWriter, r *http.Request)
@@ -153,6 +273,9 @@ type ServerInterface interface {
 	// RefreshSession Rotate the session tokens
 	// (POST /api/v1/auth/refresh)
 	RefreshSession(w http.ResponseWriter, r *http.Request)
+	// GetPublicMedia Image variant
+	// (GET /api/v1/public/media/{file})
+	GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams)
 	// GetLiveness Liveness probe
 	// (GET /healthz)
 	GetLiveness(w http.ResponseWriter, r *http.Request)
@@ -164,6 +287,36 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// ListMedia List images
+// (GET /api/v1/admin/media)
+func (_ Unimplemented) ListMedia(w http.ResponseWriter, r *http.Request, params ListMediaParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UploadMedia Upload an image
+// (POST /api/v1/admin/media)
+func (_ Unimplemented) UploadMedia(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteMedia Delete an image
+// (DELETE /api/v1/admin/media/{mediaId})
+func (_ Unimplemented) DeleteMedia(w http.ResponseWriter, r *http.Request, mediaId MediaId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetMedia Get an image
+// (GET /api/v1/admin/media/{mediaId})
+func (_ Unimplemented) GetMedia(w http.ResponseWriter, r *http.Request, mediaId MediaId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateMediaAltText Replace the alternative text
+// (PUT /api/v1/admin/media/{mediaId}/alt-text)
+func (_ Unimplemented) UpdateMediaAltText(w http.ResponseWriter, r *http.Request, mediaId MediaId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // Login Sign in
 // (POST /api/v1/auth/login)
@@ -195,6 +348,12 @@ func (_ Unimplemented) RefreshSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetPublicMedia Image variant
+// (GET /api/v1/public/media/{file})
+func (_ Unimplemented) GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetLiveness Liveness probe
 // (GET /healthz)
 func (_ Unimplemented) GetLiveness(w http.ResponseWriter, r *http.Request) {
@@ -215,6 +374,144 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ListMedia operation middleware
+func (siw *ServerInterfaceWrapper) ListMedia(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params ListMediaParams
+
+	// ------------- Optional query parameter "limit" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "limit", r.URL.Query(), &params.Limit, runtime.BindQueryParameterOptions{Type: "integer", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "limit"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "limit", Err: err})
+		}
+		return
+	}
+
+	// ------------- Optional query parameter "cursor" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "cursor", r.URL.Query(), &params.Cursor, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "cursor"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "cursor", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListMedia(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadMedia operation middleware
+func (siw *ServerInterfaceWrapper) UploadMedia(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadMedia(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteMedia operation middleware
+func (siw *ServerInterfaceWrapper) DeleteMedia(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "mediaId" -------------
+	var mediaId MediaId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mediaId", chi.URLParam(r, "mediaId"), &mediaId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "mediaId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteMedia(w, r, mediaId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetMedia operation middleware
+func (siw *ServerInterfaceWrapper) GetMedia(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "mediaId" -------------
+	var mediaId MediaId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mediaId", chi.URLParam(r, "mediaId"), &mediaId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "mediaId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetMedia(w, r, mediaId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateMediaAltText operation middleware
+func (siw *ServerInterfaceWrapper) UpdateMediaAltText(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "mediaId" -------------
+	var mediaId MediaId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mediaId", chi.URLParam(r, "mediaId"), &mediaId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "mediaId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateMediaAltText(w, r, mediaId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // Login operation middleware
 func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
@@ -277,6 +574,56 @@ func (siw *ServerInterfaceWrapper) RefreshSession(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RefreshSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPublicMedia operation middleware
+func (siw *ServerInterfaceWrapper) GetPublicMedia(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "file" -------------
+	var file string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "file", chi.URLParam(r, "file"), &file, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "file", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPublicMediaParams
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "If-None-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-None-Match")]; found {
+		var IfNoneMatch string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-None-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-None-Match", valueList[0], &IfNoneMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-None-Match", Err: err})
+			return
+		}
+
+		params.IfNoneMatch = &IfNoneMatch
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPublicMedia(w, r, file, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -448,11 +795,523 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Put(options.BaseURL+"/api/v1/auth/password", wrapper.ChangePassword)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/admin/media", wrapper.ListMedia)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/admin/media", wrapper.UploadMedia)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/admin/media/{mediaId}", wrapper.DeleteMedia)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/admin/media/{mediaId}", wrapper.GetMedia)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/admin/media/{mediaId}/alt-text", wrapper.UpdateMediaAltText)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/public/media/{file}", wrapper.GetPublicMedia)
+	})
 
 	return r
 }
 
 type ProblemApplicationProblemPlusJSONResponse Problem
+
+type ListMediaRequestObject struct {
+	Params ListMediaParams
+}
+
+type ListMediaResponseObject interface {
+	VisitListMediaResponse(w http.ResponseWriter) error
+}
+
+type ListMedia200JSONResponse MediaPage
+
+func (response ListMedia200JSONResponse) VisitListMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMedia400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListMedia400ApplicationProblemPlusJSONResponse) VisitListMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMedia401ApplicationProblemPlusJSONResponse Problem
+
+func (response ListMedia401ApplicationProblemPlusJSONResponse) VisitListMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListMediadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListMediadefaultApplicationProblemPlusJSONResponse) VisitListMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMediaRequestObject struct {
+	Body *multipart.Reader
+}
+
+type UploadMediaResponseObject interface {
+	VisitUploadMediaResponse(w http.ResponseWriter) error
+}
+
+type UploadMedia200JSONResponse Media
+
+func (response UploadMedia200JSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMedia201JSONResponse Media
+
+func (response UploadMedia201JSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMedia400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UploadMedia400ApplicationProblemPlusJSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMedia401ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadMedia401ApplicationProblemPlusJSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMedia403ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadMedia403ApplicationProblemPlusJSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMedia413ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadMedia413ApplicationProblemPlusJSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMedia422ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadMedia422ApplicationProblemPlusJSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadMediadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UploadMediadefaultApplicationProblemPlusJSONResponse) VisitUploadMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMediaRequestObject struct {
+	MediaId MediaId `json:"mediaId"`
+}
+
+type DeleteMediaResponseObject interface {
+	VisitDeleteMediaResponse(w http.ResponseWriter) error
+}
+
+type DeleteMedia204Response struct {
+}
+
+func (response DeleteMedia204Response) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteMedia400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteMedia400ApplicationProblemPlusJSONResponse) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMedia401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteMedia401ApplicationProblemPlusJSONResponse) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMedia403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteMedia403ApplicationProblemPlusJSONResponse) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMedia404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteMedia404ApplicationProblemPlusJSONResponse) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMedia409ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteMedia409ApplicationProblemPlusJSONResponse) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(409)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteMediadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeleteMediadefaultApplicationProblemPlusJSONResponse) VisitDeleteMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMediaRequestObject struct {
+	MediaId MediaId `json:"mediaId"`
+}
+
+type GetMediaResponseObject interface {
+	VisitGetMediaResponse(w http.ResponseWriter) error
+}
+
+type GetMedia200JSONResponse Media
+
+func (response GetMedia200JSONResponse) VisitGetMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMedia400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetMedia400ApplicationProblemPlusJSONResponse) VisitGetMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMedia401ApplicationProblemPlusJSONResponse Problem
+
+func (response GetMedia401ApplicationProblemPlusJSONResponse) VisitGetMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMedia404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetMedia404ApplicationProblemPlusJSONResponse) VisitGetMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetMediadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetMediadefaultApplicationProblemPlusJSONResponse) VisitGetMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaAltTextRequestObject struct {
+	MediaId MediaId `json:"mediaId"`
+	Body    *UpdateMediaAltTextJSONRequestBody
+}
+
+type UpdateMediaAltTextResponseObject interface {
+	VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error
+}
+
+type UpdateMediaAltText200JSONResponse Media
+
+func (response UpdateMediaAltText200JSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaAltText400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateMediaAltText400ApplicationProblemPlusJSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaAltText401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateMediaAltText401ApplicationProblemPlusJSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaAltText403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateMediaAltText403ApplicationProblemPlusJSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaAltText404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateMediaAltText404ApplicationProblemPlusJSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaAltText422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateMediaAltText422ApplicationProblemPlusJSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateMediaAltTextdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateMediaAltTextdefaultApplicationProblemPlusJSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type LoginRequestObject struct {
 	Body *LoginJSONRequestBody
@@ -876,6 +1735,114 @@ func (response RefreshSessiondefaultApplicationProblemPlusJSONResponse) VisitRef
 	return err
 }
 
+type GetPublicMediaRequestObject struct {
+	File   string `json:"file"`
+	Params GetPublicMediaParams
+}
+
+type GetPublicMediaResponseObject interface {
+	VisitGetPublicMediaResponse(w http.ResponseWriter) error
+}
+
+type GetPublicMedia200ResponseHeaders struct {
+	CacheControl *string
+	ETag         *string
+}
+
+type GetPublicMedia200ImagewebpResponse struct {
+	Body          io.Reader
+	Headers       GetPublicMedia200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetPublicMedia200ImagewebpResponse) VisitGetPublicMediaResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "image/webp")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	if response.Headers.ETag != nil {
+		w.Header().Set("ETag", fmt.Sprint(*response.Headers.ETag))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetPublicMedia304ResponseHeaders struct {
+	CacheControl *string
+	ETag         *string
+}
+
+type GetPublicMedia304Response struct {
+	Headers GetPublicMedia304ResponseHeaders
+}
+
+func (response GetPublicMedia304Response) VisitGetPublicMediaResponse(w http.ResponseWriter) error {
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	if response.Headers.ETag != nil {
+		w.Header().Set("ETag", fmt.Sprint(*response.Headers.ETag))
+	}
+	w.WriteHeader(304)
+	return nil
+}
+
+type GetPublicMedia400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPublicMedia400ApplicationProblemPlusJSONResponse) VisitGetPublicMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicMedia404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetPublicMedia404ApplicationProblemPlusJSONResponse) VisitGetPublicMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicMediadefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPublicMediadefaultApplicationProblemPlusJSONResponse) VisitGetPublicMediaResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetLivenessRequestObject struct {
 }
 
@@ -968,6 +1935,21 @@ func (response GetReadinessdefaultApplicationProblemPlusJSONResponse) VisitGetRe
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ListMedia List images
+	// (GET /api/v1/admin/media)
+	ListMedia(ctx context.Context, request ListMediaRequestObject) (ListMediaResponseObject, error)
+	// UploadMedia Upload an image
+	// (POST /api/v1/admin/media)
+	UploadMedia(ctx context.Context, request UploadMediaRequestObject) (UploadMediaResponseObject, error)
+	// DeleteMedia Delete an image
+	// (DELETE /api/v1/admin/media/{mediaId})
+	DeleteMedia(ctx context.Context, request DeleteMediaRequestObject) (DeleteMediaResponseObject, error)
+	// GetMedia Get an image
+	// (GET /api/v1/admin/media/{mediaId})
+	GetMedia(ctx context.Context, request GetMediaRequestObject) (GetMediaResponseObject, error)
+	// UpdateMediaAltText Replace the alternative text
+	// (PUT /api/v1/admin/media/{mediaId}/alt-text)
+	UpdateMediaAltText(ctx context.Context, request UpdateMediaAltTextRequestObject) (UpdateMediaAltTextResponseObject, error)
 	// Login Sign in
 	// (POST /api/v1/auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -983,6 +1965,9 @@ type StrictServerInterface interface {
 	// RefreshSession Rotate the session tokens
 	// (POST /api/v1/auth/refresh)
 	RefreshSession(ctx context.Context, request RefreshSessionRequestObject) (RefreshSessionResponseObject, error)
+	// GetPublicMedia Image variant
+	// (GET /api/v1/public/media/{file})
+	GetPublicMedia(ctx context.Context, request GetPublicMediaRequestObject) (GetPublicMediaResponseObject, error)
 	// GetLiveness Liveness probe
 	// (GET /healthz)
 	GetLiveness(ctx context.Context, request GetLivenessRequestObject) (GetLivenessResponseObject, error)
@@ -1028,6 +2013,148 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ListMedia operation middleware
+func (sh *strictHandler) ListMedia(w http.ResponseWriter, r *http.Request, params ListMediaParams) {
+	var request ListMediaRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListMedia(ctx, request.(ListMediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListMedia")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListMediaResponseObject); ok {
+		if err := validResponse.VisitListMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UploadMedia operation middleware
+func (sh *strictHandler) UploadMedia(w http.ResponseWriter, r *http.Request) {
+	var request UploadMediaRequestObject
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UploadMedia(ctx, request.(UploadMediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UploadMedia")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UploadMediaResponseObject); ok {
+		if err := validResponse.VisitUploadMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteMedia operation middleware
+func (sh *strictHandler) DeleteMedia(w http.ResponseWriter, r *http.Request, mediaId MediaId) {
+	var request DeleteMediaRequestObject
+
+	request.MediaId = mediaId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteMedia(ctx, request.(DeleteMediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteMedia")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteMediaResponseObject); ok {
+		if err := validResponse.VisitDeleteMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetMedia operation middleware
+func (sh *strictHandler) GetMedia(w http.ResponseWriter, r *http.Request, mediaId MediaId) {
+	var request GetMediaRequestObject
+
+	request.MediaId = mediaId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetMedia(ctx, request.(GetMediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetMedia")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetMediaResponseObject); ok {
+		if err := validResponse.VisitGetMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateMediaAltText operation middleware
+func (sh *strictHandler) UpdateMediaAltText(w http.ResponseWriter, r *http.Request, mediaId MediaId) {
+	var request UpdateMediaAltTextRequestObject
+
+	request.MediaId = mediaId
+
+	var body UpdateMediaAltTextJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateMediaAltText(ctx, request.(UpdateMediaAltTextRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateMediaAltText")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateMediaAltTextResponseObject); ok {
+		if err := validResponse.VisitUpdateMediaAltTextResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // Login operation middleware
@@ -1164,6 +2291,33 @@ func (sh *strictHandler) RefreshSession(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// GetPublicMedia operation middleware
+func (sh *strictHandler) GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams) {
+	var request GetPublicMediaRequestObject
+
+	request.File = file
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPublicMedia(ctx, request.(GetPublicMediaRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPublicMedia")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPublicMediaResponseObject); ok {
+		if err := validResponse.VisitGetPublicMediaResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetLiveness operation middleware
 func (sh *strictHandler) GetLiveness(w http.ResponseWriter, r *http.Request) {
 	var request GetLivenessRequestObject
@@ -1217,48 +2371,73 @@ func (sh *strictHandler) GetReadiness(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"5Fltb+PG8f8qA+b/woc/LckPh+ZkFKjj+HJGrznDctoCkXFakSNx4+Uuszu0rBwM5Du0nzCfpJhdkiJl",
-	"+nw++JICfWWa3Id5+s38ZvQhSkxeGI2aXDT+EGUoUrT+cYLOSaNPjLmW6N+k6BIrC5JGR+PoOEnQORA6",
-	"BYsLiy4DMteoIQk7YOcNUfFOq3UME5HjRBL+eUJWJvQiiiOXZJgLPpbWBUbjyJGVehnd3d3FkUVXGO3C",
-	"tefWzBXm/JgYTaiJH0VRKJkIFmZYhBX//5NjyT60zv4/i4toHH013Kg5DF/dsD7X39jV7dRaY6GWAnYu",
-	"Xp/Aq8OXf3oR8drqAD7/OM2l/sGh9SKlqeQDhDq3pkBL3m4LoRzGUdF69SHCXEjFDwtjc0HRuHoTb1sj",
-	"jmTaWVeWMu1bpoSjt2Yp9TF11qeCcJdkjn2bCuHcytj0JBN6iemnb/U++rmUFtNo/GPkRao1uH/oVbPf",
-	"zH/ChPjq8PW8WnuBP5fo6IlWTEprUVN9SEf4WooojnJx+xb1krJovDfaP4yjXOrmRY9VNK7aR3ZDY2//",
-	"t1//tbf/NSSZsCIhtC6GVC4WyKLAwpocKEOoZINaDg8U/lCb6TFJ97/uCrr/mBO2rdFVpM8HryWq1Mf6",
-	"Ew2/4I38gLciLxSfmmSYXL8rqS/McnROLLG7IS8dwRxBLAgt+O1n+tFICzdvjuxT6w0KRdkJn/hUWNa2",
-	"6Pr8tZCqtAgWhTP6CAqLjn1rtFrDKkMNjgSVDqSDWWpWetZnBS3yLROkgsRcuF5ohhMfy2FB1UlYu20r",
-	"f2Fz0sOWusDC2Cdjj83rnyRh/omCBp/cNZIIa8X6c7WNoxu0Thp932HflFKlUH0Gs/DAs6XWUi9hLrWw",
-	"6yhuOWI02BuMHo29SsjNvQ+bdNLog7rMeXNZRHHEsRFd3bsnjnzm/rwk2JSSFrRMjvov1f+DxOTtdFPn",
-	"n1au2X95+JHi8DxpdcuW28Wi15aVVUIVfqJZhKcnl8xITm8LadE9pTAKruuPheOm+G9rF7bH/UL0adri",
-	"ON1IrpkHVCvgWyQhlYu29U39+x4+FYes1sPgfPrfVXiDCm6EkqlnU1Atjz8N2K0a0oNrqR0JnWCvXDbE",
-	"+1lPlT0x1qIShC5At2ZiK0kZOLQ3aEGZpft45mwQcTg6bCFAajrYDwEsc0bny1evfPSG//ZGo+ZUqQmX",
-	"GFSTpLby9/eG4LUpdS8hCy+2Ffvh4ozpMlrUCYJMUZNcrDktsZ4VkQW/t52gxNyUNJ4roa8fTVPV5iDv",
-	"R9N/RfHP9MI8E7q6yv6DSyOZuj848jqGrVWXAI5M4WCObAFfUwMdoEw6CMFDUfxJoN2G4KdBj+MFk9JK",
-	"Wk84oqvi5oU7Lim7r1TV97R7HdiZvX//xjjaTYv34eJZxQs4VFMwHK9vLi/PJ9z6cGaprohqWhA1Ozea",
-	"iUL+FdehP5GVj7qyTKReKgRnSpugr3O2pAwWxnpT842QGE1MVGGOtEJ2SIbwnYG5SK5RN7x0qr/HWxr8",
-	"5JjCakKdDmASgOaonLt6nY/NFBIlvbcswhI1WkGY1uRXOlhIhYOpnupjpUJCaTDsoHQITV6bPdTIzfz+",
-	"r74CdgPDJKyZ6ncFXyeNdv76whrChK+fryHFhSgVwc5SmblQMNt4cvbiCIpyrmQCZnOCKQhMSVONtyyG",
-	"JLUegK874JAc0MrArG5kj7Yb2Vnd7I5BgMuMpV0l2eGiFSRTvTPbxEUMPbHSig9vZwHWkCAGRbe39idV",
-	"r2bxVM/ev59w+OJu633nOJcY9hcZmA1FIYc3e0PB1hjAN9asHFrHuPOuzUGUZHLBplZqfTTVwcsONPKJ",
-	"mdCpwiCJq71zMrl4PdXMd3A34Z4uCO0zu4Od2fm7ySUrff5D+HN8efKGH749fXt6eTp7AaVO0W4Jx0aY",
-	"6s07Lqcz8B2DF3b2z12+d/c8+F4aPYa9WVzHqLQwe2flUupZHHBYMfYYqq5jqjmUnSQE4xcO4B1laFfS",
-	"oY/y4/MzENqt2D6zw9EBR2MUR0omWHGRCrecKq1ECpSytCoaRxlR4cbD4VJSVs6ZgA1NjnYtVS5+mZdO",
-	"anRu+K1cShJqt7CG4dKqMdEk4wA1Gv4mrq9FBtVSmAiFDk5vC7TSF5Dj87MWH62J7F0cmQK1KGQ0jg4G",
-	"o8GBZ1qU+eTWtvRQcajz28K4ngz+d7RyIasqnFj09UqokA0cCUuOIz/UkQFctmt1CBqLN8gbVhmygUOq",
-	"8ewP8FZyjFTJSiSJKTVxD0WYF8YKK9UalEmuMa3KgsUCQ6YJHZkLXmnwzFQisMaooRffmHT9kdnR02ZG",
-	"HZ5+1605ZEvcnl3tj0bPfXc4vW9qNZFLjSlIfVR7pJnFcaJ0SFHcnfDRbhjvPXR1tXi4NQv0dx+ORg9t",
-	"a0ywmbHx+r0nrj942vr9V09aX5WKJ+xpcYVo/ONVHLkyzxn3wfTgo47E0nn+weThivds482U9DDgLvDG",
-	"XNd4q0ZItTMZc4lCYavPwRsDOEsZL4SaBn1gMH4osxWWh31kwoePKak/fvzVmD5vDB38wT4LxnnEaWFu",
-	"s0R/cde+3yGdBDcdVz3fF8N/u928h/1LX87YgbtSQ+g/PwN0n2fgxqSVKaDufx+xa3vCUJQ9aAhD4hDu",
-	"9eLY6+nYc8AVZg3GF5Y2SprKFLiT0Vhz4qlmboMWdjSuttPji75y0h1Uf6G60j8N/6QC04Pk+hzwhAzT",
-	"I2Bl/ydrwv5/YQ3ZwMW7B1oztUcAUzH8h8vH6W3Sgky1vO5SGQLCh4J44Le7AZyKJOu+m+qVsdcOjE6w",
-	"GX0zyRfcyKUeXGIppAZb1a6AyjrczKJN7wZTPTscvZpBjoIbOG5P6zpXAQuEsijSdeiBsOo6WZQxWCS7",
-	"9i8CbRdqquttfjbUKowgieO7D9MXQcEqhL9k0m6PWPrSNqvlak1/J972hTE3+gN52IU3pI+C2pShXe3H",
-	"VuaH9b+0qvs2GyuMpU7zAoU1HjzS1b8oDOB73+qEn0QgxQJ1ijphcnYv9L5DeitvUIdJzxeLu84vOz2B",
-	"d77RQvDI4tk9USvpZ5rYMr9bO8K8coAH+tPszyM1mSAkQvs8VhCQFYuFTAZwUeo6/VhcSkdoMd04ZB1c",
-	"1OuUCxSp/KO9wtOybWmdrw+Ysodejg5+P1kIFApHPsFvC+UbcEyfPWoaL3wkbLrbu8PaH6/u+Dw/t3T+",
-	"61aPI/K6dMBvv/67qpK82AP7lotOSej8/MdPTICMX1WNS5sZzzC6u2qk276mGVEKBajTwkjNwzBVY2II",
-	"tquoe7GZBFea3sX3Js/Mqpu8lgstlpijps1Wn9ruru7+MwA=",
+	"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",
+	"Eo20yPu4Fys/SqduzP8OAA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

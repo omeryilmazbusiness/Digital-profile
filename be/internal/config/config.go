@@ -50,6 +50,9 @@ type Config struct {
 	CORS         CORS      `envPrefix:"CORS_"`
 	RateLimit    RateLimit `envPrefix:"RATE_LIMIT_"`
 	Auth         Auth      `envPrefix:"AUTH_"`
+	Storage      Storage   `envPrefix:"STORAGE_"`
+	S3           S3        `envPrefix:"S3_"`
+	Media        Media     `envPrefix:"MEDIA_"`
 }
 
 // CLI is the subset of configuration operational commands need. It deliberately omits
@@ -183,6 +186,8 @@ func (c Config) Validate() error {
 	errs = append(errs, c.CORS.validate(c.IsProduction())...)
 	errs = append(errs, c.Auth.validate(c.IsProduction())...)
 	errs = append(errs, c.RateLimit.validate()...)
+	errs = append(errs, c.Storage.validate(c.S3)...)
+	errs = append(errs, c.Media.validate(c.IsProduction())...)
 
 	return errors.Join(errs...)
 }
