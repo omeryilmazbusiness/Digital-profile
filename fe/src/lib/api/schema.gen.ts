@@ -239,6 +239,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the profile
+         * @description `404` until the profile is saved for the first time.
+         */
+        get: operations["getProfile"];
+        /**
+         * Replace the profile
+         * @description Full replacement: optional fields left out are cleared, and so are languages missing
+         *     from `translations`. Phone numbers are accepted in international notation
+         *     (`+966 12 545 6789`, `00966…`) and stored in E.164.
+         */
+        put: operations["updateProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/profile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The published business card
+         * @description Texts are in the requested language, falling back to English, Indonesian, then Arabic;
+         *     `locale` tells which one was used. `404` while the profile is incomplete, so visitors
+         *     see a placeholder instead of half-filled contact details.
+         */
+        get: operations["getPublicProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/profile/vcard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the contact card
+         * @description vCard 3.0 (UTF-8, CRLF, folded lines) with the portrait embedded as a JPEG, which
+         *     both iOS Contacts and Google Contacts import. Same availability as the public profile.
+         */
+        get: operations["getProfileVCard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -378,6 +447,115 @@ export interface components {
             /** @description Present when more images exist */
             nextCursor?: string;
         };
+        /**
+         * @description Interface language
+         * @enum {string}
+         */
+        Locale: "en" | "id" | "ar";
+        /**
+         * @description ISO 639-1 code of a language the sales manager speaks
+         * @enum {string}
+         */
+        SpokenLanguage: "ar" | "en" | "tr" | "id" | "ms" | "ur" | "fa" | "fr" | "de" | "es" | "it" | "nl" | "pt" | "ru" | "zh" | "ja" | "ko" | "hi" | "bn" | "ta" | "ml" | "th" | "tl" | "ha" | "so" | "sw" | "am" | "az" | "kk" | "uz" | "ky" | "tg" | "ps" | "sq" | "bs" | "ku" | "yo" | "wo";
+        ProfileTranslation: {
+            /** @example Director of Sales */
+            title: string;
+            /** @description One-line slogan under the name */
+            tagline?: string;
+            bio?: string;
+            /** @description Text pre-filled in WhatsApp when a visitor starts a chat */
+            whatsappMessage?: string;
+        };
+        /** @description Texts per interface language; at least one language is needed to publish */
+        LocalizedProfileText: {
+            en?: components["schemas"]["ProfileTranslation"];
+            id?: components["schemas"]["ProfileTranslation"];
+            ar?: components["schemas"]["ProfileTranslation"];
+        };
+        ProfileInput: {
+            firstName: string;
+            lastName?: string;
+            /** @example Sheraton Makkah Jabal Al Kaaba Hotel */
+            organization?: string;
+            /**
+             * Format: uuid
+             * @description An image from the media library
+             */
+            portraitMediaId?: string;
+            /** @example +966 12 545 6789 */
+            phone?: string;
+            whatsapp?: string;
+            email?: string;
+            /** @description Spoken languages in display order; defaults to Arabic, English, Turkish */
+            languages?: components["schemas"]["SpokenLanguage"][];
+            translations: components["schemas"]["LocalizedProfileText"];
+        };
+        Profile: {
+            firstName: string;
+            lastName: string;
+            fullName: string;
+            organization: string;
+            portrait?: components["schemas"]["Media"];
+            /**
+             * @description E.164
+             * @example +966125456789
+             */
+            phone?: string;
+            /** @description E.164 */
+            whatsapp?: string;
+            email?: string;
+            languages: components["schemas"]["SpokenLanguage"][];
+            translations: components["schemas"]["LocalizedProfileText"];
+            /** @description Whether the public card and vCard are published */
+            complete: boolean;
+            /** @description What must be added before the profile is published */
+            missing: ("title" | "contact")[];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PhoneNumber: {
+            /** @example +966125456789 */
+            e164: string;
+            /**
+             * @description International format for reading; render it left-to-right
+             * @example +966 12 545 6789
+             */
+            display: string;
+        };
+        WhatsAppContact: {
+            e164: string;
+            display: string;
+            /**
+             * @description Opens a chat, with the localized greeting pre-filled when one is set
+             * @example https://wa.me/966125456789?text=Hello
+             */
+            url: string;
+        };
+        PublicImage: {
+            /** Format: int32 */
+            width: number;
+            /** Format: int32 */
+            height: number;
+            placeholder: string;
+            /** @description Alternative text in the response language, when set */
+            alt?: string;
+            variants: components["schemas"]["ImageVariant"][];
+        };
+        PublicProfile: {
+            locale: components["schemas"]["Locale"];
+            firstName: string;
+            lastName: string;
+            fullName: string;
+            organization: string;
+            title: string;
+            tagline?: string;
+            bio?: string;
+            portrait?: components["schemas"]["PublicImage"];
+            phone?: components["schemas"]["PhoneNumber"];
+            whatsapp?: components["schemas"]["WhatsAppContact"];
+            email?: string;
+            languages: components["schemas"]["SpokenLanguage"][];
+        };
     };
     responses: {
         /** @description Error response (RFC 9457) */
@@ -391,6 +569,8 @@ export interface components {
         };
     };
     parameters: {
+        /** @description Preferred interface language */
+        LocaleQuery: components["schemas"]["Locale"];
         MediaId: string;
     };
     requestBodies: never;
@@ -765,6 +945,111 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The profile, with what is still missing before it can be published */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileInput"];
+            };
+        };
+        responses: {
+            /** @description The saved profile */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Profile"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPublicProfile: {
+        parameters: {
+            query?: {
+                /** @description Preferred interface language */
+                locale?: components["parameters"]["LocaleQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The business card */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicProfile"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getProfileVCard: {
+        parameters: {
+            query?: {
+                /** @description Preferred interface language */
+                locale?: components["parameters"]["LocaleQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The contact card */
+            200: {
+                headers: {
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/vcard": string;
+                };
             };
             400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];

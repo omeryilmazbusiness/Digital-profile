@@ -277,19 +277,34 @@ handler (HTTP, DTO, validasyon)
 
 ---
 
-### EPIC 4 — Profil Modülü (`PRF`)
+### EPIC 4 — Profil Modülü (`PRF`) ◐ Backend tamamlandı, cihaz testi bekliyor
 
-| ID | Task | Öncelik | Tahmin | Bağımlılık |
-|---|---|---|---|---|
-| PRF-01 | `profile` + `profile_translations` migration (singleton) | P0 | 0.25 | BE-03 |
-| PRF-02 | Admin API: profil getir/güncelle — ad, portre, telefon, WhatsApp (E.164 doğrulama), e-posta, konuştuğu diller; locale bazlı unvan/slogan/bio/WhatsApp mesajı | P0 | 1 | PRF-01, MED-04 |
-| PRF-03 | vCard 3.0 üretimi (`/profile/vcard`): FN, N, ORG, TITLE, TEL, EMAIL, PHOTO (base64), URL; UTF-8 ve Arapça karakter desteği | P0 | 1 | PRF-02 |
-| PRF-04 | vCard’ın iPhone (Safari) ve Android (Chrome) üzerinde manuel testi, sonuçların kaydı | P0 | 0.5 | PRF-03 |
-| PRF-05 | Profil eksikse public tarafta placeholder modu (yanlış iletişim bilgisi yayınlanmasın) | P0 | 0.25 | PRF-02 |
+| ID | Task | Öncelik | Tahmin | Bağımlılık | Durum |
+|---|---|---|---|---|---|
+| PRF-01 | `profile` + `profile_translations` migration (singleton) | P0 | 0.25 | BE-03 | ✅ |
+| PRF-02 | Admin API: profil getir/güncelle — ad, portre, telefon, WhatsApp (E.164 doğrulama), e-posta, konuştuğu diller; locale bazlı unvan/slogan/bio/WhatsApp mesajı | P0 | 1 | PRF-01, MED-04 | ✅ |
+| PRF-03 | vCard 3.0 üretimi (`/profile/vcard`): FN, N, ORG, TITLE, TEL, EMAIL, PHOTO (base64), URL; UTF-8 ve Arapça karakter desteği | P0 | 1 | PRF-02 | ✅ |
+| PRF-04 | vCard’ın iPhone (Safari) ve Android (Chrome) üzerinde manuel testi, sonuçların kaydı | P0 | 0.5 | PRF-03 | ⏳ ² |
+| PRF-05 | Profil eksikse public tarafta placeholder modu (yanlış iletişim bilgisi yayınlanmasın) | P0 | 0.25 | PRF-02 | ✅ |
 
 **AC:**
 - Konuştuğu diller listesi yalnızca admin’in seçtiği değerlerden oluşur (varsayılan: ar, en, tr).
 - vCard iki platformda da rehbere fotoğraflı ve doğru alanlarla eklenir.
+
+**Uygulama notları:**
+- **Uçlar:** `GET|PUT /api/v1/admin/profile` (oturum + CSRF), `GET /api/v1/public/profile?locale=` ve `GET /api/v1/public/profile/vcard?locale=` (public). `PUT` tam değiştirmedir: gönderilmeyen opsiyonel alanlar ve diller temizlenir.
+- **Tekil kayıt:** `profile.id` her zaman `1` (CHECK). Metinler `profile_translations`’ta locale (`en`/`id`/`ar`) başına tutulur; uzunluk ve format kuralları hem API’de hem DB CHECK’lerinde var.
+- **Telefon:** Girdi uluslararası formatta kabul edilir (`+966 12 545 6789`, `00966…`), libphonenumber ile ülke kurallarına göre doğrulanır ve E.164 saklanır. Ülke kodsuz yerel numara reddedilir (ziyaretçiler farklı ülkelerden). Public yanıt hem `e164` hem okunur `display` formatını döner.
+- **Diller:** Yalnızca sözleşmedeki ISO 639-1 listesinden seçilebilir (OpenAPI enum + servis kontrolü), sıra korunur, tekrarlar atılır; alan gönderilmezse varsayılan `ar, en, tr`.
+- **Portre:** Medya kütüphanesinden seçilir (`portraitMediaId`). FK `NO ACTION` olduğu için kullanılan portre silinemez (`409`). Profil modülü medyaya küçük bir arayüz (`Images`) üzerinden bağlıdır, medya tablolarına erişmez.
+- **Placeholder (PRF-05):** Profil hiç kaydedilmemişse ya da en az bir dilde unvan ve en az bir iletişim kanalı (telefon/WhatsApp/e-posta) yoksa public profil ve vCard `404` döner. Admin yanıtı `complete` ve `missing` (`title`, `contact`) alanlarıyla neyin eksik olduğunu söyler.
+- **Locale fallback:** İstenen dil yoksa sırasıyla en → id → ar; yanıttaki `locale` kullanılan dili belirtir. WhatsApp linki `https://wa.me/<numara>?text=<o dilin hazır mesajı>` olarak üretilir.
+- **vCard:** 3.0 (iOS ve Android’in fotoğrafıyla içe aktardığı sürüm), UTF-8, CRLF, 75 oktette katlama (UTF-8 karakter bölünmez), `\ , ;` ve satır sonu kaçışı. WhatsApp numarası telefondan farklıysa `WhatsApp` etiketli ikinci numara olarak eklenir. `PHOTO` portrenin 512×512 kare JPEG’idir (yüz için üst kısım korunur), portre başına bir kez üretilip bellekte tutulur; üretilemezse kart fotoğrafsız iner. `Content-Type: text/vcard; charset=utf-8`, Arapça isimler için RFC 6266 `filename*`.
+- ² **PRF-04 cihaz test listesi** (gerçek cihazla yapılmalı; otomatik testler kart yapısını, katlamayı, Arapça metni ve JPEG fotoğrafı doğruluyor):
+  1. iPhone Safari → “Kişiyi Kaydet” → kart önizlemesinde fotoğraf, ad, unvan, kurum, iki numara (WhatsApp etiketiyle), e-posta, web sitesi görünür → Kişi Oluştur.
+  2. Android Chrome → indirilen `.vcf` açılır → Kişiler/Google Kişiler’e aktarılır → aynı alanlar ve fotoğraf kontrol edilir.
+  3. Her iki cihazda `?locale=ar` ile Arapça unvan/not doğru (bozuk karakter yok) görünür.
+  4. Sonuçlar (cihaz, OS sürümü, tarih, ekran görüntüsü) bu bölüme eklenir.
 
 ---
 

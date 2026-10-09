@@ -40,7 +40,7 @@ func (h *Handler) ListMedia(ctx context.Context, in api.ListMediaRequestObject) 
 	}
 	page := api.MediaPage{Items: make([]api.Media, len(items))}
 	for i := range items {
-		page.Items[i] = toAPI(&items[i])
+		page.Items[i] = ToAPI(&items[i])
 	}
 	if next != "" {
 		page.NextCursor = &next
@@ -97,9 +97,9 @@ func (h *Handler) UploadMedia(ctx context.Context, in api.UploadMediaRequestObje
 		return nil, err
 	}
 	if created {
-		return api.UploadMedia201JSONResponse(toAPI(&m)), nil
+		return api.UploadMedia201JSONResponse(ToAPI(&m)), nil
 	}
-	return api.UploadMedia200JSONResponse(toAPI(&m)), nil
+	return api.UploadMedia200JSONResponse(ToAPI(&m)), nil
 }
 
 func missingFile() error {
@@ -115,7 +115,7 @@ func (h *Handler) GetMedia(ctx context.Context, in api.GetMediaRequestObject) (a
 	if err != nil {
 		return nil, err
 	}
-	return api.GetMedia200JSONResponse(toAPI(&m)), nil
+	return api.GetMedia200JSONResponse(ToAPI(&m)), nil
 }
 
 func (h *Handler) UpdateMediaAltText(ctx context.Context, in api.UpdateMediaAltTextRequestObject) (api.UpdateMediaAltTextResponseObject, error) {
@@ -129,7 +129,7 @@ func (h *Handler) UpdateMediaAltText(ctx context.Context, in api.UpdateMediaAltT
 	if err != nil {
 		return nil, err
 	}
-	return api.UpdateMediaAltText200JSONResponse(toAPI(&m)), nil
+	return api.UpdateMediaAltText200JSONResponse(ToAPI(&m)), nil
 }
 
 func (h *Handler) DeleteMedia(ctx context.Context, in api.DeleteMediaRequestObject) (api.DeleteMediaResponseObject, error) {
@@ -186,7 +186,8 @@ func (r variantResponse) VisitGetPublicMediaResponse(w http.ResponseWriter) erro
 	return err
 }
 
-func toAPI(m *Media) api.Media {
+// ToAPI maps an image to its admin representation; other modules embed it in their responses.
+func ToAPI(m *Media) api.Media {
 	out := api.Media{
 		Id: m.ID, Width: int32(m.Width), Height: int32(m.Height), //nolint:gosec // bounded by imaging limits
 		SourceType: api.MediaSourceType(m.SourceType), SourceBytes: m.SourceBytes,

@@ -34,6 +34,8 @@ tags:
     description: Admin session management
   - name: media
     description: Image library (admin) and immutable image delivery (public)
+  - name: profile
+    description: The sales manager's digital business card and its vCard
 
 paths:
   /healthz:
@@ -422,8 +424,123 @@ paths:
         default:
           $ref: "#/components/responses/Problem"
 
+  /api/v1/admin/profile:
+    get:
+      tags: [profile]
+      operationId: getProfile
+      summary: Get the profile
+      description: "`404` until the profile is saved for the first time."
+      responses:
+        "200":
+          description: The profile, with what is still missing before it can be published
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      tags: [profile]
+      operationId: updateProfile
+      summary: Replace the profile
+      description: |
+        Full replacement: optional fields left out are cleared, and so are languages missing
+        from `translations`. Phone numbers are accepted in international notation
+        (`+966 12 545 6789`, `00966…`) and stored in E.164.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProfileInput"
+      responses:
+        "200":
+          description: The saved profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/public/profile:
+    get:
+      tags: [profile]
+      operationId: getPublicProfile
+      summary: The published business card
+      description: |
+        Texts are in the requested language, falling back to English, Indonesian, then Arabic;
+        `locale` tells which one was used. `404` while the profile is incomplete, so visitors
+        see a placeholder instead of half-filled contact details.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/LocaleQuery"
+      responses:
+        "200":
+          description: The business card
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicProfile"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/public/profile/vcard:
+    get:
+      tags: [profile]
+      operationId: getProfileVCard
+      summary: Download the contact card
+      description: |
+        vCard 3.0 (UTF-8, CRLF, folded lines) with the portrait embedded as a JPEG, which
+        both iOS Contacts and Google Contacts import. Same availability as the public profile.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/LocaleQuery"
+      responses:
+        "200":
+          description: The contact card
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+                example: attachment; filename="Momen-Hassan.vcf"
+          content:
+            text/vcard:
+              schema:
+                type: string
+                format: binary
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
 components:
   parameters:
+    LocaleQuery:
+      name: locale
+      in: query
+      description: Preferred interface language
+      schema:
+        $ref: "#/components/schemas/Locale"
+
     MediaId:
       name: mediaId
       in: path
@@ -692,3 +809,213 @@ components:
         nextCursor:
           type: string
           description: Present when more images exist
+
+    Locale:
+      type: string
+      enum: [en, id, ar]
+      description: Interface language
+
+    SpokenLanguage:
+      type: string
+      description: ISO 639-1 code of a language the sales manager speaks
+      enum: [ar, en, tr, id, ms, ur, fa, fr, de, es, it, nl, pt, ru, zh, ja, ko, hi, bn, ta, ml, th, tl, ha, so, sw, am, az, kk, uz, ky, tg, ps, sq, bs, ku, yo, wo]
+
+    ProfileTranslation:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 120
+          example: Director of Sales
+        tagline:
+          type: string
+          maxLength: 160
+          description: One-line slogan under the name
+        bio:
+          type: string
+          maxLength: 1000
+        whatsappMessage:
+          type: string
+          maxLength: 500
+          description: Text pre-filled in WhatsApp when a visitor starts a chat
+
+    LocalizedProfileText:
+      type: object
+      additionalProperties: false
+      description: Texts per interface language; at least one language is needed to publish
+      properties:
+        en:
+          $ref: "#/components/schemas/ProfileTranslation"
+        id:
+          $ref: "#/components/schemas/ProfileTranslation"
+        ar:
+          $ref: "#/components/schemas/ProfileTranslation"
+
+    ProfileInput:
+      type: object
+      additionalProperties: false
+      required: [firstName, translations]
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+          maxLength: 60
+        lastName:
+          type: string
+          maxLength: 60
+        organization:
+          type: string
+          maxLength: 120
+          example: Sheraton Makkah Jabal Al Kaaba Hotel
+        portraitMediaId:
+          type: string
+          format: uuid
+          description: An image from the media library
+        phone:
+          type: string
+          maxLength: 32
+          example: "+966 12 545 6789"
+        whatsapp:
+          type: string
+          maxLength: 32
+        email:
+          type: string
+          maxLength: 254
+        languages:
+          type: array
+          description: Spoken languages in display order; defaults to Arabic, English, Turkish
+          maxItems: 20
+          uniqueItems: true
+          items:
+            $ref: "#/components/schemas/SpokenLanguage"
+        translations:
+          $ref: "#/components/schemas/LocalizedProfileText"
+
+    Profile:
+      type: object
+      additionalProperties: false
+      required: [firstName, lastName, fullName, organization, languages, translations, complete, missing, updatedAt]
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        fullName:
+          type: string
+        organization:
+          type: string
+        portrait:
+          $ref: "#/components/schemas/Media"
+        phone:
+          type: string
+          description: E.164
+          example: "+966125456789"
+        whatsapp:
+          type: string
+          description: E.164
+        email:
+          type: string
+        languages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpokenLanguage"
+        translations:
+          $ref: "#/components/schemas/LocalizedProfileText"
+        complete:
+          type: boolean
+          description: Whether the public card and vCard are published
+        missing:
+          type: array
+          description: What must be added before the profile is published
+          items:
+            type: string
+            enum: [title, contact]
+        updatedAt:
+          type: string
+          format: date-time
+
+    PhoneNumber:
+      type: object
+      additionalProperties: false
+      required: [e164, display]
+      properties:
+        e164:
+          type: string
+          example: "+966125456789"
+        display:
+          type: string
+          description: International format for reading; render it left-to-right
+          example: "+966 12 545 6789"
+
+    WhatsAppContact:
+      type: object
+      additionalProperties: false
+      required: [e164, display, url]
+      properties:
+        e164:
+          type: string
+        display:
+          type: string
+        url:
+          type: string
+          description: Opens a chat, with the localized greeting pre-filled when one is set
+          example: https://wa.me/966125456789?text=Hello
+
+    PublicImage:
+      type: object
+      additionalProperties: false
+      required: [width, height, placeholder, variants]
+      properties:
+        width:
+          type: integer
+          format: int32
+        height:
+          type: integer
+          format: int32
+        placeholder:
+          type: string
+        alt:
+          type: string
+          description: Alternative text in the response language, when set
+        variants:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ImageVariant"
+
+    PublicProfile:
+      type: object
+      additionalProperties: false
+      required: [locale, firstName, lastName, fullName, organization, title, languages]
+      properties:
+        locale:
+          $ref: "#/components/schemas/Locale"
+        firstName:
+          type: string
+        lastName:
+          type: string
+        fullName:
+          type: string
+        organization:
+          type: string
+        title:
+          type: string
+        tagline:
+          type: string
+        bio:
+          type: string
+        portrait:
+          $ref: "#/components/schemas/PublicImage"
+        phone:
+          $ref: "#/components/schemas/PhoneNumber"
+        whatsapp:
+          $ref: "#/components/schemas/WhatsAppContact"
+        email:
+          type: string
+        languages:
+          type: array
+          items:
+            $ref: "#/components/schemas/SpokenLanguage"

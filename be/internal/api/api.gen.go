@@ -43,6 +43,27 @@ func (e HealthStatus) Valid() bool {
 	}
 }
 
+// Defines values for Locale.
+const (
+	LocaleAr Locale = "ar"
+	LocaleEn Locale = "en"
+	LocaleId Locale = "id"
+)
+
+// Valid indicates whether the value is a known member of the Locale enum.
+func (e Locale) Valid() bool {
+	switch e {
+	case LocaleAr:
+		return true
+	case LocaleEn:
+		return true
+	case LocaleId:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for MediaSourceType.
 const (
 	Imagejpeg MediaSourceType = "image/jpeg"
@@ -58,6 +79,150 @@ func (e MediaSourceType) Valid() bool {
 	case Imagepng:
 		return true
 	case Imagewebp:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ProfileMissing.
+const (
+	Contact ProfileMissing = "contact"
+	Title   ProfileMissing = "title"
+)
+
+// Valid indicates whether the value is a known member of the ProfileMissing enum.
+func (e ProfileMissing) Valid() bool {
+	switch e {
+	case Contact:
+		return true
+	case Title:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SpokenLanguage.
+const (
+	SpokenLanguageAm SpokenLanguage = "am"
+	SpokenLanguageAr SpokenLanguage = "ar"
+	SpokenLanguageAz SpokenLanguage = "az"
+	SpokenLanguageBn SpokenLanguage = "bn"
+	SpokenLanguageBs SpokenLanguage = "bs"
+	SpokenLanguageDe SpokenLanguage = "de"
+	SpokenLanguageEn SpokenLanguage = "en"
+	SpokenLanguageEs SpokenLanguage = "es"
+	SpokenLanguageFa SpokenLanguage = "fa"
+	SpokenLanguageFr SpokenLanguage = "fr"
+	SpokenLanguageHa SpokenLanguage = "ha"
+	SpokenLanguageHi SpokenLanguage = "hi"
+	SpokenLanguageId SpokenLanguage = "id"
+	SpokenLanguageIt SpokenLanguage = "it"
+	SpokenLanguageJa SpokenLanguage = "ja"
+	SpokenLanguageKk SpokenLanguage = "kk"
+	SpokenLanguageKo SpokenLanguage = "ko"
+	SpokenLanguageKu SpokenLanguage = "ku"
+	SpokenLanguageKy SpokenLanguage = "ky"
+	SpokenLanguageMl SpokenLanguage = "ml"
+	SpokenLanguageMs SpokenLanguage = "ms"
+	SpokenLanguageNl SpokenLanguage = "nl"
+	SpokenLanguagePs SpokenLanguage = "ps"
+	SpokenLanguagePt SpokenLanguage = "pt"
+	SpokenLanguageRu SpokenLanguage = "ru"
+	SpokenLanguageSo SpokenLanguage = "so"
+	SpokenLanguageSq SpokenLanguage = "sq"
+	SpokenLanguageSw SpokenLanguage = "sw"
+	SpokenLanguageTa SpokenLanguage = "ta"
+	SpokenLanguageTg SpokenLanguage = "tg"
+	SpokenLanguageTh SpokenLanguage = "th"
+	SpokenLanguageTl SpokenLanguage = "tl"
+	SpokenLanguageTr SpokenLanguage = "tr"
+	SpokenLanguageUr SpokenLanguage = "ur"
+	SpokenLanguageUz SpokenLanguage = "uz"
+	SpokenLanguageWo SpokenLanguage = "wo"
+	SpokenLanguageYo SpokenLanguage = "yo"
+	SpokenLanguageZh SpokenLanguage = "zh"
+)
+
+// Valid indicates whether the value is a known member of the SpokenLanguage enum.
+func (e SpokenLanguage) Valid() bool {
+	switch e {
+	case SpokenLanguageAm:
+		return true
+	case SpokenLanguageAr:
+		return true
+	case SpokenLanguageAz:
+		return true
+	case SpokenLanguageBn:
+		return true
+	case SpokenLanguageBs:
+		return true
+	case SpokenLanguageDe:
+		return true
+	case SpokenLanguageEn:
+		return true
+	case SpokenLanguageEs:
+		return true
+	case SpokenLanguageFa:
+		return true
+	case SpokenLanguageFr:
+		return true
+	case SpokenLanguageHa:
+		return true
+	case SpokenLanguageHi:
+		return true
+	case SpokenLanguageId:
+		return true
+	case SpokenLanguageIt:
+		return true
+	case SpokenLanguageJa:
+		return true
+	case SpokenLanguageKk:
+		return true
+	case SpokenLanguageKo:
+		return true
+	case SpokenLanguageKu:
+		return true
+	case SpokenLanguageKy:
+		return true
+	case SpokenLanguageMl:
+		return true
+	case SpokenLanguageMs:
+		return true
+	case SpokenLanguageNl:
+		return true
+	case SpokenLanguagePs:
+		return true
+	case SpokenLanguagePt:
+		return true
+	case SpokenLanguageRu:
+		return true
+	case SpokenLanguageSo:
+		return true
+	case SpokenLanguageSq:
+		return true
+	case SpokenLanguageSw:
+		return true
+	case SpokenLanguageTa:
+		return true
+	case SpokenLanguageTg:
+		return true
+	case SpokenLanguageTh:
+		return true
+	case SpokenLanguageTl:
+		return true
+	case SpokenLanguageTr:
+		return true
+	case SpokenLanguageUr:
+		return true
+	case SpokenLanguageUz:
+		return true
+	case SpokenLanguageWo:
+		return true
+	case SpokenLanguageYo:
+		return true
+	case SpokenLanguageZh:
 		return true
 	default:
 		return false
@@ -128,11 +293,21 @@ type ImageVariant struct {
 	Width int32  `json:"width"`
 }
 
+// Locale Interface language
+type Locale string
+
 // LocalizedAltText Alternative text per interface language
 type LocalizedAltText struct {
 	Ar *AltText `json:"ar,omitempty"`
 	En *AltText `json:"en,omitempty"`
 	Id *AltText `json:"id,omitempty"`
+}
+
+// LocalizedProfileText Texts per interface language; at least one language is needed to publish
+type LocalizedProfileText struct {
+	Ar *ProfileTranslation `json:"ar,omitempty"`
+	En *ProfileTranslation `json:"en,omitempty"`
+	Id *ProfileTranslation `json:"id,omitempty"`
 }
 
 // LoginRequest defines model for LoginRequest.
@@ -181,6 +356,17 @@ type MediaPage struct {
 	NextCursor *string `json:"nextCursor,omitempty"`
 }
 
+// PhoneNumber defines model for PhoneNumber.
+type PhoneNumber struct {
+	// Display International format for reading; render it left-to-right
+	//
+	// Example: +966 12 545 6789
+	Display string `json:"display"`
+
+	// E164 Example: +966125456789
+	E164 string `json:"e164"`
+}
+
 // Problem RFC 9457 Problem Details
 type Problem struct {
 	Detail *string `json:"detail,omitempty"`
@@ -204,11 +390,125 @@ type Problem struct {
 	Type string `json:"type"`
 }
 
+// Profile defines model for Profile.
+type Profile struct {
+	// Complete Whether the public card and vCard are published
+	Complete  bool             `json:"complete"`
+	Email     *string          `json:"email,omitempty"`
+	FirstName string           `json:"firstName"`
+	FullName  string           `json:"fullName"`
+	Languages []SpokenLanguage `json:"languages"`
+	LastName  string           `json:"lastName"`
+
+	// Missing What must be added before the profile is published
+	Missing      []ProfileMissing `json:"missing"`
+	Organization string           `json:"organization"`
+
+	// Phone E.164
+	//
+	// Example: +966125456789
+	Phone    *string `json:"phone,omitempty"`
+	Portrait *Media  `json:"portrait,omitempty"`
+
+	// Translations Texts per interface language; at least one language is needed to publish
+	Translations LocalizedProfileText `json:"translations"`
+	UpdatedAt    time.Time            `json:"updatedAt"`
+
+	// Whatsapp E.164
+	Whatsapp *string `json:"whatsapp,omitempty"`
+}
+
+// ProfileMissing defines model for Profile.Missing.
+type ProfileMissing string
+
+// ProfileInput defines model for ProfileInput.
+type ProfileInput struct {
+	Email     *string `json:"email,omitempty"`
+	FirstName string  `json:"firstName"`
+
+	// Languages Spoken languages in display order; defaults to Arabic, English, Turkish
+	Languages *[]SpokenLanguage `json:"languages,omitempty"`
+	LastName  *string           `json:"lastName,omitempty"`
+
+	// Organization Example: Sheraton Makkah Jabal Al Kaaba Hotel
+	Organization *string `json:"organization,omitempty"`
+
+	// Phone Example: +966 12 545 6789
+	Phone *string `json:"phone,omitempty"`
+
+	// PortraitMediaId An image from the media library
+	PortraitMediaId *openapi_types.UUID `json:"portraitMediaId,omitempty"`
+
+	// Translations Texts per interface language; at least one language is needed to publish
+	Translations LocalizedProfileText `json:"translations"`
+	Whatsapp     *string              `json:"whatsapp,omitempty"`
+}
+
+// ProfileTranslation defines model for ProfileTranslation.
+type ProfileTranslation struct {
+	Bio *string `json:"bio,omitempty"`
+
+	// Tagline One-line slogan under the name
+	Tagline *string `json:"tagline,omitempty"`
+
+	// Title Example: Director of Sales
+	Title string `json:"title"`
+
+	// WhatsappMessage Text pre-filled in WhatsApp when a visitor starts a chat
+	WhatsappMessage *string `json:"whatsappMessage,omitempty"`
+}
+
+// PublicImage defines model for PublicImage.
+type PublicImage struct {
+	// Alt Alternative text in the response language, when set
+	Alt         *string        `json:"alt,omitempty"`
+	Height      int32          `json:"height"`
+	Placeholder string         `json:"placeholder"`
+	Variants    []ImageVariant `json:"variants"`
+	Width       int32          `json:"width"`
+}
+
+// PublicProfile defines model for PublicProfile.
+type PublicProfile struct {
+	Bio       *string          `json:"bio,omitempty"`
+	Email     *string          `json:"email,omitempty"`
+	FirstName string           `json:"firstName"`
+	FullName  string           `json:"fullName"`
+	Languages []SpokenLanguage `json:"languages"`
+	LastName  string           `json:"lastName"`
+
+	// Locale Interface language
+	Locale       Locale           `json:"locale"`
+	Organization string           `json:"organization"`
+	Phone        *PhoneNumber     `json:"phone,omitempty"`
+	Portrait     *PublicImage     `json:"portrait,omitempty"`
+	Tagline      *string          `json:"tagline,omitempty"`
+	Title        string           `json:"title"`
+	Whatsapp     *WhatsAppContact `json:"whatsapp,omitempty"`
+}
+
 // SessionInfo defines model for SessionInfo.
 type SessionInfo struct {
 	// AccessTokenExpiresAt When to refresh; the access cookie stops being sent after this instant
 	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
 }
+
+// SpokenLanguage ISO 639-1 code of a language the sales manager speaks
+type SpokenLanguage string
+
+// WhatsAppContact defines model for WhatsAppContact.
+type WhatsAppContact struct {
+	Display string `json:"display"`
+	E164    string `json:"e164"`
+
+	// Url Opens a chat, with the localized greeting pre-filled when one is set
+	//
+	// Example: https://wa.me/966125456789?text=Hello
+	Url string `json:"url"`
+}
+
+// LocaleQuery Interface language
+type LocaleQuery = Locale
 
 // MediaId defines model for MediaId.
 type MediaId = openapi_types.UUID
@@ -229,11 +529,26 @@ type GetPublicMediaParams struct {
 	IfNoneMatch *string `json:"If-None-Match,omitempty"`
 }
 
+// GetPublicProfileParams defines parameters for GetPublicProfile.
+type GetPublicProfileParams struct {
+	// Locale Preferred interface language
+	Locale *LocaleQuery `form:"locale,omitempty" json:"locale,omitempty"`
+}
+
+// GetProfileVCardParams defines parameters for GetProfileVCard.
+type GetProfileVCardParams struct {
+	// Locale Preferred interface language
+	Locale *LocaleQuery `form:"locale,omitempty" json:"locale,omitempty"`
+}
+
 // UploadMediaMultipartRequestBody defines body for UploadMedia for multipart/form-data ContentType.
 type UploadMediaMultipartRequestBody UploadMediaMultipartBody
 
 // UpdateMediaAltTextJSONRequestBody defines body for UpdateMediaAltText for application/json ContentType.
 type UpdateMediaAltTextJSONRequestBody = LocalizedAltText
+
+// UpdateProfileJSONRequestBody defines body for UpdateProfile for application/json ContentType.
+type UpdateProfileJSONRequestBody = ProfileInput
 
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
@@ -258,6 +573,12 @@ type ServerInterface interface {
 	// UpdateMediaAltText Replace the alternative text
 	// (PUT /api/v1/admin/media/{mediaId}/alt-text)
 	UpdateMediaAltText(w http.ResponseWriter, r *http.Request, mediaId MediaId)
+	// GetProfile Get the profile
+	// (GET /api/v1/admin/profile)
+	GetProfile(w http.ResponseWriter, r *http.Request)
+	// UpdateProfile Replace the profile
+	// (PUT /api/v1/admin/profile)
+	UpdateProfile(w http.ResponseWriter, r *http.Request)
 	// Login Sign in
 	// (POST /api/v1/auth/login)
 	Login(w http.ResponseWriter, r *http.Request)
@@ -276,6 +597,12 @@ type ServerInterface interface {
 	// GetPublicMedia Image variant
 	// (GET /api/v1/public/media/{file})
 	GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams)
+	// GetPublicProfile The published business card
+	// (GET /api/v1/public/profile)
+	GetPublicProfile(w http.ResponseWriter, r *http.Request, params GetPublicProfileParams)
+	// GetProfileVCard Download the contact card
+	// (GET /api/v1/public/profile/vcard)
+	GetProfileVCard(w http.ResponseWriter, r *http.Request, params GetProfileVCardParams)
 	// GetLiveness Liveness probe
 	// (GET /healthz)
 	GetLiveness(w http.ResponseWriter, r *http.Request)
@@ -318,6 +645,18 @@ func (_ Unimplemented) UpdateMediaAltText(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetProfile Get the profile
+// (GET /api/v1/admin/profile)
+func (_ Unimplemented) GetProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateProfile Replace the profile
+// (PUT /api/v1/admin/profile)
+func (_ Unimplemented) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Login Sign in
 // (POST /api/v1/auth/login)
 func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request) {
@@ -351,6 +690,18 @@ func (_ Unimplemented) RefreshSession(w http.ResponseWriter, r *http.Request) {
 // GetPublicMedia Image variant
 // (GET /api/v1/public/media/{file})
 func (_ Unimplemented) GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPublicProfile The published business card
+// (GET /api/v1/public/profile)
+func (_ Unimplemented) GetPublicProfile(w http.ResponseWriter, r *http.Request, params GetPublicProfileParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetProfileVCard Download the contact card
+// (GET /api/v1/public/profile/vcard)
+func (_ Unimplemented) GetProfileVCard(w http.ResponseWriter, r *http.Request, params GetProfileVCardParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -513,6 +864,34 @@ func (siw *ServerInterfaceWrapper) UpdateMediaAltText(w http.ResponseWriter, r *
 	handler.ServeHTTP(w, r)
 }
 
+// GetProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateProfile operation middleware
+func (siw *ServerInterfaceWrapper) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateProfile(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Login operation middleware
 func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -624,6 +1003,72 @@ func (siw *ServerInterfaceWrapper) GetPublicMedia(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetPublicMedia(w, r, file, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPublicProfile operation middleware
+func (siw *ServerInterfaceWrapper) GetPublicProfile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPublicProfileParams
+
+	// ------------- Optional query parameter "locale" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "locale", r.URL.Query(), &params.Locale, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "locale"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "locale", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPublicProfile(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetProfileVCard operation middleware
+func (siw *ServerInterfaceWrapper) GetProfileVCard(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetProfileVCardParams
+
+	// ------------- Optional query parameter "locale" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "locale", r.URL.Query(), &params.Locale, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "locale"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "locale", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetProfileVCard(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -812,6 +1257,18 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/public/media/{file}", wrapper.GetPublicMedia)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/admin/profile", wrapper.GetProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/admin/profile", wrapper.UpdateProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/public/profile", wrapper.GetPublicProfile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/public/profile/vcard", wrapper.GetProfileVCard)
 	})
 
 	return r
@@ -1302,6 +1759,171 @@ type UpdateMediaAltTextdefaultApplicationProblemPlusJSONResponse struct {
 }
 
 func (response UpdateMediaAltTextdefaultApplicationProblemPlusJSONResponse) VisitUpdateMediaAltTextResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfileRequestObject struct {
+}
+
+type GetProfileResponseObject interface {
+	VisitGetProfileResponse(w http.ResponseWriter) error
+}
+
+type GetProfile200JSONResponse Profile
+
+func (response GetProfile200JSONResponse) VisitGetProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfile401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetProfile401ApplicationProblemPlusJSONResponse) VisitGetProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfile404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetProfile404ApplicationProblemPlusJSONResponse) VisitGetProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfiledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetProfiledefaultApplicationProblemPlusJSONResponse) VisitGetProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfileRequestObject struct {
+	Body *UpdateProfileJSONRequestBody
+}
+
+type UpdateProfileResponseObject interface {
+	VisitUpdateProfileResponse(w http.ResponseWriter) error
+}
+
+type UpdateProfile200JSONResponse Profile
+
+func (response UpdateProfile200JSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateProfile400ApplicationProblemPlusJSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateProfile401ApplicationProblemPlusJSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateProfile403ApplicationProblemPlusJSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfile422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateProfile422ApplicationProblemPlusJSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateProfiledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateProfiledefaultApplicationProblemPlusJSONResponse) VisitUpdateProfileResponse(w http.ResponseWriter) error {
 
 	var buf bytes.Buffer
 	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
@@ -1843,6 +2465,158 @@ func (response GetPublicMediadefaultApplicationProblemPlusJSONResponse) VisitGet
 	return err
 }
 
+type GetPublicProfileRequestObject struct {
+	Params GetPublicProfileParams
+}
+
+type GetPublicProfileResponseObject interface {
+	VisitGetPublicProfileResponse(w http.ResponseWriter) error
+}
+
+type GetPublicProfile200JSONResponse PublicProfile
+
+func (response GetPublicProfile200JSONResponse) VisitGetPublicProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicProfile400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPublicProfile400ApplicationProblemPlusJSONResponse) VisitGetPublicProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicProfile404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetPublicProfile404ApplicationProblemPlusJSONResponse) VisitGetPublicProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicProfiledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPublicProfiledefaultApplicationProblemPlusJSONResponse) VisitGetPublicProfileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfileVCardRequestObject struct {
+	Params GetProfileVCardParams
+}
+
+type GetProfileVCardResponseObject interface {
+	VisitGetProfileVCardResponse(w http.ResponseWriter) error
+}
+
+type GetProfileVCard200ResponseHeaders struct {
+	ContentDisposition *string
+}
+
+type GetProfileVCard200TextvcardResponse struct {
+	Body          io.Reader
+	Headers       GetProfileVCard200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetProfileVCard200TextvcardResponse) VisitGetProfileVCardResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "text/vcard")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.ContentDisposition != nil {
+		w.Header().Set("Content-Disposition", fmt.Sprint(*response.Headers.ContentDisposition))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetProfileVCard400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetProfileVCard400ApplicationProblemPlusJSONResponse) VisitGetProfileVCardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfileVCard404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetProfileVCard404ApplicationProblemPlusJSONResponse) VisitGetProfileVCardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetProfileVCarddefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetProfileVCarddefaultApplicationProblemPlusJSONResponse) VisitGetProfileVCardResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetLivenessRequestObject struct {
 }
 
@@ -1950,6 +2724,12 @@ type StrictServerInterface interface {
 	// UpdateMediaAltText Replace the alternative text
 	// (PUT /api/v1/admin/media/{mediaId}/alt-text)
 	UpdateMediaAltText(ctx context.Context, request UpdateMediaAltTextRequestObject) (UpdateMediaAltTextResponseObject, error)
+	// GetProfile Get the profile
+	// (GET /api/v1/admin/profile)
+	GetProfile(ctx context.Context, request GetProfileRequestObject) (GetProfileResponseObject, error)
+	// UpdateProfile Replace the profile
+	// (PUT /api/v1/admin/profile)
+	UpdateProfile(ctx context.Context, request UpdateProfileRequestObject) (UpdateProfileResponseObject, error)
 	// Login Sign in
 	// (POST /api/v1/auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -1968,6 +2748,12 @@ type StrictServerInterface interface {
 	// GetPublicMedia Image variant
 	// (GET /api/v1/public/media/{file})
 	GetPublicMedia(ctx context.Context, request GetPublicMediaRequestObject) (GetPublicMediaResponseObject, error)
+	// GetPublicProfile The published business card
+	// (GET /api/v1/public/profile)
+	GetPublicProfile(ctx context.Context, request GetPublicProfileRequestObject) (GetPublicProfileResponseObject, error)
+	// GetProfileVCard Download the contact card
+	// (GET /api/v1/public/profile/vcard)
+	GetProfileVCard(ctx context.Context, request GetProfileVCardRequestObject) (GetProfileVCardResponseObject, error)
 	// GetLiveness Liveness probe
 	// (GET /healthz)
 	GetLiveness(ctx context.Context, request GetLivenessRequestObject) (GetLivenessResponseObject, error)
@@ -2157,6 +2943,61 @@ func (sh *strictHandler) UpdateMediaAltText(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// GetProfile operation middleware
+func (sh *strictHandler) GetProfile(w http.ResponseWriter, r *http.Request) {
+	var request GetProfileRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetProfile(ctx, request.(GetProfileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetProfile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetProfileResponseObject); ok {
+		if err := validResponse.VisitGetProfileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateProfile operation middleware
+func (sh *strictHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
+	var request UpdateProfileRequestObject
+
+	var body UpdateProfileJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateProfile(ctx, request.(UpdateProfileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateProfile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateProfileResponseObject); ok {
+		if err := validResponse.VisitUpdateProfileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Login operation middleware
 func (sh *strictHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request LoginRequestObject
@@ -2318,6 +3159,58 @@ func (sh *strictHandler) GetPublicMedia(w http.ResponseWriter, r *http.Request, 
 	}
 }
 
+// GetPublicProfile operation middleware
+func (sh *strictHandler) GetPublicProfile(w http.ResponseWriter, r *http.Request, params GetPublicProfileParams) {
+	var request GetPublicProfileRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPublicProfile(ctx, request.(GetPublicProfileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPublicProfile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPublicProfileResponseObject); ok {
+		if err := validResponse.VisitGetPublicProfileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// GetProfileVCard operation middleware
+func (sh *strictHandler) GetProfileVCard(w http.ResponseWriter, r *http.Request, params GetProfileVCardParams) {
+	var request GetProfileVCardRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetProfileVCard(ctx, request.(GetProfileVCardRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetProfileVCard")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetProfileVCardResponseObject); ok {
+		if err := validResponse.VisitGetProfileVCardResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetLiveness operation middleware
 func (sh *strictHandler) GetLiveness(w http.ResponseWriter, r *http.Request) {
 	var request GetLivenessRequestObject
@@ -2371,73 +3264,99 @@ func (sh *strictHandler) GetReadiness(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"Eo20yPu4Fys/SqduzP8OAA==",
+	"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",
+	"YjfUyr7hUi08q+de3//vAA==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

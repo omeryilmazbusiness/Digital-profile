@@ -131,6 +131,18 @@ make -C be admin-reset-password email=you@example.com   # also unlocks and signs
 - Images referenced by content cannot be deleted (`409`). Uploading the same file again returns the
   existing image.
 
+## Profile
+
+- `GET|PUT /api/v1/admin/profile` edits the business card (single record, full replacement). Phone
+  and WhatsApp numbers are entered with their country code and stored in E.164; spoken languages
+  come from a fixed ISO 639-1 list and default to Arabic, English, Turkish.
+- `GET /api/v1/public/profile?locale=` and `GET /api/v1/public/profile/vcard?locale=` stay `404`
+  until the profile has a title in at least one language and one contact channel, so visitors see
+  a placeholder rather than half-filled details. The admin response lists what is `missing`.
+- The vCard is 3.0 with the portrait embedded as a 512 px square JPEG — the format both iOS and
+  Android import with the photo. Device checks to run before launch are listed under PRF-04 in
+  `docs/TASKS.md`.
+
 ## Design system
 
 The UI is an iOS-style, mobile-first kit in `fe/src/components/ui`, driven by the tokens in

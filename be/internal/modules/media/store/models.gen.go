@@ -73,6 +73,29 @@ type MediaVariant struct {
 	ByteSize    int64
 }
 
+type Profile struct {
+	ID              int16
+	FirstName       string
+	LastName        string
+	Organization    string
+	PortraitMediaID *uuid.UUID
+	Phone           *string
+	Whatsapp        *string
+	Email           *string
+	Languages       []string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+}
+
+type ProfileTranslation struct {
+	ProfileID       int16
+	Locale          string
+	Title           string
+	Tagline         string
+	Bio             string
+	WhatsappMessage string
+}
+
 type RefreshToken struct {
 	ID        uuid.UUID
 	SessionID uuid.UUID

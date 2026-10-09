@@ -356,6 +356,35 @@ func (s *Service) OpenVariant(ctx context.Context, file string) (io.ReadCloser, 
 	return rc, obj, nil
 }
 
+// OpenImage returns the smallest variant at least minWidth wide (the largest when none is),
+// for server-side consumers that need the pixels rather than a URL.
+func (s *Service) OpenImage(ctx context.Context, id uuid.UUID, minWidth int) (io.ReadCloser, error) {
+	variants, err := s.q(ctx).ListVariants(ctx, []uuid.UUID{id})
+	if err != nil {
+		return nil, database.MapError(err)
+	}
+	if len(variants) == 0 {
+		return nil, errNotFound
+	}
+	// Variants are ordered by ascending width.
+	pick := variants[len(variants)-1]
+	for i := range variants {
+		if int(variants[i].Width) >= minWidth {
+			pick = variants[i]
+			break
+		}
+	}
+	rc, _, err := s.storage.Get(ctx, pick.StorageKey)
+	if errors.Is(err, storage.ErrNotFound) {
+		s.log.ErrorContext(ctx, "media variant missing from storage", "key", pick.StorageKey)
+		return nil, errNotFound
+	}
+	if err != nil {
+		return nil, apperr.Unavailable("image storage is unavailable").Wrap(err)
+	}
+	return rc, nil
+}
+
 // assemble loads variants and translations for rows with two queries, whatever the page size.
 func (s *Service) assemble(ctx context.Context, rows []store.Media) ([]Media, error) {
 	if len(rows) == 0 {
