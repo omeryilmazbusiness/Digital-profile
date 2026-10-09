@@ -2,16 +2,124 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Design tokens — an iOS-inspired system.
+ *
+ * Every color is defined once with light-dark(): the page follows the OS appearance, and
+ * <html data-theme="light|dark"> forces one. Components use semantic tokens only (label,
+ * fill, separator, tint…), never raw palette values, so theming stays in this file.
+ *
+ * Secondary labels and the accessible red/green/orange are darkened from Apple's defaults so
+ * text meets WCAG AA (4.5:1) on every background.
+ */
+
+@custom-variant dark {
+  &:where([data-theme="dark"], [data-theme="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:not([data-theme="light"], [data-theme="light"] *)) {
+      @slot;
+    }
+  }
+}
+
+:root {
+  color-scheme: light dark;
+
+  /* Brand — placeholder until the Sheraton brand guide is applied (FE-01). */
+  --brand: light-dark(#0b5cad, #2a78d6);
+  --brand-contrast: #fff;
+  --gold: light-dark(#8a6526, #d4b07a);
+
+  /* System colors */
+  --system-blue: light-dark(#0062cc, #0a84ff);
+  --system-red: light-dark(#d70015, #ff453a);
+  --system-green: light-dark(#1f7a35, #30d158);
+  --system-orange: light-dark(#b34700, #ff9f0a);
+  --system-yellow: light-dark(#ffcc00, #ffd60a);
+  --system-teal: light-dark(#0071a4, #40c8e0);
+  --system-indigo: light-dark(#5856d6, #5e5ce6);
+  --system-gray: light-dark(#6c6c70, #98989d);
+  --switch-on: light-dark(#34c759, #30d158);
+  --control-thumb: light-dark(#fff, #636366);
+
+  /* Backgrounds */
+  --bg: light-dark(#fff, #000);
+  --bg-secondary: light-dark(#f2f2f7, #1c1c1e);
+  --bg-tertiary: light-dark(#fff, #2c2c2e);
+  --bg-grouped: light-dark(#f2f2f7, #000);
+  --bg-grouped-secondary: light-dark(#fff, #1c1c1e);
+  --bg-grouped-tertiary: light-dark(#f2f2f7, #2c2c2e);
+  --bg-elevated: light-dark(#fff, #1c1c1e);
+
+  /* Labels */
+  --label: light-dark(#000, #fff);
+  --label-secondary: light-dark(rgb(60 60 67 / 0.76), rgb(235 235 245 / 0.66));
+  --label-tertiary: light-dark(rgb(60 60 67 / 0.36), rgb(235 235 245 / 0.34));
+  --label-quaternary: light-dark(rgb(60 60 67 / 0.18), rgb(235 235 245 / 0.16));
+
+  /* Separators and fills */
+  --separator: light-dark(rgb(60 60 67 / 0.29), rgb(84 84 88 / 0.65));
+  --separator-opaque: light-dark(#c6c6c8, #38383a);
+  --fill: light-dark(rgb(120 120 128 / 0.2), rgb(120 120 128 / 0.36));
+  --fill-secondary: light-dark(rgb(120 120 128 / 0.16), rgb(120 120 128 / 0.32));
+  --fill-tertiary: light-dark(rgb(118 118 128 / 0.12), rgb(118 118 128 / 0.24));
+  --fill-quaternary: light-dark(rgb(116 116 128 / 0.08), rgb(116 116 128 / 0.18));
+
+  /* Materials (translucent surfaces behind a backdrop blur) */
+  --material-thin: light-dark(rgb(250 250 250 / 0.6), rgb(37 37 37 / 0.6));
+  --material-regular: light-dark(rgb(250 250 250 / 0.72), rgb(30 30 30 / 0.72));
+  --material-thick: light-dark(rgb(250 250 250 / 0.88), rgb(28 28 30 / 0.88));
+  --material-chrome: light-dark(rgb(249 249 249 / 0.8), rgb(22 22 23 / 0.8));
+  --material-blur: blur(24px) saturate(180%);
+
+  /* Elevation */
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 16px rgb(0 0 0 / 0.06);
+  --shadow-float: 0 2px 8px rgb(0 0 0 / 0.08), 0 12px 40px rgb(0 0 0 / 0.18);
+
+  /* Motion */
+  --duration-instant: 100ms;
+  --duration-fast: 180ms;
+  --duration-base: 280ms;
+  --duration-slow: 420ms;
+  --duration-sheet: 500ms;
+
+  /* Layout */
+  --nav-height: 2.75rem;
+  --content-max: 42rem;
+
+  /* shadcn/ui aliases, so generated components inherit the system. */
+  --radius: 0.75rem;
+  --background: var(--bg);
+  --foreground: var(--label);
+  --card: var(--bg-grouped-secondary);
+  --card-foreground: var(--label);
+  --popover: var(--bg-elevated);
+  --popover-foreground: var(--label);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-contrast);
+  --secondary: var(--fill-tertiary);
+  --secondary-foreground: var(--label);
+  --muted: var(--bg-secondary);
+  --muted-foreground: var(--label-secondary);
+  --accent: var(--fill-quaternary);
+  --accent-foreground: var(--label);
+  --destructive: var(--system-red);
+  --border: var(--separator);
+  --input: var(--fill-tertiary);
+  --ring: var(--brand);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
 
 @theme inline {
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -30,95 +138,358 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-tint: var(--brand);
+  --color-tint-contrast: var(--brand-contrast);
+  --color-gold: var(--gold);
+  --color-system-blue: var(--system-blue);
+  --color-system-red: var(--system-red);
+  --color-system-green: var(--system-green);
+  --color-system-orange: var(--system-orange);
+  --color-system-yellow: var(--system-yellow);
+  --color-system-teal: var(--system-teal);
+  --color-system-indigo: var(--system-indigo);
+  --color-system-gray: var(--system-gray);
+  --color-switch-on: var(--switch-on);
+  --color-control-thumb: var(--control-thumb);
+
+  --color-bg: var(--bg);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-bg-grouped: var(--bg-grouped);
+  --color-bg-grouped-secondary: var(--bg-grouped-secondary);
+  --color-bg-grouped-tertiary: var(--bg-grouped-tertiary);
+  --color-bg-elevated: var(--bg-elevated);
+
+  --color-label: var(--label);
+  --color-label-secondary: var(--label-secondary);
+  --color-label-tertiary: var(--label-tertiary);
+  --color-label-quaternary: var(--label-quaternary);
+
+  --color-separator: var(--separator);
+  --color-separator-opaque: var(--separator-opaque);
+  --color-fill: var(--fill);
+  --color-fill-secondary: var(--fill-secondary);
+  --color-fill-tertiary: var(--fill-tertiary);
+  --color-fill-quaternary: var(--fill-quaternary);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-float: var(--shadow-float);
 }
 
-:root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+@theme {
+  /* System fonts: SF Pro / SF Arabic on Apple devices, platform UI fonts elsewhere. Arabic
+     glyphs fall through to the Arabic faces when the first fonts lack them. */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, "Segoe UI", Roboto,
+    "Helvetica Neue", "Noto Sans", "Geeza Pro", "Noto Sans Arabic", Tahoma, Arial, sans-serif,
+    "Apple Color Emoji", "Segoe UI Emoji";
+  --font-rounded: ui-rounded, "SF Pro Rounded", var(--font-sans);
+  --font-mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Dynamic Type (default "Large" size). rem-based, so the user's text size setting applies. */
+  --text-large-title: 2.125rem;
+  --text-large-title--line-height: 2.5625rem;
+  --text-large-title--letter-spacing: 0.012em;
+  --text-title-1: 1.75rem;
+  --text-title-1--line-height: 2.125rem;
+  --text-title-1--letter-spacing: 0.0136em;
+  --text-title-2: 1.375rem;
+  --text-title-2--line-height: 1.75rem;
+  --text-title-2--letter-spacing: -0.012em;
+  --text-title-3: 1.25rem;
+  --text-title-3--line-height: 1.5625rem;
+  --text-title-3--letter-spacing: -0.0225em;
+  --text-headline: 1.0625rem;
+  --text-headline--line-height: 1.375rem;
+  --text-headline--letter-spacing: -0.025em;
+  --text-headline--font-weight: 600;
+  --text-body: 1.0625rem;
+  --text-body--line-height: 1.375rem;
+  --text-body--letter-spacing: -0.025em;
+  --text-callout: 1rem;
+  --text-callout--line-height: 1.3125rem;
+  --text-callout--letter-spacing: -0.019em;
+  --text-subheadline: 0.9375rem;
+  --text-subheadline--line-height: 1.25rem;
+  --text-subheadline--letter-spacing: -0.015em;
+  --text-footnote: 0.8125rem;
+  --text-footnote--line-height: 1.125rem;
+  --text-footnote--letter-spacing: -0.006em;
+  --text-caption-1: 0.75rem;
+  --text-caption-1--line-height: 1rem;
+  --text-caption-2: 0.6875rem;
+  --text-caption-2--line-height: 0.8125rem;
+  --text-caption-2--letter-spacing: 0.005em;
+
+  /* Corner radii */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.375rem;
+  --radius-2xl: 1.75rem;
+  --radius-3xl: 2.25rem;
+
+  /* Easing: iOS sheet curve and a critically damped spring. */
+  --ease-ios: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-spring: linear(
+    0,
+    0.009,
+    0.035 2.1%,
+    0.141 4.4%,
+    0.723 12.9%,
+    0.938 16.7%,
+    1.017 20.5%,
+    1.043 24.5%,
+    1.035 28.4%,
+    1.007 36%,
+    0.997 41.3%,
+    1.003 53.1%,
+    1
+  );
+
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-spinner-fade: spinner-fade 1s linear infinite;
+  --animate-sheet-up: sheet-up var(--duration-sheet) var(--ease-ios);
+  --animate-sheet-down: sheet-down var(--duration-base) var(--ease-ios);
+  --animate-fade-in: fade-in var(--duration-base) var(--ease-ios);
+  --animate-fade-out: fade-out var(--duration-fast) var(--ease-ios);
+  --animate-pop-in: pop-in var(--duration-base) var(--ease-spring);
+
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+  @keyframes spinner-fade {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0.15;
+    }
+  }
+  @keyframes sheet-up {
+    from {
+      transform: translate3d(0, 100%, 0);
+    }
+  }
+  @keyframes sheet-down {
+    to {
+      transform: translate3d(0, 100%, 0);
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+  @keyframes fade-out {
+    to {
+      opacity: 0;
+    }
+  }
+  @keyframes pop-in {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+  }
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* Translucent "material" surfaces. Opaque when blur is unsupported or the user asks for less
+   transparency. */
+@utility material-thin {
+  background-color: var(--material-thin);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--bg-elevated);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--bg-elevated);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@utility material-regular {
+  background-color: var(--material-regular);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--bg-elevated);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--bg-elevated);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@utility material-thick {
+  background-color: var(--material-thick);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--bg-elevated);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--bg-elevated);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@utility material-chrome {
+  background-color: var(--material-chrome);
+  -webkit-backdrop-filter: var(--material-blur);
+  backdrop-filter: var(--material-blur);
+  @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    background-color: var(--bg-elevated);
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--bg-elevated);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+/* Safe-area padding (notch, home indicator), optionally plus spacing: pb-safe, pb-safe-4. */
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+@utility pt-safe-* {
+  padding-top: calc(env(safe-area-inset-top, 0px) + --spacing(--value(integer)));
+}
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@utility pb-safe-* {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + --spacing(--value(integer)));
+}
+@utility px-safe {
+  padding-inline: max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px));
+}
+@utility px-safe-* {
+  padding-inline: calc(
+    max(env(safe-area-inset-left, 0px), env(safe-area-inset-right, 0px)) +
+      --spacing(--value(integer))
+  );
+}
+
+/* Touch feedback: a quick spring scale and dim while pressed. */
+@utility pressable {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  transition-property: transform, opacity, background-color, color, box-shadow;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-ios);
+  &:active:not(:disabled, [aria-disabled="true"]) {
+    transform: scale(0.97);
+    opacity: 0.8;
+    transition-duration: var(--duration-instant);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    &:active:not(:disabled, [aria-disabled="true"]) {
+      transform: none;
+    }
+  }
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Motion primitives used by <Reveal> and <Entrance> (components/ui/motion.tsx). */
+@layer components {
+  @media (prefers-reduced-motion: no-preference) {
+    @supports (animation-timeline: view()) {
+      .reveal {
+        animation: reveal-up linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 80%;
+      }
+      .reveal[data-reveal="fade"] {
+        animation-name: reveal-fade;
+      }
+      .reveal[data-reveal="scale"] {
+        animation-name: reveal-scale;
+      }
+    }
+    .entrance {
+      animation: reveal-up var(--duration-slow) var(--ease-ios) both;
+      animation-delay: var(--entrance-delay, 0ms);
+    }
+    .entrance[data-entrance="fade"] {
+      animation-name: reveal-fade;
+    }
+    .entrance[data-entrance="scale"] {
+      animation-name: reveal-scale;
+      animation-timing-function: var(--ease-spring);
+    }
+  }
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 1.5rem, 0);
+  }
+}
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes reveal-scale {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
+  }
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+    scroll-padding-top: calc(var(--nav-height) + env(safe-area-inset-top, 0px));
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-body text-foreground;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+  }
+  ::selection {
+    background-color: color-mix(in srgb, var(--brand) 25%, transparent);
+  }
+  :focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+  /* Arabic needs more line height for diacritics and no negative tracking. */
+  :lang(ar) {
+    letter-spacing: 0 !important;
+    line-height: 1.6;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *:not([data-motion="essential"], [data-motion="essential"] *),
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

@@ -31,12 +31,14 @@ be/                       Go backend
   internal/httpx/           problem+json errors, middleware, router
   internal/validation/      business-rule validation with field errors
   internal/modules/<name>/  one package per bounded context
-  internal/platform/        infrastructure adapters (logger, database, storage, mail…)
+  internal/platform/        infrastructure adapters (logger, database, storage, imaging…)
   deploy/                   local infrastructure (docker compose)
   tools/                    pinned developer tools (separate go.mod)
   .env.example              backend configuration
 fe/                       Next.js frontend
-  src/app/                  routes (public + /admin)
+  src/app/                  routes (public + /admin), globals.css = design tokens
+  src/components/ui/        iOS-style design system (see below)
+  src/hooks/                shared React hooks
   src/lib/api/              generated types + typed client
 docs/                     architecture & task plan
 Makefile                  orchestration only — delegates to be/ and fe/
@@ -115,6 +117,37 @@ make -C be admin-reset-password email=you@example.com   # also unlocks and signs
 - Queries are plain SQL compiled to type-safe Go by sqlc (`make generate`).
 - Integration tests run against real PostgreSQL: `TEST_DATABASE_URL` if set, otherwise a
   throwaway container via testcontainers (Docker). Each test gets its own migrated database.
+
+## Media
+
+- `POST /api/v1/admin/media` (multipart, field `file`) accepts JPEG, PNG and WebP, detected from
+  the bytes — never from the file name. The original is not stored: it is re-encoded to WebP at
+  480/960/1600 px (never upscaled), which drops EXIF/GPS while keeping orientation and the color
+  profile. A blurred 16 px placeholder comes with every image.
+- Variants are served from `/api/v1/public/media/<sha256>.webp` with a one-year `immutable`
+  cache. Point `MEDIA_PUBLIC_BASE_URL` at a CDN to serve them from there.
+- Files live in a directory (`STORAGE_DRIVER=local`, `STORAGE_LOCAL_DIR`) or any S3-compatible
+  bucket (`STORAGE_DRIVER=s3`, `S3_*`); `/readyz` checks the storage too.
+- Images referenced by content cannot be deleted (`409`). Uploading the same file again returns the
+  existing image.
+
+## Design system
+
+The UI is an iOS-style, mobile-first kit in `fe/src/components/ui`, driven by the tokens in
+`fe/src/app/globals.css`. Use the kit instead of styling screens from scratch:
+
+- **Tokens:** semantic colors (`label`, `label-secondary`, `bg-grouped`, `fill-*`, `separator`,
+  `tint`), Dynamic Type sizes (`text-large-title` … `text-caption-2`), `material-*` blur surfaces,
+  `ease-ios` / `ease-spring`, safe-area padding (`pt-safe`, `pb-safe-4`). Dark mode follows the OS;
+  `<html data-theme="dark|light">` forces it.
+- **Components:** Button, IconButton, Card, ListSection/ListItem, Sheet, Accordion, Toast
+  (`toast()`), Skeleton, EmptyState, ErrorState, SegmentedControl, Switch, TextField, Badge, NavBar,
+  Avatar, MediaImage (renders API media with `srcset` + placeholder), Reveal/Entrance motion.
+- **Rules:** use logical properties (`ms-`, `pe-`, `start-`) so RTL works. Wrap locale layouts in
+  `DirectionProvider`, keep touch targets at least 44 px, and give icon-only controls a `label`.
+  Motion must respect reduced motion; the CSS primitives already do.
+- Browse everything at **http://localhost:3000/design**, with theme and RTL toggles. Production builds
+  return 404 there unless `DESIGN_GALLERY=true`.
 
 ## Changing the API
 

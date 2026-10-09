@@ -210,7 +210,7 @@ handler (HTTP, DTO, validasyon)
 - **İstemci IP:** `X-Forwarded-For` yalnızca güvenilen proxy’den (`HTTP_TRUSTED_PROXIES`) gelirse ve sağdan sola okunarak kullanılır; sahte header ile rate limit atlatılamaz.
 - **Rate limit:** Login ve public form uçları ayrı, sıkı bir kovada tutulur. Probe’lar ve CORS preflight sınırlanmaz. Bellek 100k istemciyle sınırlıdır.
 - **Test DB:** Testler `TEST_DATABASE_URL` varsa onu, yoksa Docker üzerinden testcontainers’ı kullanır. Migration’lar bir kez şablon DB’ye uygulanır, her test kendi kopyasını alır (paralel ve izole). DB yoksa yerelde atlanır, CI’da başarısız olur.
-- ² Storage kontrolü, `Storage` arayüzü gelince MED-01 ile eklenecek.
+- ² Storage kontrolü MED-01 ile eklendi: `/readyz` artık `database`, `migrations` ve `storage` kontrollerini raporlar.
 
 ---
 
@@ -248,20 +248,32 @@ handler (HTTP, DTO, validasyon)
 
 ---
 
-### EPIC 3 — Medya & Depolama (`MED`)
+### EPIC 3 — Medya & Depolama (`MED`) ✅ Tamamlandı
 
-| ID | Task | Öncelik | Tahmin | Bağımlılık |
-|---|---|---|---|---|
-| MED-01 | `Storage` arayüzü + local ve S3 implementasyonları | P0 | 1 | BE-01 |
-| MED-02 | `media` migration + repository | P0 | 0.25 | BE-03 |
-| MED-03 | Görsel yükleme: MIME sniffing (uzantıya güvenmeden), boyut limiti, EXIF temizleme | P0 | 1 | MED-01, MED-02 |
-| MED-04 | Varyant üretimi: WebP, 3 genişlik (480/960/1600), width/height kaydı | P0 | 1 | MED-03 |
-| MED-05 | Admin medya kütüphanesi API’si: listele, yükle, alt text (çok dilli), sil (kullanımdaysa engelle) | P1 | 1 | MED-04 |
-| MED-06 | Public medya servis: uzun süreli `Cache-Control`, immutable URL (hash’li key) | P0 | 0.5 | MED-04 |
+| ID | Task | Öncelik | Tahmin | Bağımlılık | Durum |
+|---|---|---|---|---|---|
+| MED-01 | `Storage` arayüzü + local ve S3 implementasyonları | P0 | 1 | BE-01 | ✅ |
+| MED-02 | `media` migration + repository | P0 | 0.25 | BE-03 | ✅ ¹ |
+| MED-03 | Görsel yükleme: MIME sniffing (uzantıya güvenmeden), boyut limiti, EXIF temizleme | P0 | 1 | MED-01, MED-02 | ✅ |
+| MED-04 | Varyant üretimi: WebP, 3 genişlik (480/960/1600), width/height kaydı | P0 | 1 | MED-03 | ✅ |
+| MED-05 | Admin medya kütüphanesi API’si: listele, yükle, alt text (çok dilli), sil (kullanımdaysa engelle) | P1 | 1 | MED-04 | ✅ |
+| MED-06 | Public medya servis: uzun süreli `Cache-Control`, immutable URL (hash’li key) | P0 | 0.5 | MED-04 | ✅ |
 
 **AC:**
 - PDF uzantılı bir HTML dosyası veya bozuk bir görsel reddedilir.
 - Yüklenen görsel EXIF/GPS verisi taşımaz.
+
+**Uygulama notları:**
+- **Orijinal saklanmaz:** Yüklenen dosya decode edilip yalnızca yeniden kodlanmış WebP varyantları saklanır. Bu sayede EXIF/GPS/XMP ve dosyaya gizlenmiş her türlü ek veri yapısal olarak düşer. JPEG EXIF yönü (orientation) uygulanır; renk profili (ICC, ör. iPhone Display P3) korunur.
+- **Tip tespiti içerikten:** Dosya adı ve `Content-Type` dikkate alınmaz, ilk byte’lardan JPEG / PNG / WebP tanınır. HTML, PDF, SVG, GIF reddedilir; HEIC için “JPEG olarak dışa aktar” mesajı verilir. Bozuk/kesik dosya `422` döner.
+- **Bomba koruması:** Decode öncesi yalnızca başlık okunur; `MEDIA_MAX_PIXELS` (50 MP) üstü reddedilir. Eş zamanlı işlem sayısı sınırlıdır (`MEDIA_PROCESSING_CONCURRENCY`; 12 MP fotoğraf ≈2 sn, ≈300 MB).
+- **Boyut limiti:** Upload ucu kendi gövde limitine (`MEDIA_MAX_UPLOAD_BYTES` + multipart payı) ve uzatılmış okuma süresine sahiptir. Dosya stream edilirken limit aşılırsa `413` döner, tamamı belleğe alınmaz.
+- **Varyantlar:** 480/960/1600 genişlikler; kaynak daha darsa büyütme yapılmaz, kaynak genişliği son varyant olur. Her varyantın width/height/byte boyutu kaydedilir. Ayrıca 16 px’lik bulanık LQIP (`placeholder`, data URI) üretilir.
+- **Immutable URL:** Storage key’i içerik hash’idir (`media/<sha256>.webp`); public URL `/api/v1/public/media/<sha256>.webp`. Yanıt `Cache-Control: public, max-age=31536000, immutable`, `ETag`, `X-Content-Type-Options: nosniff`, `Content-Disposition: inline`, `Cross-Origin-Resource-Policy: cross-origin` taşır; `If-None-Match` ile `304`. Yalnızca DB’de kayıtlı varyantlar servis edilir. Bu uç rate limit’ten muaftır (cache/CDN arkasında).
+- **Tekrar yükleme:** Aynı dosya (SHA-256) tekrar gelirse yeni kayıt açılmaz, mevcut görsel `200` ile döner (yeni kayıtta `201`).
+- **Silme:** İçerik tabloları `media(id)`’ye `ON DELETE NO ACTION` FK ile bağlanacak; kullanılan görselin silinmesi `409` döner. Dosyalar commit’ten sonra silinir; başka bir kayıt aynı içeriği kullanıyorsa dosyaya dokunulmaz.
+- **Storage:** `STORAGE_DRIVER=local` (atomik yazma, `os.Root` ile dizin dışına çıkılamaz) veya `s3` (RustFS/MinIO/AWS; minio-go). `/readyz` storage’ı da kontrol eder. `MEDIA_PUBLIC_BASE_URL` ile varyant URL’leri CDN’e yönlendirilebilir.
+- ¹ Planlanan tek `media` tablosundaki jsonb varyant kolonu yerine `media_variants` (varyant başına satır, unique storage key) ve `media_translations` (locale başına alt text) tabloları kullanıldı: FK/CHECK ile doğrulanabilir, servis edilecek dosya tek bir indeksli sorguyla bulunur.
 
 ---
 
@@ -384,16 +396,26 @@ handler (HTTP, DTO, validasyon)
 
 ### EPIC 12 — Frontend Altyapısı (`FE`)
 
-| ID | Task | Öncelik | Tahmin | Bağımlılık |
-|---|---|---|---|---|
-| FE-01 | Tasarım sistemi: renk/tipografi token’ları (Sheraton marka rehberine uygun), spacing, radius, motion token’ları | P0 | 1 | INF-04 |
-| FE-02 | `next-intl` kurulumu: `/[locale]` route’ları (id, en, ar), dil seçiminin cookie’de saklanması, `Accept-Language` ile ilk tahmin | P0 | 1 | INF-04 |
-| FE-03 | RTL desteği: `dir="rtl"`, Tailwind logical property’leri (`ms-`, `me-`, `ps-`), ikonların yön çevirisi, Arapça font | P0 | 1 | FE-02 |
-| FE-04 | Tipli API client (OpenAPI’den üretilmiş), hata normalizasyonu, server ve client ayrımı | P0 | 0.5 | INF-05 |
-| FE-05 | Ortak bileşenler: Button (pressed/loading), Card, Sheet/Drawer, Accordion, Toast, Skeleton, EmptyState, ErrorState | P0 | 1.5 | FE-01 |
-| FE-06 | Motion altyapısı: `prefers-reduced-motion` ile otomatik devre dışı kalan Framer Motion wrapper’ları | P0 | 0.5 | FE-01 |
-| FE-07 | On-demand revalidation: admin değişikliğinde Go, Next’in korumalı `/api/revalidate` ucunu (secret ile) tetikler, ilgili tag’ler yenilenir | P0 | 1 | SET-03 |
-| FE-08 | Analytics client: `sendBeacon` ile event gönderimi, `src` parametresinin `sessionStorage`’da tutulması | P0 | 0.5 | ANL-02 |
+| ID | Task | Öncelik | Tahmin | Bağımlılık | Durum |
+|---|---|---|---|---|---|
+| FE-01 | Tasarım sistemi: renk/tipografi token’ları (Sheraton marka rehberine uygun), spacing, radius, motion token’ları | P0 | 1 | INF-04 | ✅ ¹ |
+| FE-02 | `next-intl` kurulumu: `/[locale]` route’ları (id, en, ar), dil seçiminin cookie’de saklanması, `Accept-Language` ile ilk tahmin | P0 | 1 | INF-04 | |
+| FE-03 | RTL desteği: `dir="rtl"`, Tailwind logical property’leri (`ms-`, `me-`, `ps-`), ikonların yön çevirisi, Arapça font | P0 | 1 | FE-02 | ◐ ² |
+| FE-04 | Tipli API client (OpenAPI’den üretilmiş), hata normalizasyonu, server ve client ayrımı | P0 | 0.5 | INF-05 | |
+| FE-05 | Ortak bileşenler: Button (pressed/loading), Card, Sheet/Drawer, Accordion, Toast, Skeleton, EmptyState, ErrorState | P0 | 1.5 | FE-01 | ✅ |
+| FE-06 | Motion altyapısı: `prefers-reduced-motion` ile otomatik devre dışı kalan Framer Motion wrapper’ları | P0 | 0.5 | FE-01 | ✅ ³ |
+| FE-07 | On-demand revalidation: admin değişikliğinde Go, Next’in korumalı `/api/revalidate` ucunu (secret ile) tetikler, ilgili tag’ler yenilenir | P0 | 1 | SET-03 | |
+| FE-08 | Analytics client: `sendBeacon` ile event gönderimi, `src` parametresinin `sessionStorage`’da tutulması | P0 | 0.5 | ANL-02 | |
+
+**Uygulama notları (FE-01/05/06 — iOS tasarım sistemi):**
+- **Token’lar** `fe/src/app/globals.css` içinde tek yerde: iOS sistem renkleri (label hiyerarşisi, grouped arka planlar, fill, separator, material), Dynamic Type ölçeği (`text-large-title` … `text-caption-2`, rem tabanlı), radius, gölge, iOS eğrileri (`ease-ios`, `ease-spring`), safe-area utility’leri (`pt-safe`, `pb-safe-4`…), `material-*` (blur; desteklenmezse veya “şeffaflığı azalt” açıksa opak). Bileşenler yalnızca semantik token kullanır; ham renk yok.
+- **Koyu mod** `light-dark()` ile: sistem ayarını izler, `<html data-theme="light|dark">` ile zorlanabilir; JS ve hydration flash’ı yok. İkincil metin ve sistem kırmızı/yeşil/turuncu tonları WCAG AA (4.5:1) için Apple varsayılanlarından koyulaştırıldı.
+- **Bileşenler** `fe/src/components/ui/`: Button, IconButton, Spinner, Card, ListSection/ListItem/ListIcon, Sheet (sürükle-kapat, safe-area, masaüstünde ortalanmış panel), Accordion, Toast (`toast()` her yerden), Skeleton, EmptyState, ErrorState, SegmentedControl, Switch, TextField/Textarea, Badge, NavBar (blur + büyük başlık), Avatar, MediaImage (API varyantlarından `srcset` + LQIP, CLS yok), Reveal/Entrance, DirectionProvider. Hepsi 44 pt dokunma alanı, odak halkası ve ARIA kurallarına uyar; testleri yanlarında.
+- **Galeri:** `/design` tüm bileşenleri tema (sistem/açık/koyu) ve LTR/RTL geçişiyle gösterir; `noindex`, production’da `DESIGN_GALLERY=true` olmadıkça 404.
+- **`cn` yapılandırması:** Tailwind birleştiricisine özel tipografi ve gölge token’ları tanıtıldı (`src/lib/utils.ts`); aksi halde `text-body` gibi sınıflar `text-tint` rengini sessizce siliyordu. `globals.css`’e yeni token eklenince bu liste de güncellenmeli.
+- ¹ Renk paleti Sheraton marka rehberi gelene kadar yer tutucudur; değişiklik yalnızca `--brand`/`--gold` token’larında yapılır.
+- ² Bileşenler RTL’e hazır (logical property’ler, aynalanan ikonlar, Arapça font zinciri, `DirectionProvider`, e-posta/telefon alanları LTR). `<html dir>` ve locale bazlı provider FE-02/03 ile bağlanacak.
+- ³ Framer Motion yerine sıfır JS’li CSS kullanıldı: `Reveal` scroll-driven animation (`animation-timeline: view()`), `Entrance` tek seferlik giriş. Desteklemeyen tarayıcıda ve reduced motion’da içerik doğrudan görünür. JS ile animasyon gerekirse `useReducedMotion` hook’u var. Global kural tüm geçişleri reduced motion’da kapatır; durum bildiren Spinner `data-motion="essential"` ile hariç tutulur.
 
 ---
 

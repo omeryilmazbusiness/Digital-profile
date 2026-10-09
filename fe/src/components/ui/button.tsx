@@ -1,61 +1,105 @@
-import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "cn";
 import { Slot } from "radix-ui";
+import type * as React from "react";
 
-const buttonVariants = cva(
-  "inline-flex shrink-0 items-center justify-center gap-2 rounded-md text-sm font-medium whitespace-nowrap transition-all outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
+
+export const buttonVariants = cva(
+  [
+    "relative inline-flex shrink-0 pressable items-center justify-center gap-2 font-semibold whitespace-nowrap outline-none",
+    "disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40",
+    "[&_svg]:pointer-events-none [&_svg]:shrink-0",
+  ],
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-white hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:bg-destructive/60 dark:focus-visible:ring-destructive/40",
-        outline:
-          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground dark:border-input dark:bg-input/30 dark:hover:bg-input/50",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50",
-        link: "text-primary underline-offset-4 hover:underline",
+        filled: "bg-tint text-tint-contrast hover:bg-tint/90",
+        tinted: "bg-tint/15 text-tint hover:bg-tint/20",
+        gray: "bg-fill-tertiary text-tint hover:bg-fill-secondary",
+        plain: "bg-transparent text-tint hover:bg-fill-quaternary",
+        destructive: "bg-system-red text-white hover:bg-system-red/90",
+        "destructive-tinted": "bg-system-red/12 text-system-red hover:bg-system-red/18",
+        /** Translucent, for controls over photos and video. */
+        glass: "material-regular text-label shadow-card",
       },
       size: {
-        default: "h-9 px-4 py-2 has-[>svg]:px-3",
-        xs: "h-6 gap-1 rounded-md px-2 text-xs has-[>svg]:px-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-8 gap-1.5 rounded-md px-3 has-[>svg]:px-2.5",
-        lg: "h-10 rounded-md px-6 has-[>svg]:px-4",
-        icon: "size-9",
-        "icon-xs": "size-6 rounded-md [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm": "size-8",
-        "icon-lg": "size-10",
+        // 32pt, with the hit area extended to 44pt.
+        sm: "h-8 px-3.5 text-subheadline before:absolute before:-inset-1.5 before:content-[''] [&_svg:not([class*='size-'])]:size-4",
+        md: "h-11 px-5 text-body [&_svg:not([class*='size-'])]:size-5",
+        lg: "h-[3.125rem] px-6 text-headline [&_svg:not([class*='size-'])]:size-5",
+      },
+      shape: {
+        capsule: "rounded-full",
+        rounded: "",
+      },
+      block: {
+        true: "w-full",
+        false: "",
       },
     },
+    compoundVariants: [
+      { shape: "rounded", size: "sm", className: "rounded-sm" },
+      { shape: "rounded", size: "md", className: "rounded-md" },
+      { shape: "rounded", size: "lg", className: "rounded-[0.875rem]" },
+    ],
     defaultVariants: {
-      variant: "default",
-      size: "default",
+      variant: "filled",
+      size: "md",
+      shape: "capsule",
+      block: false,
     },
   },
 );
 
-function Button({
-  className,
-  variant = "default",
-  size = "default",
-  asChild = false,
-  ...props
-}: React.ComponentProps<"button"> &
-  VariantProps<typeof buttonVariants> & {
-    asChild?: boolean;
-  }) {
-  const Comp = asChild ? Slot.Root : "button";
-
-  return (
-    <Comp
-      data-slot="button"
-      data-variant={variant}
-      data-size={size}
-      className={cn(buttonVariants({ variant, size, className }))}
-      {...props}
-    />
-  );
+export interface ButtonProps
+  extends React.ComponentProps<"button">, VariantProps<typeof buttonVariants> {
+  /** Render the child element (a link, for example) with button styling. */
+  asChild?: boolean;
+  /** Shows a spinner, keeps the width and blocks presses. Ignored with asChild. */
+  loading?: boolean;
 }
 
-export { Button, buttonVariants };
+export function Button({
+  className,
+  variant,
+  size,
+  shape,
+  block,
+  asChild = false,
+  loading = false,
+  disabled,
+  type,
+  children,
+  ...props
+}: ButtonProps) {
+  const classes = cn(buttonVariants({ variant, size, shape, block }), className);
+
+  if (asChild) {
+    return (
+      <Slot.Root data-slot="button" className={classes} {...props}>
+        {children}
+      </Slot.Root>
+    );
+  }
+
+  return (
+    <button
+      data-slot="button"
+      type={type ?? "button"}
+      className={classes}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...props}
+    >
+      {loading ? (
+        <>
+          <span className="invisible inline-flex items-center gap-2">{children}</span>
+          <Spinner label={null} size={size === "sm" ? "sm" : "md"} className="absolute" />
+        </>
+      ) : (
+        children
+      )}
+    </button>
+  );
+}
