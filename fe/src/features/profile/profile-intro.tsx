@@ -200,11 +200,11 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
                   deepening blur. */}
               <span
                 aria-hidden
-                className="absolute inset-x-0 bottom-0 h-[30%] [mask-image:linear-gradient(to_bottom,transparent,black_80%)] backdrop-blur-xl"
+                className="absolute inset-x-0 bottom-0 h-[12%] [mask-image:linear-gradient(to_bottom,transparent,black_70%)] backdrop-blur-md"
               />
               <span
                 aria-hidden
-                className="absolute inset-x-0 -bottom-px h-[30%] bg-linear-to-b from-white/0 from-20% via-white/60 via-70% to-white"
+                className="absolute inset-x-0 -bottom-px h-[12%] bg-linear-to-b from-white/0 via-white/70 via-60% to-white"
               />
             </div>
           )}
