@@ -228,8 +228,8 @@ In Discover, each topic's rule draws across as it scrolls in, its text rises out
 its PDF cards follow one by one (`RiseGroup` in `fe/src/components/scroll/rise.tsx`, shared with
 the card); with reduced motion everything is simply there.
 
-On the card, the portrait settles in on white and his name writes itself beneath it in capitals of Cinzel Black (an
-open-licence lookalike of the Sheraton logotype, which isn't licensed for use) as you scroll ("OMEN TAWFI", over the suit, in white — the `accent`
+On the card, the portrait settles in on white and his name writes itself beneath it in Inter SemiBold, a plain
+business sans, as you scroll ("omen Tawfi", over the suit, in white — the `accent`
 of its manifest in `generate-signature.mjs`); then the actions, figures, his CV (PDF), services, contact details with
 live office hours, a QR share card and a closing call to action follow. `.../momen/vcard` serves the
 contact card with the photo embedded. The figures, hours, LinkedIn link and the CV (the sample
@@ -258,7 +258,7 @@ Assets are generated, not edited by hand — rerun after replacing a source:
 ```sh
 cd fe
 node scripts/prepare-portrait.mjs      # assets/portraits/momen.jpg → public/profile/*, vCard photo
-node scripts/generate-signature.mjs    # the written name (Cinzel) and the hotel signature
+node scripts/generate-signature.mjs    # the written name (Inter) and the hotel signature
 python3 scripts/build-display-font.py  # Playfair Display subset; needs fonttools + brotli
 ```
 
