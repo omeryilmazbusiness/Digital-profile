@@ -181,6 +181,21 @@ The script writes a landscape set (1600 px wide) and a portrait 3:4 crop for pho
 so frames are served with an immutable one-year cache. Keep clips short (about 5 s / 120 frames).
 Scene copy and timing live in `fe/src/features/home/home-hero.tsx`.
 
+The hotel name on the opening screen writes itself, alternating English and Arabic. It is
+pre-rendered from two OFL handwriting fonts in `fe/assets/fonts` (Sacramento, Aref Ruqaa) into SVG
+outlines, so no font is downloaded. After changing the name or a font, regenerate it:
+
+```sh
+cd fe && node scripts/generate-signature.mjs
+```
+
+## Public site
+
+Header, footer and sections live in `fe/src/features/site`. All their data comes from
+`getSiteContent()` in `content.ts`, which serves **mock content** (`mock-content.ts`, with a sample
+PDF in `fe/public/mock`) until the `GET /public/site` endpoint exists (SET-03). The mock contact
+details are fictitious on purpose.
+
 ## Changing the API
 
 1. Edit `be/api/openapi.yaml`.

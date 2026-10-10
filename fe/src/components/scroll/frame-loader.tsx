@@ -11,17 +11,15 @@ interface FrameLoaderProps {
   /** 0–100. */
   progress: number;
   done: boolean;
-  /** Shown above the bar, e.g. the brand name. */
-  title: string;
   /** Accessible name of the progress bar. */
   label?: string;
 }
 
 /**
- * Full-screen loading curtain with a thin progress bar. When done it fades out, then
- * unmounts so it never intercepts input.
+ * A hairline progress bar with its percentage, at the foot of the screen, so whatever the
+ * opening shows stays in view while frames load. Fades out when done, then unmounts.
  */
-export function FrameLoader({ progress, done, title, label = "Loading" }: FrameLoaderProps) {
+export function FrameLoader({ progress, done, label = "Loading" }: FrameLoaderProps) {
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
@@ -38,31 +36,28 @@ export function FrameLoader({ progress, done, title, label = "Loading" }: FrameL
       data-frame-loader=""
       aria-hidden={done || undefined}
       className={cn(
-        "fixed inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black px-8 text-white",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-50 flex items-center justify-center gap-4 pb-safe-8 text-white",
         "transition-opacity duration-700 ease-(--ease-ios)",
-        done && "pointer-events-none opacity-0",
+        done && "opacity-0",
       )}
     >
-      <p className="text-center text-footnote font-medium tracking-[0.3em] text-white/70 uppercase">
-        {title}
-      </p>
       <div
         role="progressbar"
         aria-label={label}
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={value}
-        className="h-px w-48 overflow-hidden bg-white/15"
+        className="h-px w-32 overflow-hidden bg-white/20"
       >
         <div
-          className="h-full origin-left bg-white transition-transform duration-300 ease-out rtl:origin-right"
+          className="h-full origin-left bg-white/90 transition-transform duration-300 ease-out rtl:origin-right"
           style={{ transform: `scaleX(${value / 100})` }}
         />
       </div>
-      <p className="font-mono text-caption-1 text-white/60 tabular-nums" aria-hidden>
+      <p className="w-9 font-mono text-caption-2 text-white/60 tabular-nums" aria-hidden>
         {value}%
       </p>
-      {/* Without JavaScript the sequence never loads; show the page underneath instead. */}
+      {/* Without JavaScript the sequence never loads; don't promise that it will. */}
       <noscript>
         <style>{"[data-frame-loader]{display:none}"}</style>
       </noscript>

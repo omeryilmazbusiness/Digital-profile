@@ -256,6 +256,8 @@
   --animate-fade-in: fade-in var(--duration-base) var(--ease-ios);
   --animate-fade-out: fade-out var(--duration-fast) var(--ease-ios);
   --animate-pop-in: pop-in var(--duration-base) var(--ease-spring);
+  --animate-ken-burns: ken-burns 28s ease-in-out infinite alternate;
+  --animate-scroll-hint: scroll-hint 2.2s var(--ease-ios) infinite;
 
   @keyframes shimmer {
     from {
@@ -297,6 +299,24 @@
     from {
       opacity: 0;
       transform: scale(0.94);
+    }
+  }
+  /* Slow drift over a still, so a full-bleed photo feels alive. */
+  @keyframes ken-burns {
+    from {
+      transform: scale(1.04) translate3d(0, 0, 0);
+    }
+    to {
+      transform: scale(1.14) translate3d(-1.5%, -1%, 0);
+    }
+  }
+  /* A light running down a hairline: "scroll". */
+  @keyframes scroll-hint {
+    from {
+      transform: translate3d(0, -100%, 0);
+    }
+    to {
+      transform: translate3d(0, 200%, 0);
     }
   }
 }

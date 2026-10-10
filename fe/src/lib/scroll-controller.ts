@@ -2,12 +2,14 @@
 export interface SmoothScroller {
   stop(): void;
   start(): void;
+  scrollTo(top: number): void;
 }
 
 /**
- * Locks page scrolling for loaders and modal flows. Locks nest: scrolling resumes when the
- * last one is released. Works with or without a smooth scroller attached — the native
- * overflow lock covers touch scrolling, which Lenis leaves to the browser.
+ * Locks page scrolling for loaders and modal flows, and scrolls to sections. Locks nest:
+ * scrolling resumes when the last one is released. Works with or without a smooth scroller
+ * attached — the native overflow lock covers touch scrolling, which Lenis leaves to the
+ * browser.
  */
 export class ScrollController {
   private locks = 0;
@@ -37,6 +39,28 @@ export class ScrollController {
 
   get locked(): boolean {
     return this.locks > 0;
+  }
+
+  /**
+   * Scrolls to an element (or a page offset), keeping it clear of the fixed header the way
+   * native anchors do: the root's scroll-padding-top plus the target's scroll-margin-top.
+   * Ignored while locked.
+   */
+  scrollTo(target: HTMLElement | number): void {
+    if (this.locked) return;
+    const top =
+      typeof target === "number"
+        ? target
+        : window.scrollY + target.getBoundingClientRect().top - this.clearance(target);
+    if (this.scroller) this.scroller.scrollTo(top);
+    else window.scrollTo({ top });
+  }
+
+  private clearance(target: HTMLElement): number {
+    const root = this.root();
+    const padding = root ? parseFloat(getComputedStyle(root).scrollPaddingTop) : 0;
+    const margin = parseFloat(getComputedStyle(target).scrollMarginTop);
+    return (padding || 0) + (margin || 0);
   }
 
   private apply(locked: boolean) {

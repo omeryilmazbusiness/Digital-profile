@@ -4,3 +4,4 @@ coverage
 next-env.d.ts
 package-lock.json
 src/lib/api/schema.gen.ts
+src/features/home/hotel-signature.gen.ts

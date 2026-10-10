@@ -1,22 +1,25 @@
-import { Reveal } from "@/components/ui/motion";
 import { HOTEL_NAME, HomeHero } from "@/features/home/home-hero";
+import { heroFrames } from "@/features/home/hero-frames.gen";
+import { ContactSection } from "@/features/site/contact-section";
+import { getSiteContent } from "@/features/site/content";
+import { DiscoverSection } from "@/features/site/discover-section";
+import { TourSection } from "@/features/site/tour-section";
 
-export default function Home() {
+export default async function Home() {
+  const { discover, sections, tour, contact } = await getSiteContent();
   return (
-    <main>
+    <main id="main">
       <HomeHero />
-      <section className="mx-auto flex min-h-[60dvh] max-w-2xl flex-col items-center justify-center gap-4 px-safe-6 py-24 text-center">
-        <Reveal>
-          <p className="text-footnote font-semibold tracking-[0.24em] text-label-secondary uppercase">
-            {HOTEL_NAME}
-          </p>
-        </Reveal>
-        <Reveal>
-          <p className="text-2xl font-semibold tracking-tight text-balance sm:text-4xl">
-            Your partner for stays in Makkah.
-          </p>
-        </Reveal>
-      </section>
+      <DiscoverSection discover={discover} sections={sections} />
+      <TourSection
+        tour={tour}
+        backdrop={{
+          sequence: heroFrames,
+          frame: heroFrames.count - 1,
+          alt: `The lobby of ${HOTEL_NAME}`,
+        }}
+      />
+      <ContactSection contact={contact} />
     </main>
   );
 }

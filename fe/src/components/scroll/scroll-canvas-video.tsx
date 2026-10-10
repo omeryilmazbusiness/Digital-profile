@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import type * as React from "react";
 
 import { useFramePreloader } from "@/hooks/use-frame-preloader";
@@ -34,8 +34,6 @@ export interface ScrollCanvasVideoProps {
   scenes: readonly Scene[];
   /** Describes the footage for screen readers. */
   label: string;
-  /** Shown on the loading screen. */
-  loaderTitle: string;
   /** Scroll distance the sequence plays over, in viewport heights. */
   length?: number;
   /** Seconds the playhead takes to catch up with the scrollbar; true follows it exactly. */
@@ -52,8 +50,9 @@ const SCENE_SHIFT = 32;
 /**
  * A full-screen image sequence that plays as the page scrolls: the section pins while the
  * scroll distance (`length` viewports) maps onto the frames, and scene overlays fade in and
- * out at their windows. Frames are preloaded behind a loading screen, with scrolling locked,
- * so scrubbing is instant.
+ * out at their windows. Frames preload first, with scrolling locked so scrubbing is instant:
+ * meanwhile the section stays black with the opening scenes on it and a progress bar at the
+ * foot, and the footage fades in once ready.
  *
  * Users who prefer reduced motion or save data get a still poster with the scenes as
  * ordinary sections instead, and nothing beyond the poster is downloaded.
@@ -62,7 +61,7 @@ export function ScrollCanvasVideo(props: ScrollCanvasVideoProps) {
   const hydrated = useHydrated();
   const reducedMotion = useReducedMotion();
   const saveData = useSaveData();
-  // The server cannot know the preferences: it renders the loading screen, which both
+  // The server cannot know the preferences: it renders the loading state, which both
   // variants start from, rather than flashing the still version at everyone.
   const still = hydrated && (reducedMotion || saveData);
   return still ? <StillSequence {...props} /> : <ScrubbedSequence {...props} active={hydrated} />;
@@ -82,7 +81,6 @@ function ScrubbedSequence({
   sequence,
   scenes,
   label,
-  loaderTitle,
   length = 4,
   scrub = 0.5,
   focus,
@@ -102,6 +100,7 @@ function ScrubbedSequence({
   });
   const ready = active && set !== null && isLoaded;
   useScrollLock(!ready);
+  useOpenAtTop();
 
   useGSAP(
     () => {
@@ -181,7 +180,15 @@ function ScrubbedSequence({
         aria-label={label}
         className={cn("relative h-dvh w-full overflow-hidden bg-black", className)}
       >
-        <canvas ref={canvas} role="img" aria-label={label} className="absolute inset-0 size-full" />
+        <canvas
+          ref={canvas}
+          role="img"
+          aria-label={label}
+          className={cn(
+            "absolute inset-0 size-full transition-opacity duration-1000 ease-(--ease-ios)",
+            !ready && "opacity-0",
+          )}
+        />
         <Scrim />
         {scenes.map((scene) => (
           <div
@@ -198,9 +205,25 @@ function ScrubbedSequence({
           </div>
         ))}
       </section>
-      <FrameLoader progress={loadingProgress} done={ready} title={loaderTitle} />
+      <FrameLoader progress={loadingProgress} done={ready} />
     </>
   );
+}
+
+/**
+ * The sequence plays from the top: a restored mid-page position would open on a half-faded
+ * scene while the page is still locked for loading. Links to a section keep their target.
+ */
+function useOpenAtTop() {
+  useEffect(() => {
+    if (location.hash) return;
+    const previous = history.scrollRestoration;
+    history.scrollRestoration = "manual";
+    window.scrollTo(0, 0);
+    return () => {
+      history.scrollRestoration = previous;
+    };
+  }, []);
 }
 
 function StillSequence({

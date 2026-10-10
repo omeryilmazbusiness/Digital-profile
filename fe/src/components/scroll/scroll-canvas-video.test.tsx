@@ -37,21 +37,18 @@ afterEach(() => {
 function renderVideo() {
   return render(
     <SmoothScrollProvider>
-      <ScrollCanvasVideo
-        sequence={sequence}
-        scenes={scenes}
-        label="Hotel walk"
-        loaderTitle="Hotel"
-      />
+      <ScrollCanvasVideo sequence={sequence} scenes={scenes} label="Hotel walk" />
     </SmoothScrollProvider>,
   );
 }
 
-test("plays on a canvas behind a loader, with scrolling locked until frames load", () => {
+test("plays on a canvas, hidden with scrolling locked until frames load", () => {
   mockMatchMedia(false);
   const { container } = renderVideo();
 
-  expect(screen.getByRole("img", { name: "Hotel walk" }).tagName).toBe("CANVAS");
+  const canvas = screen.getByRole("img", { name: "Hotel walk" });
+  expect(canvas.tagName).toBe("CANVAS");
+  expect(canvas).toHaveClass("opacity-0");
   expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "0");
   expect(document.documentElement.style.overflow).toBe("hidden");
 

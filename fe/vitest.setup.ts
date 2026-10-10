@@ -34,3 +34,5 @@ Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.setPointerCapture ??= () => {};
 Element.prototype.releasePointerCapture ??= () => {};
 Element.prototype.scrollIntoView ??= () => {};
+// jsdom's scrollTo only logs "not implemented".
+window.scrollTo = () => {};
