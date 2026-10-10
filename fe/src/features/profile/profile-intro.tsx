@@ -205,7 +205,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             aria-hidden
             viewBox={`${x} ${y} ${w} ${h}`}
             strokeWidth={0.7}
-            className="block h-auto w-[calc(var(--portrait)*1.04)] overflow-visible"
+            className="block h-auto w-[calc(var(--portrait)*0.94)] overflow-visible"
           >
             {signature.glyphs.map((glyph, i) => (
               <path

@@ -45,10 +45,9 @@ const OUTPUTS = [
     signatures: [
       {
         lang: "en",
-        font: "assets/fonts/cormorant-garamond/CormorantGaramond-wght.ttf",
-        variations: ["wght=700"],
+        font: "assets/fonts/tinos/Tinos-Bold.ttf",
         features: ["-liga"],
-        tracking: 0.06,
+        tracking: 0.04,
         lines: ["Momen Tawfiq", "Alkiswani"],
         lineHeight: 1.04,
         accent: "omen Tawfi",
