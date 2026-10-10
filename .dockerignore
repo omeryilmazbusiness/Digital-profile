@@ -1,0 +1,17 @@
+# Both images build from the repository root (be/Dockerfile, fe/Dockerfile).
+.git
+.github
+.vscode
+docs
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/.DS_Store
+be/bin
+be/tmp
+be/data
+be/coverage.out
+fe/.next
+fe/coverage
+fe/tsconfig.tsbuildinfo

@@ -320,17 +320,19 @@ python3 scripts/build-display-font.py  # Playfair Display subset; needs fonttool
 
 ## Deploying to Railway
 
-One project with three services; both apps build from their `Dockerfile` (`be/`, `fe/`).
+One project with three services. Both apps build from the repository root (leave the root
+directory empty) with their `Dockerfile`, chosen by `RAILWAY_DOCKERFILE_PATH`.
 
-| Service    | Source                    | Settings                                                                                                                                                       |
-| ---------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Postgres` | Railway PostgreSQL        | —                                                                                                                                                              |
-| `api`      | this repo, root dir `/be` | watch paths `/be/**`; pre-deploy `/app/cli migrate up`; healthcheck `/readyz`; volume at `/data`; **no public domain** (reached only over the private network) |
-| `web`      | this repo, root dir `/fe` | watch paths `/fe/**`; healthcheck `/sheraton/en`; public domain on port `3000`                                                                                 |
+| Service    | Source             | Settings                                                                                                                                                       |
+| ---------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Postgres` | Railway PostgreSQL | —                                                                                                                                                              |
+| `api`      | this repo          | watch paths `/be/**`; pre-deploy `/app/cli migrate up`; healthcheck `/readyz`; volume at `/data`; **no public domain** (reached only over the private network) |
+| `web`      | this repo          | watch paths `/fe/**`; healthcheck `/sheraton/en`; public domain on port `3000`                                                                                 |
 
 `api` variables:
 
 ```sh
+RAILWAY_DOCKERFILE_PATH=be/Dockerfile
 APP_ENV=production
 APP_PUBLIC_ORIGIN=https://${{web.RAILWAY_PUBLIC_DOMAIN}}   # or the custom domain
 DATABASE_URL=${{Postgres.DATABASE_URL}}
@@ -347,6 +349,7 @@ RAILWAY_RUN_UID=0
 `web` variables (also passed to the build):
 
 ```sh
+RAILWAY_DOCKERFILE_PATH=fe/Dockerfile
 API_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080
 NEXT_PUBLIC_SITE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}   # or the custom domain
 PORT=3000

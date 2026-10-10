@@ -1,20 +1,21 @@
 # Production image: the Next.js standalone server, non-root.
+# Built from the repository root (Railway: RAILWAY_DOCKERFILE_PATH=fe/Dockerfile).
 #
-#   docker build --build-arg API_URL=http://api:8080 \
-#     --build-arg NEXT_PUBLIC_SITE_URL=https://example.com -t digital-profile-web fe
+#   docker build -f fe/Dockerfile --build-arg API_URL=http://api:8080 \
+#     --build-arg NEXT_PUBLIC_SITE_URL=https://example.com -t digital-profile-web .
 #
 # API_URL is needed at build time (the /api/v1 forwarding is fixed then) and at runtime. The
 # API needn't be reachable while building: pages then ask it on their first requests.
 
 FROM node:24-alpine AS deps
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY fe/package.json fe/package-lock.json ./
 RUN npm ci --no-audit --no-fund
 
 FROM node:24-alpine AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY fe/ .
 ARG API_URL
 ARG NEXT_PUBLIC_SITE_URL
 ARG NEXT_PUBLIC_API_URL

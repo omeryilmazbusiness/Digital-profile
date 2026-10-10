@@ -1,15 +1,16 @@
 # Production image: the API and its operational CLI (migrations, admin account) as static
 # binaries on a small non-root base. The shell is kept for `railway ssh` / `docker exec`.
+# Built from the repository root (Railway: RAILWAY_DOCKERFILE_PATH=be/Dockerfile).
 #
-#   docker build -t digital-profile-api be
+#   docker build -f be/Dockerfile -t digital-profile-api .
 #   start:      /app/api
 #   pre-deploy: /app/cli migrate up
 
 FROM golang:1.27-alpine AS build
 WORKDIR /src
-COPY go.mod go.sum ./
+COPY be/go.mod be/go.sum ./
 RUN go mod download
-COPY . .
+COPY be/ .
 # Set by Railway to the deployed commit; shown by /healthz.
 ARG RAILWAY_GIT_COMMIT_SHA=dev
 # nodynamic: WebP never looks for a system libwebp, which would link against glibc's loader.
