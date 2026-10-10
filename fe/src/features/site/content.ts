@@ -126,7 +126,6 @@ export interface DigitalProfile {
   stats: readonly ProfileStat[];
   about: { eyebrow: string; title: string; paragraphs: readonly string[] };
   /** The contact's résumé, as a PDF. */
-  cv?: { eyebrow: string; title: string; body: string; document: SiteDocument };
   services: { eyebrow: string; title: string; items: readonly ProfileService[] };
   reach: { eyebrow: string; title: string };
   availability: Availability;

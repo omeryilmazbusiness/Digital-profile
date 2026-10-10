@@ -91,19 +91,6 @@ test("writes the name white across the suit and black at its ends", async () => 
   expect(fills.join("")).toBe(`b${"w".repeat(9)}b${"b".repeat(9)}`);
 });
 
-test("offers the CV to view and to download", async () => {
-  render(await ProfilePage(props));
-  const cv = mockSiteContent.profile.cv!;
-  expect(screen.getByRole("heading", { level: 2, name: cv.title })).toBeInTheDocument();
-  expect(
-    screen.getByRole("link", { name: `View CV: ${cv.document.title} (opens in a new tab)` }),
-  ).toHaveAttribute("href", cv.document.url);
-  expect(screen.getByRole("link", { name: `Download: ${cv.document.title}` })).toHaveAttribute(
-    "download",
-    cv.document.fileName,
-  );
-});
-
 test("describes the person for search engines", async () => {
   const { container } = render(await ProfilePage(props));
   const script = container.querySelector('script[type="application/ld+json"]');

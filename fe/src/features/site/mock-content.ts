@@ -150,21 +150,6 @@ export const mockSiteContent: SiteContent = {
         "He works in Arabic, English and Bahasa Indonesia, so your team and your guests are always understood, in season and out.",
       ],
     },
-    cv: {
-      eyebrow: "Résumé",
-      title: "Curriculum vitae",
-      body: "Experience, education and languages — on a few pages, ready to keep on file.",
-      document: {
-        id: "momen-cv",
-        title: "Momen Tawfiq Alkiswani — CV",
-        language: "en",
-        url: SAMPLE_PDF,
-        fileName: "Momen-Tawfiq-Alkiswani-CV.pdf",
-        sizeBytes: 245_760,
-        pages: 2,
-        updatedAt: "2026-09-01",
-      },
-    },
     services: {
       eyebrow: "How I can help",
       title: "Built around your groups",

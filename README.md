@@ -230,10 +230,10 @@ the card); with reduced motion everything is simply there.
 
 On the card, the portrait settles in on white and his name writes itself beneath it in Inter SemiBold, a plain
 business sans, as you scroll ("omen Tawfi", over the suit, in white — the `accent`
-of its manifest in `generate-signature.mjs`); then the actions, figures, his CV (PDF), services, contact details with
+of its manifest in `generate-signature.mjs`); then the actions, figures, services, contact details with
 live office hours, a QR share card and a closing call to action follow. `.../momen/vcard` serves the
-contact card with the photo embedded. The figures, hours, LinkedIn link and the CV (the sample
-PDF until the real one is added) in `mock-content.ts` are placeholders.
+contact card with the photo embedded. The figures, hours and LinkedIn link in `mock-content.ts` are
+placeholders.
 
 The studio's signature, "by widdigroup.com" (`footer.credit`, which the site settings can turn
 off), sits under the scroll hint of the opening screen, large under the card's closing call to
