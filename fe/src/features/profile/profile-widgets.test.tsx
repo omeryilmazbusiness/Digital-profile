@@ -49,7 +49,7 @@ test("draws a QR code of the card's address and copies the link where sharing is
   await user.click(screen.getByRole("button", { name: "Share this card" }));
   expect(writeText).toHaveBeenCalledWith(href);
   expect(await screen.findByText("Link copied")).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "Save contact" })).toHaveAttribute(
+  expect(screen.getByRole("link", { name: "Save business card" })).toHaveAttribute(
     "download",
     "Momen.vcf",
   );

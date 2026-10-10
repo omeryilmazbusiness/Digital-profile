@@ -16,16 +16,14 @@ interface ContactDockProps {
 }
 
 /**
- * Floating bar that keeps WhatsApp and "Save contact" a thumb away while the visitor reads
- * the card, clear of the home indicator.
+ * A slim black capsule floating above the home indicator while the visitor reads the card:
+ * who it is, and call, WhatsApp and save a thumb away.
  */
 export function ContactDock({ profile, afterId, hideWhileId }: ContactDockProps) {
   const [past, setPast] = useState(false);
   const [hidden, setHidden] = useState(false);
   const visible = past && !hidden;
-  const actions = contactActions(profile);
-  const whatsapp = actions.find((a) => a.id === "whatsapp")!;
-  const save = actions.find((a) => a.id === "save")!;
+  const actions = contactActions(profile).filter((a) => a.id !== "email");
 
   useEffect(() => {
     const after = document.getElementById(afterId);
@@ -49,41 +47,39 @@ export function ContactDock({ profile, afterId, hideWhileId }: ContactDockProps)
       inert={!visible}
       aria-hidden={!visible}
       className={cn(
-        "fixed inset-x-0 bottom-0 z-30 px-safe-3 pb-safe-3 transition-[translate,opacity] duration-500 ease-ios",
-        visible ? "translate-y-0 opacity-100" : "translate-y-[calc(100%+1rem)] opacity-0",
+        "pointer-events-none fixed inset-x-0 bottom-0 z-30 flex justify-center px-safe-4 pb-safe-4 transition-[translate,opacity,filter] duration-700 ease-ios",
+        visible ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0 blur-sm",
       )}
     >
-      <div className="mx-auto flex max-w-md items-center gap-2 rounded-full bg-neutral-950/92 p-1.5 text-white shadow-[0_24px_60px_-16px_rgb(0_0_0/0.55)] ring-1 ring-white/10 backdrop-blur-xl">
+      <nav
+        aria-label={`Contact ${profile.name}`}
+        className="pointer-events-auto flex items-center gap-1 rounded-full bg-neutral-950 p-1 text-white shadow-[0_18px_40px_-14px_rgb(0_0_0/0.55),0_0_0_0.5px_rgb(255_255_255/0.12)_inset]"
+      >
         {profile.portrait && (
           // eslint-disable-next-line @next/next/no-img-element -- a 3 KB pre-sized avatar
           <img
             src={profile.portrait.avatar}
             alt=""
-            width={40}
-            height={40}
-            className="size-10 shrink-0 rounded-full"
+            width={36}
+            height={36}
+            className="size-9 shrink-0 rounded-full"
           />
         )}
-        <p className="min-w-0 flex-1 ps-1 leading-tight">
-          <span className="block truncate text-subheadline font-semibold">{profile.name}</span>
-          <span className="block truncate text-caption-1 text-white/60">{profile.title}</span>
-        </p>
-        <a
-          {...actionLinkProps(save)}
-          className="flex h-10 shrink-0 pressable items-center gap-2 rounded-full bg-white px-4 text-subheadline font-semibold text-neutral-950 [&_svg]:size-4"
-        >
-          {save.icon}
-          Save
-          <span className="sr-only"> contact</span>
-        </a>
-        <a
-          {...actionLinkProps(whatsapp)}
-          aria-label={whatsapp.description}
-          className="grid size-10 shrink-0 pressable place-items-center rounded-full bg-white/12 [&_svg]:size-5"
-        >
-          {whatsapp.icon}
-        </a>
-      </div>
+        <span className="ps-2 pe-3 font-display text-[1.0625rem] leading-none whitespace-nowrap">
+          {profile.givenName.split(" ")[0]} {profile.familyName}
+        </span>
+        <span aria-hidden className="h-5 w-px bg-white/15" />
+        {actions.map((action) => (
+          <a
+            key={action.id}
+            {...actionLinkProps(action)}
+            aria-label={action.description}
+            className="grid size-9 shrink-0 pressable place-items-center rounded-full text-white/85 transition-colors hover:bg-white/10 hover:text-white [&_svg]:size-[1.05rem] [&_svg]:stroke-[1.6]"
+          >
+            {action.icon}
+          </a>
+        ))}
+      </nav>
     </div>
   );
 }

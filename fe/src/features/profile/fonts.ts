@@ -1,15 +1,15 @@
 import localFont from "next/font/local";
 
 /**
- * Bodoni Moda at its display optical size, Latin only (scripts/build-display-font.py). Sets
- * --font-bodoni; use it through the `font-display` utility.
+ * Instrument Serif, Latin only (scripts/build-display-font.py). Sets --font-display-serif; use
+ * it through the `font-display` utility.
  */
 export const displayFont = localFont({
   src: [
-    { path: "./fonts/bodoni-moda.woff2", style: "normal", weight: "400 700" },
-    { path: "./fonts/bodoni-moda-italic.woff2", style: "italic", weight: "400 700" },
+    { path: "./fonts/instrument-serif.woff2", style: "normal", weight: "400" },
+    { path: "./fonts/instrument-serif-italic.woff2", style: "italic", weight: "400" },
   ],
-  variable: "--font-bodoni",
+  variable: "--font-display-serif",
   display: "swap",
   adjustFontFallback: "Times New Roman",
 });

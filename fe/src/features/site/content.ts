@@ -58,6 +58,8 @@ export interface Portrait {
   avatar: string;
   /** 1200×630 sharing image. */
   ogImage: string;
+  /** Alpha mask of the portrait's dark areas, where type laid over it turns white. */
+  ink?: string;
 }
 
 export interface ContactProfile {

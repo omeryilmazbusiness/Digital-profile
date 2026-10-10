@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Prepares the profile portrait for a white page: lifts the studio's near-white backdrop (and
 // its darker corners) to pure white without touching the subject, then writes the sizes the
-// site uses — responsive WebP with the edges dissolved into white, a small avatar, the
-// sharing image and the square vCard photo.
+// site uses — responsive WebP with the edges dissolved into white, the mask that turns the
+// name white over the photo, a small avatar, the sharing image and the square vCard photo.
 //
 // Usage: node scripts/prepare-portrait.mjs   (run from fe/; source in assets/portraits/)
 
@@ -121,7 +121,8 @@ async function dissolveEdges(input) {
   const { width, height, channels } = info;
   for (let y = 0; y < height; y++) {
     const v = y / (height - 1);
-    const vertical = smoothstep(0, 0.05, v) * (1 - smoothstep(0.54, 0.95, v));
+    // The suit stays dark where the name's first line crosses it (see inkMask).
+    const vertical = smoothstep(0, 0.05, v) * (1 - smoothstep(0.82, 1, v));
     for (let x = 0; x < width; x++) {
       const h = x / (width - 1);
       const keep = vertical * smoothstep(0, 0.13, h) * (1 - smoothstep(0.87, 1, h));
@@ -132,10 +133,38 @@ async function dissolveEdges(input) {
   return sharp(data, { raw: info }).png().toBuffer();
 }
 
+/**
+ * Where the page portrait is dark enough for white type: opaque there, transparent elsewhere.
+ * The name laid over the photo uses it as an (alpha) mask for its white copy.
+ */
+async function inkMask(input, width) {
+  const grey = await sharp(input)
+    .resize({ width })
+    .greyscale()
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  for (let i = 0; i < grey.data.length; i++) {
+    grey.data[i] = 255 * (1 - smoothstep(110, 150, grey.data[i]));
+  }
+  const { data: alpha, info } = await sharp(grey.data, { raw: grey.info })
+    .blur(0.6)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  const pixels = info.width * info.height;
+  const rgba = Buffer.alloc(pixels * 4);
+  for (let i = 0; i < pixels; i++) rgba[i * 4 + 3] = alpha[i * info.channels];
+  return sharp(rgba, { raw: { width: info.width, height: info.height, channels: 4 } })
+    .webp({ quality: 70, alphaQuality: 80 })
+    .toBuffer();
+}
+
 await mkdir(OUT, { recursive: true });
 const clean = await whiten();
 const page = await dissolveEdges(clean);
 const outputs = [];
+
+await writeFile(path.join(OUT, `${NAME}-ink.webp`), await inkMask(page, 420));
+outputs.push(`${NAME}-ink.webp`);
 
 for (const width of WIDTHS) {
   const file = `${NAME}-${width}.webp`;

@@ -176,8 +176,8 @@
   --shadow-card: var(--shadow-card);
   --shadow-float: var(--shadow-float);
 
-  /* Display serif, loaded only by pages that set --font-bodoni (next/font). */
-  --font-display: var(--font-bodoni), Didot, "Bodoni 72", "Bodoni MT", Georgia, serif;
+  /* Display serif, loaded only where --font-display-serif is set (next/font). */
+  --font-display: var(--font-display-serif), "Times New Roman", Georgia, serif;
 }
 
 @theme {

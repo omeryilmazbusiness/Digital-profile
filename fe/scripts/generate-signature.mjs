@@ -42,11 +42,9 @@ const OUTPUTS = [
     signatures: [
       {
         lang: "en",
-        font: "assets/fonts/bodoni-moda/BodoniModa.ttf",
-        // A text optical size: the hairlines hold up at the ~50px the name is shown at.
-        variations: ["opsz=36", "wght=520"],
+        font: "assets/fonts/instrument-serif/InstrumentSerif-Regular.ttf",
         lines: ["Momen Tawfiq", "Alkiswani"],
-        lineHeight: 1.02,
+        lineHeight: 0.98,
       },
     ],
   },

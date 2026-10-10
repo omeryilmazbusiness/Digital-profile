@@ -21,9 +21,14 @@ beforeEach(() => {
   );
 });
 
-test("names the person as the page heading, with the portrait", async () => {
+test("is the landing page, with the card as its own section at this address", async () => {
   render(await ProfilePage());
-  expect(screen.getByRole("heading", { level: 1, name: card.name })).toBeInTheDocument();
+  expect(
+    screen.getByRole("heading", { level: 1, name: "Sheraton Makkah Jabal Al Kaaba" }),
+  ).toBeInTheDocument();
+  expect(document.getElementById("discover")).toBeInTheDocument();
+  expect(document.querySelector('[data-path="/momen"]')).toHaveAttribute("id", "momen");
+  expect(screen.getByRole("heading", { level: 2, name: card.name })).toBeInTheDocument();
   expect(screen.getByRole("img", { name: card.portrait!.alt })).toHaveAttribute(
     "srcset",
     card.portrait!.srcSet,

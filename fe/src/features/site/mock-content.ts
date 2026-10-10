@@ -124,6 +124,7 @@ export const mockSiteContent: SiteContent = {
         alt: "Momen Tawfiq Alkiswani in a navy suit, arms folded, smiling",
         avatar: "/profile/momen-avatar.webp",
         ogImage: "/profile/momen-og.jpg",
+        ink: "/profile/momen-ink.webp",
       },
       href: "/momen",
       vcardHref: "/momen/vcard",

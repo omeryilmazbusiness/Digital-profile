@@ -6,6 +6,7 @@ import type * as React from "react";
 import { useFramePreloader } from "@/hooks/use-frame-preloader";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { useSaveData } from "@/hooks/use-save-data";
+import { arrivalTarget } from "@/lib/arrival";
 import { CanvasFrameRenderer, type Focus } from "@/lib/canvas-frame-renderer";
 import {
   frameAt,
@@ -90,18 +91,21 @@ function ScrubbedSequence({
 }: ScrollCanvasVideoProps & { active: boolean }) {
   const root = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
-  const arrived = useRef(false);
   // Chosen once: switching sets on rotation would reload every frame mid-scroll; cover
   // cropping keeps either set filling the screen.
   const [set] = useState<FrameSetName | null>(() =>
     typeof window === "undefined" ? null : pickFrameSet(window.innerWidth, window.innerHeight),
   );
+  // A visit that opens further down (/#tour, /momen) doesn't start with the film: it isn't
+  // held up by the loading lock, and the frames download once the page itself has loaded.
+  const [openedBelow] = useState(() => typeof window !== "undefined" && arrivalTarget() !== null);
+  const pageLoaded = usePageLoaded();
   const urls = useMemo(() => (set ? frameUrls(sequence, set) : []), [sequence, set]);
   const { frames, loadingProgress, isLoaded } = useFramePreloader(urls, {
-    enabled: active && set !== null,
+    enabled: active && set !== null && (!openedBelow || pageLoaded),
   });
   const ready = active && set !== null && isLoaded;
-  useScrollLock(!ready);
+  useScrollLock(!ready && !openedBelow);
   useOpenAtTop();
 
   useGSAP(
@@ -109,6 +113,9 @@ function ScrubbedSequence({
       const section = root.current;
       const el = canvas.current;
       if (!ready || !section || !el) return;
+      // Pinning adds the scroll distance below the section; a visitor already past it (who
+      // opened further down) keeps their place.
+      const passed = section.getBoundingClientRect().bottom <= 0;
 
       const renderer = new CanvasFrameRenderer(el, () => frames.current, focus);
       const resize = () =>
@@ -128,6 +135,9 @@ function ScrubbedSequence({
           anticipatePin: 1,
           scrub,
           invalidateOnRefresh: true,
+          // Created once the frames load — after the sections below it, whose positions
+          // depend on its pin spacing. Refresh it first.
+          refreshPriority: 1,
         },
       });
       timeline.to(
@@ -168,18 +178,9 @@ function ScrubbedSequence({
 
       // Pinning added spacing below the section: positions of later triggers changed.
       ScrollTrigger.refresh();
-      // A link into the page (/#tour from another page) was resolved before that spacing
-      // existed. Wait a frame for the loading scroll lock to be released.
-      let frame = 0;
-      if (!arrived.current && location.hash) {
-        const id = decodeURIComponent(location.hash.slice(1));
-        frame = requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
-      }
-      arrived.current = true;
-      return () => {
-        cancelAnimationFrame(frame);
-        observer.disconnect();
-      };
+      const spacer = section.parentElement;
+      if (passed && spacer) window.scrollBy(0, spacer.offsetHeight - section.offsetHeight);
+      return () => observer.disconnect();
     },
     {
       scope: root,
@@ -220,18 +221,31 @@ function ScrubbedSequence({
           </div>
         ))}
       </section>
-      <FrameLoader progress={loadingProgress} done={ready} />
+      <FrameLoader progress={loadingProgress} done={ready || (active && openedBelow)} />
     </>
+  );
+}
+
+const subscribeLoad = (onChange: () => void) => {
+  window.addEventListener("load", onChange);
+  return () => window.removeEventListener("load", onChange);
+};
+
+function usePageLoaded(): boolean {
+  return useSyncExternalStore(
+    subscribeLoad,
+    () => document.readyState === "complete",
+    () => false,
   );
 }
 
 /**
  * The sequence plays from the top: a restored mid-page position would open on a half-faded
- * scene while the page is still locked for loading. Links to a section keep their target.
+ * scene while the page is still locked for loading. Visits to a section keep their target.
  */
 function useOpenAtTop() {
   useEffect(() => {
-    if (location.hash) return;
+    if (arrivalTarget()) return;
     const previous = history.scrollRestoration;
     history.scrollRestoration = "manual";
     window.scrollTo(0, 0);

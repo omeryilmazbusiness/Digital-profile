@@ -1,9 +1,23 @@
 import { render, screen, within } from "@testing-library/react";
-import { expect, test } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 
 import { mockSiteContent } from "@/features/site/mock-content";
 
 import Home from "./page";
+
+// The page at rest. The scroll animations have their own tests; building them all in jsdom
+// is slow.
+beforeEach(() => {
+  vi.spyOn(window, "matchMedia").mockImplementation(
+    (query) =>
+      ({
+        matches: query.includes("reduced-motion"),
+        media: query,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }) as unknown as MediaQueryList,
+  );
+});
 
 test("renders the hotel name as the page heading, then every section", async () => {
   render(await Home());
@@ -11,7 +25,7 @@ test("renders the hotel name as the page heading, then every section", async () 
   expect(
     screen.getByRole("heading", { level: 1, name: "Sheraton Makkah Jabal Al Kaaba" }),
   ).toBeInTheDocument();
-  for (const id of ["discover", "tour", "contact"]) {
+  for (const id of ["discover", "tour", "momen"]) {
     expect(document.getElementById(id)).toBeInTheDocument();
   }
 });

@@ -1,12 +1,12 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import type * as React from "react";
 
 import type { Signature } from "@/components/signature/handwriting";
 import type { ContactProfile } from "@/features/site/content";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
-import { gsap, useGSAP } from "@/lib/gsap";
+import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { cn } from "@/lib/utils";
 
 import { actionLinkProps, contactActions } from "./contact-actions";
@@ -25,17 +25,50 @@ const PIN_LENGTH = 1.6;
 export const PROFILE_INTRO_ID = "profile-intro";
 
 /**
- * The card's opening: the portrait settles in on white, then — as the visitor scrolls — moves
- * up while the name writes itself beneath it, followed by the role and the contact buttons,
- * which rise with their shadows. The page scrolls on normally afterwards.
+ * The card's opening: the portrait develops out of the white as the section arrives, then —
+ * as the visitor scrolls — moves up while the name writes itself beneath it, followed by the
+ * role and the contact buttons, which rise with their shadows. The page scrolls on normally
+ * afterwards.
+ *
+ * The name overlaps the bottom of the portrait. It is drawn twice, in black and in white, with
+ * complementary masks cut from the photo's dark areas, so the letters turn white wherever they
+ * cross the suit. The masks are CSS masks on HTML boxes and never overlap: Chrome mis-renders
+ * SVG image masks that reach far outside the masked content, CSS masks set on an <svg>, and
+ * the stacking of a masked layer over an unmasked one.
  *
  * With reduced motion (or before scripts run) everything is shown at rest.
  */
 export function ProfileIntro({ profile, organization, eyebrow, signature }: ProfileIntroProps) {
   const root = useRef<HTMLElement>(null);
+  const portrait = useRef<HTMLImageElement>(null);
+  const name = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
   const actions = contactActions(profile);
   const [x = 0, y = 0, w = 0, h = 0] = signature.viewBox;
+  const ink = profile.portrait?.ink;
+
+  // Lays the ink masks over the portrait as it appears on screen.
+  const placeInk = () => {
+    const box = name.current;
+    const img = portrait.current;
+    if (!box || !img) return;
+    const at = box.getBoundingClientRect();
+    const photo = img.getBoundingClientRect();
+    if (at.width === 0) return;
+    box.style.setProperty("--ink-at", `${photo.left - at.left}px ${photo.top - at.top}px`);
+    box.style.setProperty("--ink-size", `${photo.width}px ${photo.height}px`);
+  };
+
+  useEffect(() => {
+    placeInk();
+    const observer = new ResizeObserver(() => placeInk());
+    if (name.current) observer.observe(name.current);
+    ScrollTrigger.addEventListener("refresh", placeInk);
+    return () => {
+      observer.disconnect();
+      ScrollTrigger.removeEventListener("refresh", placeInk);
+    };
+  });
 
   useGSAP(
     () => {
@@ -44,9 +77,12 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
       const q = gsap.utils.selector(section);
       const stage = q("[data-intro=stage]");
       const below = q("[data-intro=below]")[0] as HTMLElement | undefined;
-      const glyphs = gsap.utils.toArray<SVGPathElement>("[data-glyph]", section);
+      const dark = gsap.utils.toArray<SVGPathElement>("[data-ink=dark] path", section);
+      const light = gsap.utils.toArray<SVGPathElement>("[data-ink=light] path", section);
 
-      // Arrival, on its own clock: the portrait develops out of the white.
+      // Arrival, on its own clock once the section comes into view: the portrait develops
+      // out of the white.
+      const arrival = { trigger: section, start: "top 80%", once: true };
       gsap.fromTo(
         q("[data-intro=portrait]"),
         { autoAlpha: 0, scale: 1.08, filter: "blur(18px)" },
@@ -57,16 +93,27 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
           duration: 1.8,
           ease: "power3.out",
           clearProps: "filter,scale",
+          scrollTrigger: arrival,
+          onComplete: placeInk,
         },
       );
       gsap.fromTo(
         q("[data-intro=arrive]"),
         { autoAlpha: 0, y: 10 },
-        { autoAlpha: 1, y: 0, duration: 1, delay: 0.7, stagger: 0.2, ease: "power2.out" },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 1,
+          delay: 0.7,
+          stagger: 0.2,
+          ease: "power2.out",
+          scrollTrigger: arrival,
+        },
       );
 
       const timeline = gsap.timeline({
         defaults: { ease: "none" },
+        onUpdate: placeInk,
         scrollTrigger: {
           trigger: section,
           start: "top top",
@@ -88,19 +135,20 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
       timeline.to(q("[data-intro=hint]"), { autoAlpha: 0, duration: 0.08 }, 0);
 
       // The name, glyph by glyph: the pen traces each outline, the ink follows.
-      const lengths = glyphs.map((g) => Number(g.dataset.length) || 1);
+      const lengths = dark.map((g) => Number(g.dataset.length) || 1);
       const total = lengths.reduce((sum, n) => sum + n, 0) || 1;
       let at = 0.12;
-      glyphs.forEach((glyph, i) => {
+      dark.forEach((glyph, i) => {
+        const pair = [glyph, light[i]].filter(Boolean);
         const duration = Math.max(0.012, (0.5 * (lengths[i] ?? 0)) / total);
         timeline.fromTo(
-          glyph,
+          pair,
           { strokeDashoffset: 1, strokeOpacity: 0 },
           { strokeDashoffset: 0, strokeOpacity: 1, duration },
           at,
         );
         timeline.fromTo(
-          glyph,
+          pair,
           { fillOpacity: 0 },
           { fillOpacity: 1, duration: duration * 1.6, ease: "power1.out" },
           at + duration * 0.5,
@@ -138,6 +186,21 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
     { scope: root, dependencies: [reducedMotion], revertOnUpdate: true },
   );
 
+  const glyphs = (layer: "dark" | "light") =>
+    signature.glyphs.map((glyph, i) => (
+      <path
+        key={`${layer}-${i}`}
+        data-length={glyph.length}
+        d={glyph.d}
+        pathLength={1}
+        strokeDasharray="1 1"
+        strokeDashoffset={1}
+        strokeOpacity={0}
+        fillOpacity={0}
+        className="motion-reduce:[fill-opacity:1]"
+      />
+    ));
+
   return (
     <section
       ref={root}
@@ -159,6 +222,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
         {profile.portrait && (
           // eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP set, prepared for the white page
           <img
+            ref={portrait}
             data-intro="portrait"
             src={profile.portrait.src}
             srcSet={profile.portrait.srcSet}
@@ -166,8 +230,8 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             width={profile.portrait.width}
             height={profile.portrait.height}
             alt={profile.portrait.alt}
-            fetchPriority="high"
             decoding="async"
+            onLoad={placeInk}
             className="h-auto w-full select-none motion-safe:invisible"
             draggable={false}
           />
@@ -176,33 +240,54 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
 
       <div
         data-intro="below"
-        className="relative z-10 -mt-[calc(var(--portrait)*0.16)] flex w-full flex-col items-center text-center"
+        className="relative z-10 -mt-[calc(var(--portrait)*0.32)] flex w-full flex-col items-center text-center"
       >
-        <h1 id="profile-name" className="sr-only">
+        <h2 id="profile-name" className="sr-only">
           {profile.name}
-        </h1>
-        <svg
+        </h2>
+        <div
+          ref={name}
           aria-hidden
-          viewBox={`${x} ${y} ${w} ${h}`}
-          className="h-auto w-[min(84vw,30rem)] overflow-visible"
+          style={{ "--ink-at": "0 0", "--ink-size": "0 0" } as React.CSSProperties}
+          className="relative w-[min(78vw,26rem)]"
         >
-          <g fill="#0a0a0a" stroke="#0a0a0a" strokeWidth={0.7} strokeLinejoin="round">
-            {signature.glyphs.map((glyph, i) => (
-              <path
-                key={i}
-                data-glyph=""
-                data-length={glyph.length}
-                d={glyph.d}
-                pathLength={1}
-                strokeDasharray="1 1"
-                strokeDashoffset={1}
-                strokeOpacity={0}
-                fillOpacity={0}
-                className="motion-reduce:[fill-opacity:1]"
-              />
-            ))}
-          </g>
-        </svg>
+          <div
+            style={
+              ink
+                ? {
+                    maskImage: `linear-gradient(#000, #000), url(${ink})`,
+                    maskComposite: "exclude",
+                    maskRepeat: "no-repeat",
+                    maskPosition: "0 0, var(--ink-at)",
+                    maskSize: "100% 100%, var(--ink-size)",
+                  }
+                : undefined
+            }
+          >
+            <svg viewBox={`${x} ${y} ${w} ${h}`} className="block h-auto w-full">
+              <g data-ink="dark" fill="#0a0a0a" stroke="#0a0a0a" strokeWidth={0.7}>
+                {glyphs("dark")}
+              </g>
+            </svg>
+          </div>
+          {ink && (
+            <div
+              style={{
+                maskImage: `url(${ink})`,
+                maskRepeat: "no-repeat",
+                maskPosition: "var(--ink-at)",
+                maskSize: "var(--ink-size)",
+              }}
+              className="absolute inset-0"
+            >
+              <svg viewBox={`${x} ${y} ${w} ${h}`} className="block h-auto w-full">
+                <g data-ink="light" fill="#fff" stroke="#fff" strokeWidth={0.7}>
+                  {glyphs("light")}
+                </g>
+              </svg>
+            </div>
+          )}
+        </div>
 
         <span
           data-intro="rule"
@@ -267,7 +352,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
 
       {/* Without scripts nothing would reveal the hidden pieces. */}
       <noscript>
-        <style>{`[data-intro]{visibility:visible!important;transform:none!important}[data-glyph]{fill-opacity:1}`}</style>
+        <style>{`[data-intro]{visibility:visible!important;transform:none!important}[data-ink] path{fill-opacity:1}`}</style>
       </noscript>
     </section>
   );

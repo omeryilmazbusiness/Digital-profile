@@ -65,7 +65,7 @@ export function ShareCard({ title, url, vcardHref, vcardFileName, className }: S
           className="flex h-13 pressable items-center justify-center gap-2.5 rounded-full px-7 text-headline text-white ring-1 ring-white/25 hover:bg-white/5"
         >
           <UserPlus aria-hidden className="size-5" />
-          Save contact
+          Save business card
         </a>
       </div>
     </div>
