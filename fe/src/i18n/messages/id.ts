@@ -48,5 +48,4 @@ export const id: UiStrings = {
   saveBusinessCard: "Simpan kartu nama",
   linkCopied: "Tautan disalin",
   copyFailed: "Tautan tidak dapat disalin",
-  qrFor: "Kode QR untuk {url}",
 };

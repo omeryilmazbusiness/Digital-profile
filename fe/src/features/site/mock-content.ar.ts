@@ -203,7 +203,7 @@ export const mockSiteContentAr: Omit<SiteContent, "ui"> = {
     share: {
       eyebrow: "مشاركة",
       title: "مرّر هذه البطاقة",
-      body: "امسح الرمز لفتح البطاقة على هاتف آخر، أو أرسل الرابط إلى زميل.",
+      body: "أرسل الرابط إلى زميل، أو احفظ بطاقة العمل على هاتفك.",
     },
     closing: {
       title: "تخطط لإقامة مجموعة؟",

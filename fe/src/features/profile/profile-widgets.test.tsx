@@ -35,7 +35,7 @@ test("says when the office is closed", () => {
   expect(screen.getByText("Outside office hours")).toBeInTheDocument();
 });
 
-test("draws a QR code of the card's address and copies the link where sharing isn't offered", async () => {
+test("copies the card's address where sharing isn't offered", async () => {
   const user = userEvent.setup();
   // user-event installs its own clipboard; watch that one.
   const writeText = vi.spyOn(navigator.clipboard, "writeText");
@@ -53,7 +53,6 @@ test("draws a QR code of the card's address and copies the link where sharing is
   );
 
   const href = `${location.origin}/momen`;
-  expect(screen.getByRole("img", { name: `QR code for ${href}` })).toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Share this card" }));
   expect(writeText).toHaveBeenCalledWith(href);
   expect(await screen.findByText("Link copied")).toBeInTheDocument();

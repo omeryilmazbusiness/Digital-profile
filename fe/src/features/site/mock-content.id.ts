@@ -193,7 +193,7 @@ export const mockSiteContentId: Omit<SiteContent, "ui"> = {
     share: {
       eyebrow: "Bagikan",
       title: "Teruskan kartu ini",
-      body: "Pindai untuk membuka kartu ini di ponsel lain, atau kirim tautannya kepada rekan Anda.",
+      body: "Kirim tautannya kepada rekan Anda, atau simpan kartu nama ini di ponsel Anda.",
     },
     closing: {
       title: "Merencanakan menginap untuk rombongan?",

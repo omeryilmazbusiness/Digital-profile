@@ -55,5 +55,4 @@ export const ar: UiStrings = {
   saveBusinessCard: "حفظ بطاقة العمل",
   linkCopied: "تم نسخ الرابط",
   copyFailed: "تعذّر نسخ الرابط",
-  qrFor: "رمز QR لـ {url}",
 };

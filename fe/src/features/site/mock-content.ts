@@ -229,7 +229,7 @@ export const mockSiteContent: Omit<SiteContent, "ui"> = {
     share: {
       eyebrow: "Share",
       title: "Pass this card on",
-      body: "Scan to open this card on another phone, or send the link to a colleague.",
+      body: "Send the link to a colleague, or save the business card to your phone.",
     },
     closing: {
       title: "Planning a group stay?",

@@ -48,5 +48,4 @@ export const en: UiStrings = {
   saveBusinessCard: "Save business card",
   linkCopied: "Link copied",
   copyFailed: "Couldn't copy the link",
-  qrFor: "QR code for {url}",
 };

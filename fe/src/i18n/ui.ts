@@ -75,8 +75,6 @@ export interface UiStrings {
   saveBusinessCard: string;
   linkCopied: string;
   copyFailed: string;
-  /** "QR code for {url}" */
-  qrFor: string;
 }
 
 const strings: Record<Locale, UiStrings> = { en, ar, id };

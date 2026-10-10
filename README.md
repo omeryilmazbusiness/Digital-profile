@@ -284,7 +284,7 @@ the card); with reduced motion everything is simply there.
 On the card, the portrait settles in on white, its bottom edge dissolving into the page through a
 deepening blur, and his name writes itself just below it in Inter SemiBold, a plain business sans
 (IBM Plex Sans Arabic in Arabic), as you scroll; then the actions, figures, services, contact details with
-live office hours, a QR share card and a closing call to action follow. `.../momen/vcard` serves the
+live office hours, a share card (share the link, save the business card) and a closing call to action follow. `.../momen/vcard` serves the
 contact card with the photo embedded. The figures, hours and LinkedIn link in `mock-content.ts` are
 placeholders.
 
@@ -303,7 +303,7 @@ runtime: the `/api/v1/*` forwarding is fixed when building, and pages read publi
 through it. Leave `NEXT_PUBLIC_API_URL` empty in that setup. The API needn't be reachable while
 building: an unanswered request isn't baked into the pages and is asked again within seconds.
 
-Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) at build time: the QR code, canonical and
+Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) at build time: the shared link, canonical and
 hreflang links, Open Graph image, JSON-LD, `sitemap.xml` and the sitemap line of `robots.txt` need
 the absolute origin (the sitemap is empty without it). The app icon, Apple touch icon and web
 manifest are served from `fe/src/app`. Every response carries security headers
