@@ -2,13 +2,13 @@
 
 import type * as React from "react";
 
-import { isInDocument, sectionForPath } from "@/lib/arrival";
+import { isInDocument, isLandingRoot, sectionForPath } from "@/lib/arrival";
 
 import { useScrollController } from "./smooth-scroll-provider";
 
 /**
- * Click handler for site links. A link to something on the current page ("/#tour", "/", or a
- * landing section with its own path such as "/momen") scrolls through the page's scroll
+ * Click handler for site links. A link to something on the current page (a "#tour" anchor, the
+ * landing page, or a landing section with its own path such as ".../momen") scrolls through the page's scroll
  * controller, so smooth scrolling and the header offset apply, and updates the URL; anything
  * else is left to the router. `onNavigate` runs for every followed link, e.g. to close the
  * menu the link is in. Modified clicks keep their browser behavior.
@@ -26,11 +26,8 @@ export function useAnchorNavigation(onNavigate?: () => void) {
       url.search === location.search &&
       isInDocument(url.pathname);
     const id = decodeURIComponent(url.hash.slice(1));
-    const target = id
-      ? document.getElementById(id)
-      : url.pathname === "/"
-        ? 0
-        : sectionForPath(url.pathname);
+    const element = id ? document.getElementById(id) : sectionForPath(url.pathname);
+    const target = element && isLandingRoot(element) ? 0 : element;
     if (!samePage || target === null) {
       onNavigate?.();
       return;

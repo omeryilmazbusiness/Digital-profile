@@ -5,6 +5,8 @@ import { mockSiteContent } from "@/features/site/mock-content";
 
 import Home from "./page";
 
+const props = { params: Promise.resolve({ locale: "en" }) } as PageProps<"/sheraton/[locale]">;
+
 // The page at rest. The scroll animations have their own tests; building them all in jsdom
 // is slow.
 beforeEach(() => {
@@ -20,7 +22,7 @@ beforeEach(() => {
 });
 
 test("renders the hotel name as the page heading, then every section", async () => {
-  render(await Home());
+  render(await Home(props));
 
   expect(
     screen.getByRole("heading", { level: 1, name: "Sheraton Makkah Jabal Al Kaaba" }),
@@ -31,7 +33,7 @@ test("renders the hotel name as the page heading, then every section", async () 
 });
 
 test("lists each topic's PDFs with preview and download links", async () => {
-  render(await Home());
+  render(await Home(props));
   const rooms = mockSiteContent.sections[0]!;
   const list = screen.getByRole("list", { name: `${rooms.title}: documents` });
 
@@ -47,7 +49,7 @@ test("lists each topic's PDFs with preview and download links", async () => {
 });
 
 test("links the virtual tour out in a new tab", async () => {
-  render(await Home());
+  render(await Home(props));
   const link = screen.getByRole("link", { name: mockSiteContent.tour.cta });
   expect(link).toHaveAttribute("href", mockSiteContent.tour.url);
   expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));

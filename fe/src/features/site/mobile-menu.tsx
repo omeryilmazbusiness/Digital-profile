@@ -25,6 +25,8 @@ export interface QuickAction {
 
 export interface MobileMenuProps {
   hotelName: string;
+  /** The landing page, where the wordmark leads. */
+  home: `/${string}`;
   nav: readonly NavItem[];
   /** Contact shortcuts at the foot of the menu. */
   quickActions: readonly QuickAction[];
@@ -32,7 +34,7 @@ export interface MobileMenuProps {
 }
 
 /** Full-screen navigation for phones, opened from a two-line menu button. */
-export function MobileMenu({ hotelName, nav, quickActions, className }: MobileMenuProps) {
+export function MobileMenu({ hotelName, home, nav, quickActions, className }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const pathname = usePathname();
@@ -59,7 +61,7 @@ export function MobileMenu({ hotelName, nav, quickActions, className }: MobileMe
         >
           <Dialog.Title className="sr-only">Menu</Dialog.Title>
           <div className="flex h-14 items-center justify-between px-safe-5">
-            <AnchorLink href="/" onNavigate={close} aria-label={`${hotelName} — home`}>
+            <AnchorLink href={home} onNavigate={close} aria-label={`${hotelName} — home`}>
               <Wordmark name={hotelName} />
             </AnchorLink>
             <Dialog.Close

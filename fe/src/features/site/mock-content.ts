@@ -26,6 +26,8 @@ function doc(
 }
 
 export const mockSiteContent: SiteContent = {
+  locale: "en",
+  home: "/",
   hotel: {
     name: "Sheraton Makkah Jabal Al Kaaba",
     address: "Jabal Al Kaaba, Ibrahim Al Khalil Street, Makkah 24231, Saudi Arabia",

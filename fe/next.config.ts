@@ -7,6 +7,10 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  experimental: {
+    // The site's root layout sits under /sheraton/[locale]: unmatched URLs need their own page.
+    globalNotFound: true,
+  },
   async headers() {
     return [
       {

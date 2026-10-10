@@ -122,7 +122,7 @@ async function dissolveEdges(input) {
   for (let y = 0; y < height; y++) {
     const v = y / (height - 1);
     // The suit stays dark where the white part of the name's first line crosses it.
-    const vertical = smoothstep(0, 0.05, v) * (1 - smoothstep(0.88, 1, v));
+    const vertical = smoothstep(0, 0.05, v) * (1 - smoothstep(0.93, 1, v));
     for (let x = 0; x < width; x++) {
       const h = x / (width - 1);
       const keep = vertical * smoothstep(0, 0.13, h) * (1 - smoothstep(0.87, 1, h));

@@ -10,10 +10,10 @@ See [`docs/TASKS.md`](docs/TASKS.md) for the architecture and delivery plan.
 
 A single deployable monolith split into two self-contained projects:
 
-| Project | Role                                                                  | Stack                                                     |
-| ------- | --------------------------------------------------------------------- | --------------------------------------------------------- |
-| `be/`   | Go modular monolith. **Owns** the HTTP contract and its infrastructure | Go 1.27, chi, oapi-codegen, slog, PostgreSQL 16, S3       |
-| `fe/`   | Next.js app (public site + `/admin`). **Consumes** the contract        | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, Vitest   |
+| Project | Role                                                                   | Stack                                                   |
+| ------- | ---------------------------------------------------------------------- | ------------------------------------------------------- |
+| `be/`   | Go modular monolith. **Owns** the HTTP contract and its infrastructure | Go 1.27, chi, oapi-codegen, slog, PostgreSQL 16, S3     |
+| `fe/`   | Next.js app (public site + `/admin`). **Consumes** the contract        | Next.js 16, React 19, Tailwind CSS 4, shadcn/ui, Vitest |
 
 Dependency direction is one-way: `fe → be/api/openapi.yaml`. The backend never depends on the
 frontend, and the frontend only touches the backend through the generated, typed client.
@@ -74,19 +74,19 @@ make dev     # postgres + storage + mailpit, API on :8080 (hot reload), web on :
 
 Run `make help` (root), `make -C be help` or `make -C fe help` for the full lists.
 
-| Command                 | Purpose                                                       |
-| ----------------------- | ------------------------------------------------------------- |
-| `make generate`         | Regenerate Go server and TS client after editing the contract |
-| `make drift-check`      | Fail if generated code is stale (also runs on `git push`)     |
-| `make lint`             | Contract + Go + TS lint and format checks                     |
-| `make test`             | Go tests (race detector) + Vitest                             |
-| `make build`            | Versioned static Go binary + Next.js standalone build         |
-| `make check`            | Everything CI runs                                            |
-| `make -C be infra-reset`| Wipe local Postgres/storage data                              |
-| `make -C be migrate-create name=x` | New up/down migration pair                         |
-| `make -C be migrate-up` / `migrate-down` / `migrate-version` | Manage the schema by hand |
-| `make -C be admin-create email=x` / `admin-reset-password email=x` | Manage the admin account |
-| `make -C be jwt-key`    | Generate an `AUTH_JWT_KEYS` entry                             |
+| Command                                                            | Purpose                                                       |
+| ------------------------------------------------------------------ | ------------------------------------------------------------- |
+| `make generate`                                                    | Regenerate Go server and TS client after editing the contract |
+| `make drift-check`                                                 | Fail if generated code is stale (also runs on `git push`)     |
+| `make lint`                                                        | Contract + Go + TS lint and format checks                     |
+| `make test`                                                        | Go tests (race detector) + Vitest                             |
+| `make build`                                                       | Versioned static Go binary + Next.js standalone build         |
+| `make check`                                                       | Everything CI runs                                            |
+| `make -C be infra-reset`                                           | Wipe local Postgres/storage data                              |
+| `make -C be migrate-create name=x`                                 | New up/down migration pair                                    |
+| `make -C be migrate-up` / `migrate-down` / `migrate-version`       | Manage the schema by hand                                     |
+| `make -C be admin-create email=x` / `admin-reset-password email=x` | Manage the admin account                                      |
+| `make -C be jwt-key`                                               | Generate an `AUTH_JWT_KEYS` entry                             |
 
 ## Admin access
 
@@ -196,18 +196,42 @@ Header, footer and sections live in `fe/src/features/site`. All their data comes
 PDF in `fe/public/mock`) until the `GET /public/site` endpoint exists (SET-03). The mock contact
 details are fictitious on purpose.
 
-### Profile (`/momen`)
+### Languages and addresses
+
+Every public page lives under `/sheraton/<locale>` — `en`, `ar` or `id` (`fe/src/i18n`):
+
+| Address                          | Page                                  |
+| -------------------------------- | ------------------------------------- |
+| `/sheraton/<locale>`             | the landing page                      |
+| `/sheraton/<locale>/momen`       | the same page, opened at Momen's card |
+| `/sheraton/<locale>/momen/vcard` | his contact card (`.vcf`)             |
+
+`/`, `/sheraton` and the short links `/momen` and `/momen/vcard` (printed in QR codes) redirect
+to the visitor's language (`fe/src/proxy.ts`): the `locale` cookie — set on every page read — then
+the browser's `Accept-Language`, then English. Any other language is a 404.
+
+Content links are written without a language (`"/"`, `"/#tour"`, `"/momen"`) and
+`getSiteContent(locale)` puts them under the page's. Until translations exist every language shows
+the English text, as the API will (fallback en → id → ar); `<html lang dir>` follows the language
+actually shown, so Arabic switches to right-to-left once its text arrives. Each page lists its
+other languages for search engines (hreflang).
+
+### Profile (`/sheraton/<locale>/momen`)
 
 The site is a single landing page: hero, Discover, the 360° tour and, last, Momen Tawfiq
-Alkiswani's card (`fe/src/features/profile`). `/` and `/momen` render the same page; `/momen` (the
-link in the menu, the QR code and the shared URL) opens it at the card, and scrolling up leads into
-the rest of the site. Links to sections in the page scroll there and update the URL instead of
-navigating (`fe/src/lib/arrival.ts`).
+Alkiswani's card (`fe/src/features/profile`). The home and `.../momen` render the same page;
+`.../momen` (the link in the menu, the QR code and the shared URL) opens it at the card, and
+scrolling up leads into the rest of the site. Links to sections in the page scroll there and update
+the URL instead of navigating (`fe/src/lib/arrival.ts`).
+
+In Discover, each topic's rule draws across as it scrolls in, its text rises out of a soft blur and
+its PDF cards follow one by one (`RiseGroup` in `fe/src/components/scroll/rise.tsx`, shared with
+the card); with reduced motion everything is simply there.
 
 On the card, the portrait settles in on white and his name writes itself beneath it in Playfair
 Display as you scroll ("omen Tawfi", over the suit, in white — the `accent` of its manifest in
 `generate-signature.mjs`); then the actions, figures, his CV (PDF), services, contact details with
-live office hours, a QR share card and a closing call to action follow. `/momen/vcard` serves the
+live office hours, a QR share card and a closing call to action follow. `.../momen/vcard` serves the
 contact card with the photo embedded. The figures, hours, LinkedIn link and the CV (the sample
 PDF until the real one is added) in `mock-content.ts` are placeholders.
 

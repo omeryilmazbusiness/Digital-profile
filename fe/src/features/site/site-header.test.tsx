@@ -16,6 +16,7 @@ function renderHeader() {
       <div data-header-overlay="" />
       <SiteHeader
         hotelName="Sheraton Makkah"
+        home="/"
         nav={nav}
         cta={nav[1]!}
         quickActions={[{ label: "Call", href: "tel:+966500000000", icon: null }]}

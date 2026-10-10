@@ -1,9 +1,15 @@
+import { defaultLocale, type Locale } from "@/i18n/locales";
+import { localizeHref } from "@/i18n/routing";
+
 import { mockSiteContent } from "./mock-content";
 
 /** Languages the site and its documents are published in. */
-export type ContentLanguage = "en" | "ar" | "id";
+export type ContentLanguage = Locale;
 
-/** A link within the site: an anchor on the home page ("/#tour") or a page ("/momen"). */
+/**
+ * A link within the site: the landing page ("/"), one of its sections ("/#tour") or a page
+ * ("/momen"). Written without a language; `getSiteContent` puts them under the page's.
+ */
 export type SiteHref = `/${string}`;
 
 export interface NavItem {
@@ -131,6 +137,10 @@ export interface DigitalProfile {
 }
 
 export interface SiteContent {
+  /** The language the text is in: the one asked for, or the fallback when it isn't translated. */
+  locale: Locale;
+  /** The landing page. */
+  home: SiteHref;
   hotel: {
     name: string;
     address: string;
@@ -148,9 +158,37 @@ export interface SiteContent {
 }
 
 /**
- * Everything the public page shows. Mock data for now; it becomes the single
- * `GET /public/site?locale=` request (SET-03), so components don't change when it does.
+ * Everything the public page shows in `locale`, its links pointing at that language's pages.
+ * Mock data (English only) for now; it becomes the single `GET /public/site?locale=` request
+ * (SET-03), which falls back to English the same way, so components don't change when it does.
  */
-export async function getSiteContent(): Promise<SiteContent> {
-  return mockSiteContent;
+export async function getSiteContent(locale: Locale = defaultLocale): Promise<SiteContent> {
+  return localizeLinks(mockSiteContent, locale);
+}
+
+function localizeLinks(content: SiteContent, locale: Locale): SiteContent {
+  const href = (path: SiteHref) => localizeHref(locale, path);
+  const { contact, profile } = content;
+  return {
+    ...content,
+    home: href(content.home),
+    nav: content.nav.map((item) => ({ ...item, href: href(item.href) })),
+    contact: {
+      ...contact,
+      profile: {
+        ...contact.profile,
+        href: href(contact.profile.href),
+        vcardHref: href(contact.profile.vcardHref),
+      },
+    },
+    profile: {
+      ...profile,
+      resources: {
+        ...profile.resources,
+        links: profile.resources.links.map((link) =>
+          link.external ? link : { ...link, href: href(link.href) },
+        ),
+      },
+    },
+  };
 }

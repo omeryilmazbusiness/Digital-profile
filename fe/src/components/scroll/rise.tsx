@@ -10,9 +10,16 @@ import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 export const rise = { "data-rise": "" } as const;
 
 /**
+ * Marks a rule inside <RiseGroup> to draw across, from its start edge, as it scrolls into
+ * view. Give it its origin (e.g. `origin-left rtl:origin-right`).
+ */
+export const draw = { "data-draw": "" } as const;
+
+/**
  * Elements marked with `rise` come up out of a soft blur as they enter the viewport, a few at
- * a time; cards with `shadow-lift` settle onto the page as their shadow deepens. Each plays
- * once. Without scripts, or with reduced motion, everything is simply there.
+ * a time; cards with `shadow-lift` settle onto the page as their shadow deepens. Rules marked
+ * with `draw` extend across. Each plays once. Without scripts, or with reduced motion,
+ * everything is simply there.
  */
 export function RiseGroup({
   children,
@@ -28,9 +35,11 @@ export function RiseGroup({
     () => {
       if (!root.current || reducedMotion) return;
       const items = gsap.utils.toArray<HTMLElement>("[data-rise]", root.current);
+      const rules = gsap.utils.toArray<HTMLElement>("[data-draw]", root.current);
       const lifted = (el: Element) => el.classList.contains("shadow-lift");
       gsap.set(items, { autoAlpha: 0, y: 56 });
       gsap.set(items.filter(lifted), { "--lift": 0 });
+      gsap.set(rules, { scaleX: 0 });
 
       ScrollTrigger.batch(items, {
         start: "top 90%",
@@ -58,6 +67,19 @@ export function RiseGroup({
             stagger: 0.09,
           });
         },
+      });
+
+      ScrollTrigger.batch(rules, {
+        start: "top 92%",
+        once: true,
+        onEnter: (batch) =>
+          gsap.to(batch, {
+            scaleX: 1,
+            duration: 1.6,
+            ease: "expo.inOut",
+            stagger: 0.12,
+            clearProps: "transform",
+          }),
       });
     },
     { scope: root, dependencies: [reducedMotion], revertOnUpdate: true },

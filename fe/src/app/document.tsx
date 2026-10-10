@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import type { ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/toast";
+import { defaultLocale, directionOf, type Locale } from "@/i18n/locales";
 import { siteUrl } from "@/lib/site-url";
 
 import "./globals.css";
 
+/** What every root layout (the site, the design gallery) shares. */
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
   title: "Sheraton Makkah Jabal Al Kaaba",
@@ -23,9 +26,16 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+/** The html document, in the language (and so the direction) of what it shows. */
+export function Document({
+  lang = defaultLocale,
+  children,
+}: {
+  lang?: Locale;
+  children: ReactNode;
+}) {
   return (
-    <html lang="en">
+    <html lang={lang} dir={directionOf(lang)}>
       <body className="min-h-dvh antialiased">
         {children}
         <Toaster />

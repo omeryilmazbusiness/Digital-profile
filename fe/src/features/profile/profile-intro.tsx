@@ -158,7 +158,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
       ref={root}
       id={PROFILE_INTRO_ID}
       aria-labelledby="profile-name"
-      style={{ "--portrait": "min(80vw, 27rem, 46svh)" } as React.CSSProperties}
+      style={{ "--portrait": "min(88vw, 30rem, 50svh)" } as React.CSSProperties}
       className="relative flex min-h-svh flex-col items-center justify-center overflow-hidden bg-white px-safe-5 pt-safe-20 pb-safe-10"
     >
       <p
@@ -177,7 +177,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             data-intro="portrait"
             src={profile.portrait.src}
             srcSet={profile.portrait.srcSet}
-            sizes="(min-width: 640px) 27rem, 80vw"
+            sizes="(min-width: 640px) 30rem, 88vw"
             width={profile.portrait.width}
             height={profile.portrait.height}
             alt={profile.portrait.alt}
@@ -190,7 +190,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
 
       <div
         data-intro="below"
-        className="relative z-10 -mt-[calc(var(--portrait)*0.27)] flex w-full flex-col items-center text-center"
+        className="relative z-10 -mt-[calc(var(--portrait)*0.23)] flex w-full flex-col items-center text-center"
       >
         <h2 id="profile-name" className="sr-only">
           {profile.name}

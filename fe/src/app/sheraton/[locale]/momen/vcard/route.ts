@@ -3,12 +3,19 @@ import { getSiteContent } from "@/features/site/content";
 import { siteUrl } from "@/lib/site-url";
 import { attachmentDisposition, buildVCard } from "@/lib/vcard";
 
+import { localeOf } from "../../locale";
+
+export { generateStaticParams } from "../../locale";
+
 /**
  * The contact card behind "Save contact": opens the address book on phones. Built from the
  * mock content until the API's /public/profile/vcard takes over (PRF-03).
  */
-export async function GET() {
-  const { hotel, contact } = await getSiteContent();
+export async function GET(
+  _request: Request,
+  { params }: RouteContext<"/sheraton/[locale]/momen/vcard">,
+) {
+  const { hotel, contact } = await getSiteContent(await localeOf(params));
   const { profile } = contact;
   const origin = siteUrl();
 

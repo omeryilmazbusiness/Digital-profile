@@ -15,6 +15,8 @@ import {
 import type * as React from "react";
 
 import { AnchorLink } from "@/components/scroll/anchor-link";
+import { rise, RiseGroup } from "@/components/scroll/rise";
+import { ScrubText } from "@/components/scroll/scrub-text";
 import type {
   ContactProfile,
   DigitalProfile,
@@ -28,8 +30,6 @@ import { cn } from "@/lib/utils";
 import { actionLinkProps, contactActions } from "./contact-actions";
 import { CountUp } from "./count-up";
 import { OfficeStatus } from "./office-status";
-import { rise, RiseGroup } from "./rise";
-import { ScrubText } from "./scrub-text";
 import { ShareCard } from "./share-card";
 
 /** The closing call to action; the contact dock steps aside while it's on screen. */

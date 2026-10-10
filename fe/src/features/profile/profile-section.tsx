@@ -3,14 +3,13 @@ import { siteUrl } from "@/lib/site-url";
 import { cn } from "@/lib/utils";
 
 import { ContactDock } from "./contact-dock";
-import { displayFont } from "./fonts";
 import { PROFILE_CLOSING_ID, ProfileContent } from "./profile-content";
 import { PROFILE_INTRO_ID, ProfileIntro } from "./profile-intro";
 import { profileSignatures } from "./profile-signature.gen";
 
 /**
  * Momen's digital business card, the landing page's last chapter. It also has an address of
- * its own (`contact.profile.href`, e.g. /momen) that opens the page right here.
+ * its own (`contact.profile.href`, e.g. /sheraton/en/momen) that opens the page right here.
  */
 export function ProfileSection({ content }: { content: SiteContent }) {
   const { hotel, contact, profile } = content;
@@ -19,11 +18,10 @@ export function ProfileSection({ content }: { content: SiteContent }) {
 
   return (
     <div
-      id={card.href.slice(1)}
+      id={card.href.split("/").at(-1)}
       data-path={card.href}
       data-theme="light"
       className={cn(
-        displayFont.variable,
         "bg-white text-neutral-950 selection:bg-neutral-950/10",
         // The opening pins at the very top, under the header: land exactly there.
         "scroll-mt-[calc(-1*(var(--nav-height)+env(safe-area-inset-top,0px)))]",

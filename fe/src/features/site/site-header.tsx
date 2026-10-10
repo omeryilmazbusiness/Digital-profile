@@ -20,8 +20,8 @@ interface SiteHeaderProps extends Omit<MobileMenuProps, "className"> {
  * Fixed top bar. Transparent with light text over the opening footage, frosted glass over
  * the content. Links on wider screens; a full-screen menu on phones.
  */
-export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProps) {
-  const overHero = useOverHero();
+export function SiteHeader({ hotelName, home, nav, cta, quickActions }: SiteHeaderProps) {
+  const overHero = useOverHero(home);
   const pathname = usePathname();
   const links = nav.filter((item) => item.href !== cta.href);
 
@@ -40,7 +40,7 @@ export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProp
         Skip to content
       </a>
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-6 px-safe-5">
-        <AnchorLink href="/" aria-label={`${hotelName} — home`} className="py-2">
+        <AnchorLink href={home} aria-label={`${hotelName} — home`} className="py-2">
           <Wordmark name={hotelName} />
         </AnchorLink>
 
@@ -84,6 +84,7 @@ export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProp
           </Button>
           <MobileMenu
             hotelName={hotelName}
+            home={home}
             nav={nav}
             quickActions={quickActions}
             className="md:hidden"
@@ -95,11 +96,11 @@ export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProp
 }
 
 /** Whether dark, full-bleed media (sections marked data-header-overlay) is behind the header. */
-function useOverHero(): boolean {
+function useOverHero(home: string): boolean {
   const pathname = usePathname();
-  // Only the home page opens on dark footage; starting right avoids a flash before the
+  // Only the landing page opens on dark footage; starting right avoids a flash before the
   // observer reports.
-  const opensOverMedia = pathname === "/";
+  const opensOverMedia = pathname === home;
   const [state, setState] = useState({ pathname, over: opensOverMedia });
   if (state.pathname !== pathname) setState({ pathname, over: opensOverMedia });
 
