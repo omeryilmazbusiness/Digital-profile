@@ -217,9 +217,9 @@ Arabic and Indonesian: one edition of the content per language (`mock-content.ts
 announcements (`fe/src/i18n/messages/<locale>.ts`). Both registries are keyed by `Locale`, so a
 new language doesn't type-check until it has both. `<html lang dir>` follows the language, so
 `/sheraton/ar` reads right to left; Arabic text is never letter-spaced or slanted
-(`globals.css`). The phone menu lists every language under the card's link, the current one
-marked; the header and footer link to the others; each page lists them for search engines
-(hreflang).
+(`globals.css`). A globe button — under the card's link in the phone menu, in the header on wider
+screens — opens the list of languages, the current one ticked; the footer links to the others;
+each page lists them for search engines (hreflang).
 
 ### Profile (`/sheraton/<locale>/momen`)
 

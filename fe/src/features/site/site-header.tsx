@@ -9,7 +9,7 @@ import { fill } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 import type { NavItem } from "./content";
-import { LanguageSwitch } from "./language-switch";
+import { LanguageMenu } from "./language-switch";
 import { MobileMenu, type MobileMenuProps } from "./mobile-menu";
 import { Wordmark } from "./wordmark";
 
@@ -70,9 +70,9 @@ export function SiteHeader({ hotelName, home, nav, cta, quickActions, ui }: Site
         </nav>
 
         <div className="flex items-center gap-2">
-          <LanguageSwitch
+          <LanguageMenu
             label={ui.language}
-            className="me-3 hidden text-subheadline font-medium opacity-80 transition-opacity hover:opacity-100 md:flex"
+            className="me-1 hidden opacity-80 transition-opacity hover:opacity-100 md:flex"
           />
           <Button
             asChild

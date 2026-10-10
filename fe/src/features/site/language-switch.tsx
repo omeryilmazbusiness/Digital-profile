@@ -1,7 +1,8 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, Globe } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { DropdownMenu } from "radix-ui";
 
 import type { Locale } from "@/i18n/locales";
 import { localeOfPath, SITE_BASE } from "@/i18n/routing";
@@ -49,35 +50,78 @@ export function LanguageSwitch({ label, className }: { label: string; className?
   );
 }
 
-/** Every language as a choice, the current one marked (the phone menu). */
-export function LanguagePicker({ label, className }: { label: string; className?: string }) {
+/**
+ * A globe button that opens the list of languages, the current one ticked. `showCurrent` names
+ * the current language beside the icon.
+ */
+export function LanguageMenu({
+  label,
+  showCurrent = false,
+  className,
+}: {
+  label: string;
+  showCurrent?: boolean;
+  className?: string;
+}) {
   const links = useLanguageLinks();
+  const current = links.find((link) => link.current);
   return (
-    <nav aria-label={label} className={className}>
-      <p className="text-caption-1 font-medium tracking-[0.24em] text-label-secondary uppercase">
-        {label}
-      </p>
-      <ul className="mt-3 flex flex-wrap gap-2">
-        {links.map((link) => (
-          <li key={link.locale}>
-            <a
-              href={link.href}
-              lang={link.locale}
-              hrefLang={link.locale}
-              aria-current={link.current ? "true" : undefined}
-              className={cn(
-                "flex h-10 pressable items-center gap-1.5 rounded-full px-4 text-subheadline font-medium transition-colors",
-                link.current
-                  ? "bg-label text-bg"
-                  : "text-label ring-1 ring-label/15 ring-inset hover:bg-fill-quaternary",
-              )}
-            >
-              {link.current && <Check aria-hidden className="size-4" strokeWidth={2} />}
-              {link.name}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <DropdownMenu.Root modal={false}>
+      <DropdownMenu.Trigger
+        aria-label={current ? `${label}: ${current.name}` : label}
+        className={cn(
+          "flex pressable items-center gap-2 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-current",
+          showCurrent ? "h-11 ps-1 pe-4" : "size-11 justify-center",
+          className,
+        )}
+      >
+        <span
+          className={cn(
+            "grid shrink-0 place-items-center rounded-full",
+            showCurrent && "size-9 bg-fill-tertiary",
+          )}
+        >
+          <Globe aria-hidden className="size-5" strokeWidth={1.6} />
+        </span>
+        {showCurrent && current && (
+          <span lang={current.locale} className="text-subheadline font-medium">
+            {current.name}
+          </span>
+        )}
+      </DropdownMenu.Trigger>
+      <DropdownMenu.Portal>
+        <DropdownMenu.Content
+          align="start"
+          sideOffset={8}
+          collisionPadding={16}
+          className={cn(
+            "z-[60] min-w-52 rounded-[1.25rem] material-thick p-1.5 text-label shadow-float ring-1 ring-label/[0.06]",
+            "origin-(--radix-dropdown-menu-content-transform-origin) data-[state=closed]:animate-fade-out data-[state=open]:animate-pop-in",
+          )}
+        >
+          <DropdownMenu.Label className="px-3 pt-2 pb-1.5 text-caption-2 font-semibold tracking-[0.22em] text-label-secondary uppercase">
+            {label}
+          </DropdownMenu.Label>
+          {links.map((link) => (
+            <DropdownMenu.Item key={link.locale} asChild>
+              <a
+                href={link.href}
+                lang={link.locale}
+                hrefLang={link.locale}
+                aria-current={link.current ? "true" : undefined}
+                className={cn(
+                  "flex h-11 items-center justify-between gap-6 rounded-xl px-3 text-body outline-none select-none",
+                  "data-highlighted:bg-fill-quaternary",
+                  link.current && "font-semibold",
+                )}
+              >
+                {link.name}
+                {link.current && <Check aria-hidden className="size-4" strokeWidth={2.2} />}
+              </a>
+            </DropdownMenu.Item>
+          ))}
+        </DropdownMenu.Content>
+      </DropdownMenu.Portal>
+    </DropdownMenu.Root>
   );
 }

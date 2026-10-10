@@ -119,7 +119,7 @@ test("the phone menu offers the digital business card by name", async () => {
   expect(card).toHaveTextContent("Digital business card");
 });
 
-test("the phone menu offers every language under the card, the current one marked", async () => {
+test("the phone menu's globe opens every language, the current one marked", async () => {
   mockObserver();
   navigation.pathname = "/sheraton/id/momen";
   const user = userEvent.setup();
@@ -127,13 +127,13 @@ test("the phone menu offers every language under the card, the current one marke
 
   await user.click(screen.getByRole("button", { name: "Open menu" }));
   const menu = screen.getByRole("dialog", { name: "Menu" });
-  const languages = within(menu).getByRole("navigation", { name: "Language" });
-  const links = within(languages).getAllByRole("link");
-  expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+  await user.click(within(menu).getByRole("button", { name: "Language: Bahasa Indonesia" }));
+  const choices = await screen.findAllByRole("menuitem");
+  expect(choices.map((item) => [item.textContent, item.getAttribute("href")])).toEqual([
     ["English", "/sheraton/en/momen"],
     ["العربية", "/sheraton/ar/momen"],
     ["Bahasa Indonesia", "/sheraton/id/momen"],
   ]);
-  expect(within(languages).getByRole("link", { current: true })).toHaveAttribute("lang", "id");
+  expect(choices[2]).toHaveAttribute("aria-current", "true");
   navigation.pathname = null;
 });

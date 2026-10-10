@@ -14,7 +14,7 @@ import { fill, type UiStrings } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 import type { NavItem } from "./content";
-import { LanguagePicker } from "./language-switch";
+import { LanguageMenu } from "./language-switch";
 import { Wordmark } from "./wordmark";
 
 export interface QuickAction {
@@ -128,7 +128,9 @@ export function MobileMenu({ hotelName, home, nav, quickActions, ui, className }
             </nav>
             {/* Under the card's link, the last item. */}
             <Entrance delay={80 + nav.length * 70}>
-              <LanguagePicker label={ui.language} className="mt-8 border-t border-separator pt-6" />
+              <div className="mt-8 border-t border-separator pt-6">
+                <LanguageMenu label={ui.language} showCurrent className="-ms-1" />
+              </div>
             </Entrance>
           </div>
 
