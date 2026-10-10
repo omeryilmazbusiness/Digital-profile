@@ -10,6 +10,7 @@ import (
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/apperr"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 )
 
 // immutableCache lets browsers and CDNs keep a variant forever: its URL is its content hash.
@@ -141,7 +142,7 @@ func (h *Handler) DeleteMedia(ctx context.Context, in api.DeleteMediaRequestObje
 
 func (h *Handler) GetPublicMedia(ctx context.Context, in api.GetPublicMediaRequestObject) (api.GetPublicMediaResponseObject, error) {
 	etag := `"` + strings.TrimSuffix(in.File, ".webp") + `"`
-	if in.Params.IfNoneMatch != nil && etagMatches(*in.Params.IfNoneMatch, etag) {
+	if in.Params.IfNoneMatch != nil && httpx.ETagMatches(*in.Params.IfNoneMatch, etag) {
 		// The name is the content hash, so a matching ETag is current without a lookup.
 		cache := immutableCache
 		return api.GetPublicMedia304Response{Headers: api.GetPublicMedia304ResponseHeaders{CacheControl: &cache, ETag: &etag}}, nil
@@ -151,16 +152,6 @@ func (h *Handler) GetPublicMedia(ctx context.Context, in api.GetPublicMediaReque
 		return nil, err
 	}
 	return variantResponse{body: rc, size: obj.Size, etag: etag}, nil
-}
-
-func etagMatches(header, etag string) bool {
-	for c := range strings.SplitSeq(header, ",") {
-		c = strings.TrimPrefix(strings.TrimSpace(c), "W/")
-		if c == etag || c == "*" {
-			return true
-		}
-	}
-	return false
 }
 
 // variantResponse streams a variant with headers the generated type cannot express: the

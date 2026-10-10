@@ -80,3 +80,23 @@ test("asks for name, phone, e-mail and a title in every written language", () =>
   form.texts.id.city = "Makkah";
   expect(missingFields(form, "en")).toEqual(["translations.id.title"]);
 });
+
+test("sends the chosen images by id, and clears one that was removed", () => {
+  const image = (id: string): Schemas["Media"] => ({
+    id,
+    width: 1600,
+    height: 1000,
+    sourceType: "image/png",
+    sourceBytes: 1,
+    originalFilename: `${id}.png`,
+    placeholder: "",
+    altText: {},
+    variants: [],
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+  });
+  const form = toForm({ ...profile, portrait: image("p"), businessCard: image("card") });
+  expect(toPayload(form)).toMatchObject({ portraitMediaId: "p", businessCardMediaId: "card" });
+  expect(toPayload({ ...form, businessCard: undefined }).businessCardMediaId).toBeUndefined();
+  expect(sameProfile(form, { ...form, businessCard: undefined })).toBe(false);
+});

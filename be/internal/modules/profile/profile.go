@@ -88,6 +88,8 @@ type Profile struct {
 	Portrait     *media.Media
 	// VCardPhoto is saved with the downloaded contact card; nil means the portrait is.
 	VCardPhoto *media.Media
+	// BusinessCard is the designed card visitors save as an image; nil when none is uploaded.
+	BusinessCard *media.Media
 	// Phone and WhatsApp are E.164; empty when not set, like Email.
 	Phone        string
 	WhatsApp     string
@@ -165,19 +167,20 @@ func (p *Profile) Localized(locale string) (string, Translation) {
 
 // Input is a full replacement of the profile. Nil Languages means DefaultLanguages.
 type Input struct {
-	FirstName         string
-	LastName          string
-	Organization      string
-	PortraitMediaID   *uuid.UUID
-	VCardPhotoMediaID *uuid.UUID
-	Phone             string
-	WhatsApp          string
-	Email             string
-	Languages         []string
-	PostalCode        string
-	MapURL            string
-	LinkedInURL       string
-	Translations      map[string]Translation
+	FirstName           string
+	LastName            string
+	Organization        string
+	PortraitMediaID     *uuid.UUID
+	VCardPhotoMediaID   *uuid.UUID
+	BusinessCardMediaID *uuid.UUID
+	Phone               string
+	WhatsApp            string
+	Email               string
+	Languages           []string
+	PostalCode          string
+	MapURL              string
+	LinkedInURL         string
+	Translations        map[string]Translation
 }
 
 // normalize trims and validates in, converting phone numbers to E.164 and lower-casing the
@@ -186,7 +189,8 @@ func normalize(in Input) (Input, []apperr.FieldError) {
 	var v validation.Fields
 	out := Input{
 		PortraitMediaID: in.PortraitMediaID, VCardPhotoMediaID: in.VCardPhotoMediaID,
-		Translations: map[string]Translation{},
+		BusinessCardMediaID: in.BusinessCardMediaID,
+		Translations:        map[string]Translation{},
 	}
 	out.FirstName = v.SingleLine("firstName", in.FirstName, 1, maxNameRunes)
 	out.LastName = v.SingleLine("lastName", in.LastName, 0, maxNameRunes)

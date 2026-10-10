@@ -25,6 +25,9 @@ const (
 	photoQuality = 85
 	// maxPhotoSourceBytes bounds what is read from storage to render the photo.
 	maxPhotoSourceBytes = 8 << 20
+	// businessCardWidth is the widest variant the media library keeps: print-sharp on a phone.
+	businessCardWidth   = 1600
+	businessCardQuality = 90
 )
 
 var (
@@ -32,9 +35,12 @@ var (
 	errNotPublished    = apperr.NotFound("the profile is not published yet")
 	errPortraitField   = apperr.FieldError{Field: "portraitMediaId", Message: "image not found"}
 	errCardPhotoField  = apperr.FieldError{Field: "vcardPhotoMediaId", Message: "image not found"}
+	errBusinessField   = apperr.FieldError{Field: "businessCardMediaId", Message: "image not found"}
+	errNoBusinessCard  = apperr.NotFound("no business card has been uploaded")
 	imageFieldByFKName = map[string]apperr.FieldError{
-		"profile_portrait_media_id_fkey":    errPortraitField,
-		"profile_vcard_photo_media_id_fkey": errCardPhotoField,
+		"profile_portrait_media_id_fkey":      errPortraitField,
+		"profile_vcard_photo_media_id_fkey":   errCardPhotoField,
+		"profile_business_card_media_id_fkey": errBusinessField,
 	}
 )
 
@@ -56,6 +62,11 @@ type Service struct {
 	photoMu  sync.Mutex
 	photoFor uuid.UUID
 	photo    []byte
+
+	// Likewise the business card JPEG, once per image.
+	cardMu  sync.Mutex
+	cardFor uuid.UUID
+	card    []byte
 }
 
 // NewService wires the service. siteURL is the public site, written into the vCard.
@@ -102,6 +113,9 @@ func (s *Service) Get(ctx context.Context) (Profile, error) {
 	if p.VCardPhoto, err = s.image(ctx, row.VcardPhotoMediaID); err != nil {
 		return Profile{}, err
 	}
+	if p.BusinessCard, err = s.image(ctx, row.BusinessCardMediaID); err != nil {
+		return Profile{}, err
+	}
 	return p, nil
 }
 
@@ -138,7 +152,11 @@ func (s *Service) Update(ctx context.Context, in Input) (Profile, error) {
 	for _, img := range []struct {
 		id    *uuid.UUID
 		field apperr.FieldError
-	}{{in.PortraitMediaID, errPortraitField}, {in.VCardPhotoMediaID, errCardPhotoField}} {
+	}{
+		{in.PortraitMediaID, errPortraitField},
+		{in.VCardPhotoMediaID, errCardPhotoField},
+		{in.BusinessCardMediaID, errBusinessField},
+	} {
 		if img.id == nil {
 			continue
 		}
@@ -157,7 +175,8 @@ func (s *Service) Update(ctx context.Context, in Input) (Profile, error) {
 		if _, err := q.UpsertProfile(ctx, store.UpsertProfileParams{
 			FirstName: in.FirstName, LastName: in.LastName, Organization: in.Organization,
 			PortraitMediaID: in.PortraitMediaID, VcardPhotoMediaID: in.VCardPhotoMediaID,
-			Phone: opt(in.Phone), Whatsapp: opt(in.WhatsApp), Email: opt(in.Email),
+			BusinessCardMediaID: in.BusinessCardMediaID,
+			Phone:               opt(in.Phone), Whatsapp: opt(in.WhatsApp), Email: opt(in.Email),
 			Languages: in.Languages, PostalCode: in.PostalCode, MapUrl: in.MapURL, LinkedinUrl: in.LinkedInURL,
 		}); err != nil {
 			return err
@@ -233,5 +252,42 @@ func (s *Service) vcardPhoto(ctx context.Context, id uuid.UUID) ([]byte, error) 
 		return nil, err
 	}
 	s.photoFor, s.photo = id, jpg
+	return jpg, nil
+}
+
+// BusinessCard is the published profile, as long as it has a business card to download.
+func (s *Service) BusinessCard(ctx context.Context) (Profile, error) {
+	p, err := s.Published(ctx)
+	if err != nil {
+		return Profile{}, err
+	}
+	if p.BusinessCard == nil {
+		return Profile{}, errNoBusinessCard
+	}
+	return p, nil
+}
+
+// BusinessCardJPEG renders the card image as a JPEG, the format every phone saves to its
+// photos. The latest rendering is kept, so repeated downloads cost nothing.
+func (s *Service) BusinessCardJPEG(ctx context.Context, id uuid.UUID) ([]byte, error) {
+	s.cardMu.Lock()
+	defer s.cardMu.Unlock()
+	if s.cardFor == id && s.card != nil {
+		return s.card, nil
+	}
+	rc, err := s.images.OpenImage(ctx, id, businessCardWidth)
+	if err != nil {
+		return nil, err
+	}
+	defer rc.Close()
+	src, err := io.ReadAll(io.LimitReader(rc, maxPhotoSourceBytes))
+	if err != nil {
+		return nil, err
+	}
+	jpg, err := imaging.FlatJPEG(src, businessCardWidth, businessCardQuality)
+	if err != nil {
+		return nil, err
+	}
+	s.cardFor, s.card = id, jpg
 	return jpg, nil
 }

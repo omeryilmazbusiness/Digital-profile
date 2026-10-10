@@ -64,7 +64,7 @@ export function ContactDock({ profile, ui, afterId, hideWhileId }: ContactDockPr
             alt=""
             width={36}
             height={36}
-            className="size-9 shrink-0 rounded-full"
+            className="size-9 shrink-0 rounded-full object-cover object-top"
           />
         )}
         <span className="ps-2 pe-3 font-display text-[1.0625rem] leading-none whitespace-nowrap">

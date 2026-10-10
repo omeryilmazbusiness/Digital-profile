@@ -1,3 +1,6 @@
+import type { Signature } from "@/components/signature/handwriting";
+import { nameSignature } from "@/features/profile/name-signature";
+import { profileSignatures } from "@/features/profile/profile-signature.gen";
 import { defaultLocale, type Locale } from "@/i18n/locales";
 import { localizeHref } from "@/i18n/routing";
 import { type UiStrings, uiStrings } from "@/i18n/ui";
@@ -99,10 +102,16 @@ export interface ContactProfile {
   /** wa.me link with the prepared greeting. */
   whatsappUrl: string;
   portrait?: Portrait;
+  /** Employer shown under the title; the hotel when not set. */
+  organization?: string;
+  /** The name as glyph outlines, written as the visitor scrolls; set as text when absent. */
+  signature?: Signature;
   /** The digital business card page. */
   href: SiteHref;
   /** Downloads the contact card (.vcf). */
   vcardHref: SiteHref;
+  /** Downloads the designed business card image, when one is uploaded. */
+  businessCardHref?: string;
 }
 
 export interface ProfileStat {
@@ -198,8 +207,22 @@ export interface SiteCredit {
 export async function getSiteContent(locale: Locale = defaultLocale): Promise<SiteContent> {
   const base = mockContent[locale];
   const site = await fetchPublicSite(locale);
-  const content = site ? mergeSite(base, site, locale) : base;
+  const merged = site ? mergeSite(base, site, locale) : base;
+  const card = merged.contact.profile;
+  const content = {
+    ...merged,
+    contact: {
+      ...merged.contact,
+      profile: { ...card, signature: await signatureOf(card.name, locale) },
+    },
+  };
   return localizeLinks({ ...content, ui: uiStrings(content.locale) }, locale);
+}
+
+/** The prepared signature when the name is the built-in one, else one shaped on the server. */
+async function signatureOf(name: string, locale: Locale): Promise<Signature | undefined> {
+  const prepared = profileSignatures.find((s) => s.text === name);
+  return prepared ?? (await nameSignature(name, locale));
 }
 
 /** One edition per language; a new language doesn't type-check until it has one. */

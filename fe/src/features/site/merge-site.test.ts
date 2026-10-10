@@ -99,8 +99,13 @@ test("the published profile fills the card, the about text, the address and link
     phone: { e164: "+966125456789", display: "+966 12 545 6789" },
     email: "momen@example.com",
     whatsappUrl: "https://wa.me/966125456789",
+    organization: "Sheraton",
   });
+  expect(card.businessCardHref).toBeUndefined();
   expect(card.portrait).toBe(mockSiteContentAr.contact.profile.portrait);
+  // The menu's link to the card carries the published name.
+  const link = merged.nav.find((item) => item.href === card.href)!;
+  expect(link).toMatchObject({ label: "مؤمن توفيق", image: "/profile/momen-avatar.webp" });
   expect(merged.profile.about.paragraphs).toEqual(["الفقرة الأولى تكملة", "الفقرة الثانية"]);
   expect(merged.hotel.address).toBe("شارع إبراهيم الخليل، مكة 24231");
   expect(merged.hotel.mapUrl).toBe("https://maps.example/x");
@@ -109,4 +114,55 @@ test("the published profile fills the card, the about text, the address and link
     href: "https://www.linkedin.com/in/momen",
   });
   expect(merged.profile.social.filter((s) => s.label === "LinkedIn")).toHaveLength(1);
+});
+
+test("an uploaded portrait and business card replace the prepared ones everywhere", () => {
+  const merged = mergeSite(
+    base,
+    {
+      ...empty,
+      profile: {
+        locale: "en",
+        firstName: "Sara",
+        lastName: "Haddad",
+        fullName: "Sara Haddad",
+        displayName: "Sara Haddad",
+        organization: "",
+        title: "Director of Sales",
+        languages: ["en"],
+        email: "sara@example.com",
+        businessCardUrl: "/api/v1/public/profile/business-card?locale=en",
+        portrait: {
+          width: 1200,
+          height: 1600,
+          placeholder: "",
+          variants: [
+            { width: 1200, height: 1600, url: "/media/p-1200.webp", byteSize: 90_000 },
+            { width: 160, height: 213, url: "/media/p-160.webp", byteSize: 4_000 },
+            { width: 960, height: 1280, url: "/media/p-960.webp", byteSize: 60_000 },
+          ],
+        },
+      },
+    },
+    "en",
+  );
+  const card = merged.contact.profile;
+  expect(card.portrait).toMatchObject({
+    src: "/media/p-960.webp",
+    avatar: "/media/p-160.webp",
+    ogImage: "/media/p-1200.webp",
+    alt: base.contact.profile.portrait!.alt,
+  });
+  expect(card.portrait!.srcSet).toBe(
+    "/media/p-160.webp 160w, /media/p-960.webp 960w, /media/p-1200.webp 1200w",
+  );
+  // No organization of their own: the hotel's name stands in.
+  expect(card.organization).toBeUndefined();
+  expect(card.businessCardHref).toBe("/api/v1/public/profile/business-card?locale=en");
+  const link = merged.nav.find((item) => item.href === card.href)!;
+  expect(link).toMatchObject({ label: "Sara Haddad", image: "/media/p-160.webp" });
+  // The other links are untouched.
+  expect(merged.nav.filter((item) => item !== link)).toEqual(
+    base.nav.filter((item) => item.href !== card.href),
+  );
 });

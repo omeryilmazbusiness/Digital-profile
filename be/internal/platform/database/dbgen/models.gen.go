@@ -109,21 +109,22 @@ type MediaVariant struct {
 }
 
 type Profile struct {
-	ID                int16
-	FirstName         string
-	LastName          string
-	Organization      string
-	PortraitMediaID   *uuid.UUID
-	Phone             *string
-	Whatsapp          *string
-	Email             *string
-	Languages         []string
-	CreatedAt         time.Time
-	UpdatedAt         time.Time
-	VcardPhotoMediaID *uuid.UUID
-	PostalCode        string
-	MapUrl            string
-	LinkedinUrl       string
+	ID                  int16
+	FirstName           string
+	LastName            string
+	Organization        string
+	PortraitMediaID     *uuid.UUID
+	Phone               *string
+	Whatsapp            *string
+	Email               *string
+	Languages           []string
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	VcardPhotoMediaID   *uuid.UUID
+	PostalCode          string
+	MapUrl              string
+	LinkedinUrl         string
+	BusinessCardMediaID *uuid.UUID
 }
 
 type ProfileTranslation struct {

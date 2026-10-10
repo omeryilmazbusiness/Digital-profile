@@ -16,8 +16,8 @@ interface ProfileIntroProps {
   profile: ContactProfile;
   organization: string;
   eyebrow: string;
-  /** The name as glyph outlines, written as the visitor scrolls. */
-  signature: Signature;
+  /** The name as glyph outlines, written as the visitor scrolls; set as text without one. */
+  signature: Signature | undefined;
   ui: UiStrings;
 }
 
@@ -42,10 +42,10 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
   const track = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
   const actions = contactActions(profile, ui);
-  const [x = 0, y = 0, w = 0, h = 0] = signature.viewBox;
+  const [x = 0, y = 0, w = 0, h = 0] = signature?.viewBox ?? [];
   // Width, against the portrait's, at which the white line stays over the suit. Arabic sets
   // taller for its width.
-  const nameWidth = signature.dir === "rtl" ? 0.6 : 0.78;
+  const nameWidth = signature?.dir === "rtl" ? 0.6 : 0.78;
 
   useGSAP(
     () => {
@@ -202,37 +202,40 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
           data-intro="below"
           className="relative z-10 -mt-[calc(var(--portrait)*0.22)] flex w-full flex-col items-center text-center"
         >
-          <h2 id="profile-name" className="sr-only">
-            {profile.name}
+          <h2 id="profile-name" className={cn(signature && "sr-only")}>
+            {!signature && <NameText name={profile.name} />}
+            {signature && profile.name}
           </h2>
-          <svg
-            data-name
-            aria-hidden
-            viewBox={`${x} ${y} ${w} ${h}`}
-            strokeWidth={0.7}
-            style={{ "--name": nameWidth } as React.CSSProperties}
-            className="block h-auto w-[calc(var(--portrait)*var(--name))] overflow-visible"
-          >
-            {signature.glyphs.map((glyph, i) => (
-              <path
-                key={i}
-                data-length={glyph.length}
-                d={glyph.d}
-                fill={glyph.accent ? "#fff" : "#0a0a0a"}
-                stroke={glyph.accent ? "#fff" : "#0a0a0a"}
-                pathLength={1}
-                strokeDasharray="1 1"
-                strokeDashoffset={1}
-                strokeOpacity={0}
-                fillOpacity={0}
-                className={cn(
-                  "motion-reduce:[fill-opacity:1]",
-                  // Keeps the white letters legible where they cross the shirt.
-                  glyph.accent && "drop-shadow-[0_1px_5px_rgb(0_0_0/0.45)]",
-                )}
-              />
-            ))}
-          </svg>
+          {signature && (
+            <svg
+              data-name
+              aria-hidden
+              viewBox={`${x} ${y} ${w} ${h}`}
+              strokeWidth={0.7}
+              style={{ "--name": nameWidth } as React.CSSProperties}
+              className="block h-auto w-[calc(var(--portrait)*var(--name))] overflow-visible"
+            >
+              {signature.glyphs.map((glyph, i) => (
+                <path
+                  key={i}
+                  data-length={glyph.length}
+                  d={glyph.d}
+                  fill={glyph.accent ? "#fff" : "#0a0a0a"}
+                  stroke={glyph.accent ? "#fff" : "#0a0a0a"}
+                  pathLength={1}
+                  strokeDasharray="1 1"
+                  strokeDashoffset={1}
+                  strokeOpacity={0}
+                  fillOpacity={0}
+                  className={cn(
+                    "motion-reduce:[fill-opacity:1]",
+                    // Keeps the white letters legible where they cross the shirt.
+                    glyph.accent && "drop-shadow-[0_1px_5px_rgb(0_0_0/0.45)]",
+                  )}
+                />
+              ))}
+            </svg>
+          )}
 
           <span
             data-intro="rule"
@@ -306,5 +309,23 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
       {/* The scroll distance; a sticky element only travels within its parent's content. */}
       <div aria-hidden className="motion-safe:h-(--track)" />
     </div>
+  );
+}
+
+/**
+ * The name as text, for when it can't be written as outlines: the first words white over the
+ * portrait like the written name's first line, the last word beneath.
+ */
+function NameText({ name }: { name: string }) {
+  const words = name.trim().split(/\s+/);
+  const last = words.length > 1 ? words.pop() : undefined;
+  return (
+    <span
+      data-intro="meta"
+      className="flex flex-col items-center text-[clamp(2rem,9vw,3rem)] leading-[1.08] font-semibold tracking-tight motion-safe:invisible"
+    >
+      <span className="text-white drop-shadow-[0_1px_5px_rgb(0_0_0/0.45)]">{words.join(" ")}</span>
+      {last && <span className="text-neutral-950">{last}</span>}
+    </span>
   );
 }

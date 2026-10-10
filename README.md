@@ -111,14 +111,27 @@ make -C be admin-reset-password email=you@example.com   # also unlocks and signs
 ### Admin panel (`/sheraton/<locale>/admin`)
 
 Sign in at `/sheraton/en/admin` (or `ar`, `id` for the panel in Arabic or Indonesian). Built
-mobile-first: a tab bar on phones, a sidebar from tablets up (`fe/src/features/admin`).
+mobile-first like an iPhone app: large titles that fold into a translucent bar, inset grouped
+lists and a floating tab bar on phones, a sidebar from tablets up (`fe/src/features/admin`).
 
 - **Discover** — the 360° tour link, and topics (label, title, text per language) in the order
   they appear, each with its PDF brochures: upload with a title per language and the language the
   PDF is written in, replace the file, rename, delete.
-- **Profile** — the portrait and the photo saved with "Save contact" (the portrait when empty),
-  name, hotel, phone, WhatsApp, e-mail, LinkedIn, spoken languages, map link, postal code, and per
-  language the displayed name, job title, tagline, about text, WhatsApp greeting and address.
+- **Profile** — name, hotel and job title (per language), the portrait, the photo saved with
+  "Save contact" (the portrait when empty) and the designed business card image, phone, WhatsApp,
+  e-mail, LinkedIn, spoken languages, map link, postal code, and per language the displayed name,
+  tagline, about text, WhatsApp greeting and address.
+
+What the profile drives on the public site:
+
+- The name is written across the portrait in the profile opening. The server shapes it with
+  HarfBuzz in the same fonts as the built-in signature (Inter; IBM Plex Sans Arabic for Arabic
+  script), so any name animates the same way; a name the fonts can't write is set as text.
+- The portrait replaces the built-in one in the profile, the menu, the header and footer links to
+  the card, the contact dock and the link preview image; the menu link carries the name.
+- "Save business card" downloads the uploaded card as a JPEG
+  (`GET /api/v1/public/profile/business-card`, saved under the person's name); without one it saves
+  the contact card (.vcf).
 
 Saving refreshes the public site at once. Pages behind sign-in redirect to the sign-in page when
 there is no session cookie (`fe/src/proxy.ts`) and come back afterwards; the API checks every call

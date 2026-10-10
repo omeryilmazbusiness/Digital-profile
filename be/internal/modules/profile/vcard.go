@@ -117,3 +117,15 @@ func writeFolded(b *bytes.Buffer, s string) {
 func Filename(name string) string {
 	return httpx.ContentDisposition("attachment", name, ".vcf", "contact")
 }
+
+// BusinessCardPath downloads the business card image.
+const BusinessCardPath = "/api/v1/public/profile/business-card"
+
+// BusinessCardFilename is the Content-Disposition saving the card under the person's name.
+func BusinessCardFilename(name string) string {
+	base := "business-card"
+	if name != "" {
+		base = name + " business card"
+	}
+	return httpx.ContentDisposition("attachment", base, ".jpg", "business-card")
+}

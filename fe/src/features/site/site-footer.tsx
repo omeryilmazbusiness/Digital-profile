@@ -50,6 +50,26 @@ export function SiteFooter({ hotel, nav, footer, profile, ui }: SiteFooterProps)
           <h2 className="text-caption-1 font-semibold tracking-[0.2em] text-label-secondary uppercase">
             {ui.contact}
           </h2>
+          <AnchorLink href={profile.href} className="group mt-4 flex items-center gap-3">
+            {profile.portrait && (
+              // eslint-disable-next-line @next/next/no-img-element -- a 3 KB pre-sized avatar
+              <img
+                src={profile.portrait.avatar}
+                alt=""
+                width={44}
+                height={44}
+                className="size-11 shrink-0 rounded-full object-cover object-top ring-[0.5px] ring-separator"
+              />
+            )}
+            <span className="min-w-0">
+              <span className="block truncate text-subheadline font-semibold text-label transition-colors group-hover:text-label-secondary">
+                {profile.name}
+              </span>
+              <span className="block truncate text-footnote text-label-secondary">
+                {profile.title}
+              </span>
+            </span>
+          </AnchorLink>
           <ul className="mt-4 flex flex-col gap-2 text-subheadline">
             <li>
               <a href={`tel:${profile.phone.e164}`} dir="ltr" className={linkClass}>

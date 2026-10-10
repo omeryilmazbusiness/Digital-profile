@@ -10,6 +10,7 @@ import { LanguageMenu } from "@/features/site/language-switch";
 import type { Locale } from "@/i18n/locales";
 
 import { api, ApiError, errorKind, unwrap } from "./api";
+import { FormCard } from "./form-parts";
 import { safeNext } from "./paths";
 import { currentAdmin } from "./session";
 import type { AdminStrings } from "./strings";
@@ -72,58 +73,57 @@ export function LoginScreen({ locale, t }: { locale: Locale; t: AdminStrings }) 
 
       <main className="relative w-full max-w-sm">
         <div className="mb-8 grid justify-items-center gap-4 text-center">
-          <span className="grid size-14 place-items-center rounded-2xl bg-label text-bg shadow-lift">
-            <LockKeyhole aria-hidden className="size-6" />
+          <span className="grid size-16 place-items-center rounded-[1.125rem] bg-linear-to-b from-neutral-800 to-black text-white shadow-[0_14px_30px_-12px_rgb(0_0_0/0.5)]">
+            <LockKeyhole aria-hidden className="size-7" strokeWidth={1.8} />
           </span>
           <p className="text-[0.6875rem] font-semibold tracking-[0.28em] text-gold uppercase">
             {t.brand} · {t.admin}
           </p>
-          <h1 className="font-display text-[2rem] leading-tight font-semibold">{t.signInTitle}</h1>
+          <h1 className="text-large-title font-bold tracking-[-0.02em]">{t.signInTitle}</h1>
           <p className="text-body text-label-secondary">{t.signInLead}</p>
         </div>
 
-        <form
-          onSubmit={submit}
-          className="grid gap-4 rounded-[1.75rem] bg-bg-grouped-secondary p-5 shadow-card ring-1 ring-label/[0.04] sm:p-6"
-          noValidate
-        >
-          <TextField
-            label={t.email}
-            type="email"
-            name="email"
-            autoComplete="username"
-            inputMode="email"
-            autoCapitalize="none"
-            spellCheck={false}
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <div className="relative">
+        <form onSubmit={submit} className="grid gap-3" noValidate>
+          <FormCard>
             <TextField
-              label={t.password}
-              type={reveal ? "text" : "password"}
-              name="password"
-              autoComplete="current-password"
+              label={t.email}
+              type="email"
+              name="email"
+              autoComplete="username"
+              inputMode="email"
+              autoCapitalize="none"
+              spellCheck={false}
               required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              dir="ltr"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
-            <button
-              type="button"
-              onClick={() => setReveal((v) => !v)}
-              aria-label={reveal ? t.hidePassword : t.showPassword}
-              aria-pressed={reveal}
-              className="absolute end-1 bottom-1 grid size-10 pressable place-items-center rounded-md text-label-secondary hover:text-label"
-            >
-              {reveal ? (
-                <EyeOff aria-hidden className="size-5" />
-              ) : (
-                <Eye aria-hidden className="size-5" />
-              )}
-            </button>
-          </div>
+            <div className="relative">
+              <TextField
+                label={t.password}
+                type={reveal ? "text" : "password"}
+                name="password"
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                dir="ltr"
+                className="pe-14"
+              />
+              <button
+                type="button"
+                onClick={() => setReveal((v) => !v)}
+                aria-label={reveal ? t.hidePassword : t.showPassword}
+                aria-pressed={reveal}
+                className="absolute end-2 top-1/2 grid size-10 -translate-y-1/2 pressable place-items-center rounded-full text-label-secondary hover:text-label"
+              >
+                {reveal ? (
+                  <EyeOff aria-hidden className="size-5" />
+                ) : (
+                  <Eye aria-hidden className="size-5" />
+                )}
+              </button>
+            </div>
+          </FormCard>
 
           <p
             role="alert"
@@ -136,6 +136,7 @@ export function LoginScreen({ locale, t }: { locale: Locale; t: AdminStrings }) 
           <Button
             type="submit"
             size="lg"
+            shape="capsule"
             block
             loading={pending}
             disabled={!email.trim() || !password}

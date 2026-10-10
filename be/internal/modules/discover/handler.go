@@ -119,7 +119,7 @@ func (h *Handler) GetPublicDocument(ctx context.Context, in api.GetPublicDocumen
 		return nil, err
 	}
 	etag, cache := d.ETag(), documentCache
-	if in.Params.IfNoneMatch != nil && etagMatches(*in.Params.IfNoneMatch, etag) {
+	if in.Params.IfNoneMatch != nil && httpx.ETagMatches(*in.Params.IfNoneMatch, etag) {
 		return api.GetPublicDocument304Response{Headers: api.GetPublicDocument304ResponseHeaders{CacheControl: &cache, ETag: &etag}}, nil
 	}
 	rc, err := h.svc.OpenFile(ctx, &d)
@@ -134,16 +134,6 @@ func (h *Handler) GetPublicDocument(ctx context.Context, in api.GetPublicDocumen
 		body: rc, size: d.ByteSize, etag: etag,
 		disposition: httpx.ContentDisposition(disposition, strings.TrimSuffix(d.FileName, ".pdf"), ".pdf", defaultFileName),
 	}, nil
-}
-
-func etagMatches(header, etag string) bool {
-	for c := range strings.SplitSeq(header, ",") {
-		c = strings.TrimPrefix(strings.TrimSpace(c), "W/")
-		if c == etag || c == "*" {
-			return true
-		}
-	}
-	return false
 }
 
 // pdfResponse streams a PDF with headers the generated type cannot express: the

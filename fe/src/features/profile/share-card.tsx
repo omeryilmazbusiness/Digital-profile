@@ -1,6 +1,6 @@
 "use client";
 
-import { Share, UserPlus } from "lucide-react";
+import { IdCard, Share, UserPlus } from "lucide-react";
 import { useSyncExternalStore } from "react";
 import { encode } from "uqr";
 
@@ -12,8 +12,12 @@ interface ShareCardProps {
   title: string;
   /** Absolute link to share; resolved against the current origin when it's a path. */
   url: string;
-  vcardHref: string;
-  vcardFileName: string;
+  /** Downloads the business card: the designed image when there is one, else the contact card. */
+  cardHref: string;
+  /** Name to save under; the server's is kept when absent. */
+  cardFileName?: string;
+  /** The card is an image rather than a contact card (.vcf). */
+  cardIsImage?: boolean;
   ui: UiStrings;
   className?: string;
 }
@@ -21,7 +25,15 @@ interface ShareCardProps {
 const noSubscribe = () => () => {};
 
 /** QR code of the card's link, plus share and save buttons. */
-export function ShareCard({ title, url, vcardHref, vcardFileName, ui, className }: ShareCardProps) {
+export function ShareCard({
+  title,
+  url,
+  cardHref,
+  cardFileName,
+  cardIsImage = false,
+  ui,
+  className,
+}: ShareCardProps) {
   // A path needs the browser's origin; the code appears once it's known.
   const href = useSyncExternalStore(
     noSubscribe,
@@ -62,11 +74,16 @@ export function ShareCard({ title, url, vcardHref, vcardFileName, ui, className 
           {ui.shareCard}
         </button>
         <a
-          href={vcardHref}
-          download={vcardFileName}
+          href={cardHref}
+          download={cardFileName ?? ""}
+          type={cardIsImage ? "image/jpeg" : "text/vcard"}
           className="flex h-13 pressable items-center justify-center gap-2.5 rounded-full px-7 text-headline text-white ring-1 ring-white/25 hover:bg-white/5"
         >
-          <UserPlus aria-hidden className="size-5" />
+          {cardIsImage ? (
+            <IdCard aria-hidden className="size-5" />
+          ) : (
+            <UserPlus aria-hidden className="size-5" />
+          )}
           {ui.saveBusinessCard}
         </a>
       </div>

@@ -87,7 +87,13 @@ export function SiteHeader({ hotelName, home, nav, cta, quickActions, ui }: Site
             <AnchorLink href={cta.href} aria-current={pathname === cta.href ? "page" : undefined}>
               {cta.image && (
                 // eslint-disable-next-line @next/next/no-img-element -- a 3 KB pre-sized avatar
-                <img src={cta.image} alt="" width={24} height={24} className="rounded-full" />
+                <img
+                  src={cta.image}
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="size-6 rounded-full object-cover object-top"
+                />
               )}
               {cta.label}
             </AnchorLink>

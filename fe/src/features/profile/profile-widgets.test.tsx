@@ -44,8 +44,8 @@ test("draws a QR code of the card's address and copies the link where sharing is
       <ShareCard
         title="Momen"
         url="/momen"
-        vcardHref="/momen/vcard"
-        vcardFileName="Momen.vcf"
+        cardHref="/momen/vcard"
+        cardFileName="Momen.vcf"
         ui={ui}
       />
       <Toaster />
@@ -63,6 +63,23 @@ test("draws a QR code of the card's address and copies the link where sharing is
   );
 });
 
+test("saves the uploaded business card image when there is one", () => {
+  render(
+    <ShareCard
+      title="Momen"
+      url="/momen"
+      cardHref="/api/v1/public/profile/business-card?locale=en"
+      cardIsImage
+      ui={ui}
+    />,
+  );
+  const link = screen.getByRole("link", { name: "Save business card" });
+  expect(link).toHaveAttribute("href", "/api/v1/public/profile/business-card?locale=en");
+  // Saved under the name the server gives it.
+  expect(link).toHaveAttribute("download", "");
+  expect(link).toHaveAttribute("type", "image/jpeg");
+});
+
 test("uses the system share sheet when there is one", async () => {
   const share = vi.fn().mockResolvedValue(undefined);
   vi.stubGlobal("navigator", { ...navigator, share });
@@ -71,8 +88,8 @@ test("uses the system share sheet when there is one", async () => {
     <ShareCard
       title="Momen"
       url="https://example.com/momen"
-      vcardHref="/momen/vcard"
-      vcardFileName="Momen.vcf"
+      cardHref="/momen/vcard"
+      cardFileName="Momen.vcf"
       ui={ui}
     />,
   );

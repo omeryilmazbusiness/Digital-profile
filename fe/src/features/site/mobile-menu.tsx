@@ -117,7 +117,7 @@ export function MobileMenu({ hotelName, home, nav, quickActions, ui, className }
                             alt=""
                             width={56}
                             height={56}
-                            className="size-14 shrink-0 rounded-full shadow-card"
+                            className="size-14 shrink-0 rounded-full object-cover object-top shadow-card"
                           />
                         )}
                       </AnchorLink>

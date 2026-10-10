@@ -86,6 +86,10 @@ export interface AdminStrings {
   portraitHint: string;
   cardPhoto: string;
   cardPhotoHint: string;
+  businessCard: string;
+  businessCardHint: string;
+  nameLead: string;
+  jobTitleLead: string;
   uploadImage: string;
   changeImage: string;
   removeImage: string;
@@ -221,6 +225,11 @@ const en: AdminStrings = {
   cardPhoto: "Contact card photo",
   cardPhotoHint:
     "Saved to the visitor's phone with “Save contact”. The portrait is used when empty.",
+  businessCard: "Business card",
+  businessCardHint:
+    "Your designed card, saved to the visitor's photos with “Save business card”. Without one, the contact card is saved.",
+  nameLead: "Written across your portrait on the site, and shown in the menu and footer.",
+  jobTitleLead: "Shown under your name. Fill in the languages you publish.",
   uploadImage: "Upload image",
   changeImage: "Change",
   removeImage: "Remove",
@@ -357,6 +366,11 @@ const ar: AdminStrings = {
   cardPhoto: "صورة بطاقة الاتصال",
   cardPhotoHint:
     "تُحفظ في هاتف الزائر عند الضغط على «حفظ جهة الاتصال». تُستخدم الصورة الشخصية إن تُركت فارغة.",
+  businessCard: "بطاقة العمل",
+  businessCardHint:
+    "بطاقتك المصمَّمة، تُحفظ في صور الزائر عند الضغط على «حفظ بطاقة العمل». بدونها تُحفظ بطاقة الاتصال.",
+  nameLead: "يُكتب على صورتك في الموقع، ويظهر في القائمة وتذييل الصفحة.",
+  jobTitleLead: "يظهر تحت اسمك. املأ اللغات التي تنشر بها.",
   uploadImage: "رفع صورة",
   changeImage: "تغيير",
   removeImage: "إزالة",
@@ -492,6 +506,11 @@ const id: AdminStrings = {
   cardPhoto: "Foto kartu kontak",
   cardPhotoHint:
     "Disimpan di ponsel pengunjung melalui “Simpan kontak”. Potret dipakai bila dikosongkan.",
+  businessCard: "Kartu nama",
+  businessCardHint:
+    "Kartu rancangan Anda, disimpan ke galeri pengunjung melalui “Simpan kartu nama”. Tanpanya, kartu kontak yang disimpan.",
+  nameLead: "Dituliskan di atas potret Anda di situs, serta tampil di menu dan footer.",
+  jobTitleLead: "Ditampilkan di bawah nama Anda. Isi bahasa yang Anda terbitkan.",
   uploadImage: "Unggah gambar",
   changeImage: "Ganti",
   removeImage: "Hapus",

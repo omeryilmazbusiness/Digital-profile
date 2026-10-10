@@ -75,3 +75,44 @@ func TestSquareJPEG_RejectsBadInput(t *testing.T) {
 		t.Error("size 0 must be rejected")
 	}
 }
+
+func TestFlatJPEG_KeepsProportions(t *testing.T) {
+	src := image.NewNRGBA(image.Rect(0, 0, 3200, 2000)) // landscape card, transparent
+	out, err := FlatJPEG(encodePNG(t, src), 1600, 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	img, err := jpeg.Decode(bytes.NewReader(out))
+	if err != nil {
+		t.Fatalf("output is not a JPEG: %v", err)
+	}
+	if b := img.Bounds(); b.Dx() != 1600 || b.Dy() != 1000 {
+		t.Fatalf("size = %v, want 1600x1000", b)
+	}
+	if r, g, b, _ := img.At(800, 500).RGBA(); r>>8 < 245 || g>>8 < 245 || b>>8 < 245 {
+		t.Errorf("transparent pixels must become white, got %d,%d,%d", r>>8, g>>8, b>>8)
+	}
+}
+
+func TestFlatJPEG_NeverUpscales(t *testing.T) {
+	out, err := FlatJPEG(encodeJPEG(t, halves(300, 500)), 1600, 90)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := jpeg.DecodeConfig(bytes.NewReader(out))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if cfg.Width != 300 || cfg.Height != 500 {
+		t.Fatalf("size = %dx%d, want 300x500", cfg.Width, cfg.Height)
+	}
+}
+
+func TestFlatJPEG_RejectsBadInput(t *testing.T) {
+	if _, err := FlatJPEG([]byte("not an image"), 100, 80); !errors.Is(err, ErrUnsupportedType) {
+		t.Errorf("err = %v, want ErrUnsupportedType", err)
+	}
+	if _, err := FlatJPEG(encodeJPEG(t, halves(10, 10)), 100, 0); err == nil {
+		t.Error("quality 0 must be rejected")
+	}
+}

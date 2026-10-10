@@ -5,7 +5,6 @@ import { cn } from "@/lib/utils";
 import { ContactDock } from "./contact-dock";
 import { PROFILE_CLOSING_ID, ProfileContent } from "./profile-content";
 import { PROFILE_INTRO_ID, ProfileIntro } from "./profile-intro";
-import { profileSignatures } from "./profile-signature.gen";
 
 /**
  * Momen's digital business card, the landing page's last chapter. It also has an address of
@@ -14,6 +13,7 @@ import { profileSignatures } from "./profile-signature.gen";
 export function ProfileSection({ content }: { content: SiteContent }) {
   const { hotel, contact, profile, ui } = content;
   const card = contact.profile;
+  const organization = card.organization ?? hotel.name;
   const origin = siteUrl();
 
   return (
@@ -27,14 +27,12 @@ export function ProfileSection({ content }: { content: SiteContent }) {
         "scroll-mt-[calc(-1*(var(--nav-height)+env(safe-area-inset-top,0px)))]",
       )}
     >
-      <PersonJsonLd card={card} organization={hotel.name} origin={origin} />
+      <PersonJsonLd card={card} organization={organization} origin={origin} />
       <ProfileIntro
         profile={card}
-        organization={hotel.name}
+        organization={organization}
         eyebrow={profile.eyebrow}
-        signature={
-          profileSignatures.find((s) => s.lang === content.locale) ?? profileSignatures[0]!
-        }
+        signature={card.signature}
         ui={ui}
       />
       <ProfileContent
@@ -73,7 +71,7 @@ function PersonJsonLd({
     givenName: card.givenName,
     familyName: card.familyName,
     jobTitle: card.title,
-    worksFor: { "@type": "Hotel", name: organization },
+    worksFor: { "@type": card.organization ? "Organization" : "Hotel", name: organization },
     telephone: card.phone.e164,
     email: `mailto:${card.email}`,
     knowsLanguage: card.languages,

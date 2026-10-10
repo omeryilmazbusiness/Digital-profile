@@ -75,9 +75,18 @@ function withProfile(content: Content, p: PublicProfile, locale: Locale): Conten
       ]
     : content.profile.social;
 
+  const portrait = p.portrait ? toPortrait(p.portrait, card.portrait) : card.portrait;
+  // The menu's link to the card shows the person: their name and picture.
+  const nav = content.nav.map((item) =>
+    item.href === card.href
+      ? { ...item, label: p.displayName, image: portrait?.avatar ?? item.image }
+      : item,
+  );
+
   return {
     ...content,
     hotel,
+    nav,
     contact: {
       ...content.contact,
       profile: {
@@ -91,7 +100,9 @@ function withProfile(content: Content, p: PublicProfile, locale: Locale): Conten
         phone: { e164: phone.e164, display: phone.display },
         email: p.email ?? card.email,
         whatsappUrl,
-        portrait: p.portrait ? toPortrait(p.portrait, card.portrait) : card.portrait,
+        portrait,
+        organization: p.organization || card.organization,
+        businessCardHref: p.businessCardUrl ?? card.businessCardHref,
       },
     },
     profile: {

@@ -309,6 +309,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/public/profile/business-card": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Download the business card image
+         * @description The uploaded business card as a JPEG (at most 1600 px wide, transparency on white), saved
+         *     under the profile's name. `404` until the profile is published with a business card.
+         *     The `ETag` follows the image, so a new card is fetched as soon as it is chosen.
+         */
+        get: operations["getProfileBusinessCard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/discover/sections": {
         parameters: {
             query?: never;
@@ -701,6 +723,11 @@ export interface components {
              * @description Image saved with the downloaded contact card; the portrait when left out
              */
             vcardPhotoMediaId?: string;
+            /**
+             * Format: uuid
+             * @description The designed business card visitors save as an image
+             */
+            businessCardMediaId?: string;
             /** @example +966 12 545 6789 */
             phone?: string;
             whatsapp?: string;
@@ -722,6 +749,7 @@ export interface components {
             organization: string;
             portrait?: components["schemas"]["Media"];
             vcardPhoto?: components["schemas"]["Media"];
+            businessCard?: components["schemas"]["Media"];
             /**
              * @description E.164
              * @example +966125456789
@@ -789,6 +817,11 @@ export interface components {
             address?: components["schemas"]["PublicAddress"];
             mapUrl?: string;
             linkedinUrl?: string;
+            /**
+             * @description Downloads the business card as a JPEG; present when one is uploaded
+             * @example /api/v1/public/profile/business-card?locale=en
+             */
+            businessCardUrl?: string;
         };
         PublicAddress: {
             street: string;
@@ -1413,6 +1446,46 @@ export interface operations {
                 content: {
                     "text/vcard": string;
                 };
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getProfileBusinessCard: {
+        parameters: {
+            query?: {
+                /** @description Preferred interface language */
+                locale?: components["parameters"]["LocaleQuery"];
+            };
+            header?: {
+                "If-None-Match"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The business card */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    ETag?: string;
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/jpeg": string;
+                };
+            };
+            /** @description The client copy is current */
+            304: {
+                headers: {
+                    "Cache-Control"?: string;
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];

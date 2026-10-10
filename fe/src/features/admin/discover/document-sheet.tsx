@@ -13,6 +13,8 @@ import { api, fieldErrors, type Schemas, unwrap, upload } from "../api";
 import {
   ConfirmDialog,
   FileDrop,
+  FormCard,
+  FormRow,
   LocalePanel,
   LocaleTabs,
   MAX_PDF_BYTES,
@@ -155,6 +157,7 @@ export function DocumentSheet({
       <SheetContent
         title={document ? t.editDocument : t.newDocument}
         closeLabel={t.close}
+        className="bg-bg-grouped"
         footer={
           <div className="flex gap-2">
             {document && (
@@ -176,69 +179,69 @@ export function DocumentSheet({
       >
         <form
           id="document-form"
-          className="grid gap-6"
+          className="grid gap-6 pt-2"
           onSubmit={(e) => {
             e.preventDefault();
             void save();
           }}
         >
-          <div className="grid gap-2">
-            <p className="px-1 text-footnote font-medium text-label-secondary">
-              {document ? t.replaceFile : t.pdfFile}
-            </p>
-            {document && !file && (
-              <a
-                href={document.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 px-1 text-subheadline text-tint"
-              >
-                <ExternalLink aria-hidden className="size-4" />
-                <span className="truncate" dir="auto">
-                  {document.fileName}
-                </span>
-              </a>
-            )}
-            <FileDrop
-              accept="application/pdf,.pdf"
-              label={t.choosePdf}
-              hint={sizeHint}
-              file={file}
-              onFile={choose}
-              error={fileError}
-            />
-            {progress !== undefined && (
-              <Progress
-                value={progress}
-                label={t.uploading.replace("{percent}", String(Math.round(progress * 100)))}
+          <FormCard title={document ? t.replaceFile : t.pdfFile}>
+            <FormRow className="grid gap-2.5">
+              {document && !file && (
+                <a
+                  href={document.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-1 text-subheadline text-tint"
+                >
+                  <ExternalLink aria-hidden className="size-4" />
+                  <span className="truncate" dir="auto">
+                    {document.fileName}
+                  </span>
+                </a>
+              )}
+              <FileDrop
+                accept="application/pdf,.pdf"
+                label={t.choosePdf}
+                hint={sizeHint}
+                file={file}
+                onFile={choose}
+                error={fileError}
               />
-            )}
-          </div>
+              {progress !== undefined && (
+                <Progress
+                  value={progress}
+                  label={t.uploading.replace("{percent}", String(Math.round(progress * 100)))}
+                />
+              )}
+            </FormRow>
+          </FormCard>
 
-          <div className="grid gap-2">
-            <p className="px-1 text-footnote font-medium text-label-secondary">
-              {t.documentLanguage}
-            </p>
-            <SegmentedControl
-              aria-label={t.documentLanguage}
-              block
-              value={language}
-              onValueChange={setLanguage}
-              options={locales.map((l) => ({
-                value: l,
-                label: <span lang={l}>{tabNames[l]}</span>,
-              }))}
-            />
-          </div>
+          <FormCard title={t.documentLanguage}>
+            <FormRow>
+              <SegmentedControl
+                aria-label={t.documentLanguage}
+                block
+                value={language}
+                onValueChange={setLanguage}
+                options={locales.map((l) => ({
+                  value: l,
+                  label: <span lang={l}>{tabNames[l]}</span>,
+                }))}
+              />
+            </FormRow>
+          </FormCard>
 
-          <div className="grid gap-3">
-            <LocaleTabs
-              label={t.language}
-              value={locale}
-              onChange={setLocale}
-              filled={(l) => Boolean(titles[l].trim())}
-              invalid={(l) => errors.hasPrefix(`translations.${l}`)}
-            />
+          <FormCard title={t.title}>
+            <FormRow>
+              <LocaleTabs
+                label={t.language}
+                value={locale}
+                onChange={setLocale}
+                filled={(l) => Boolean(titles[l].trim())}
+                invalid={(l) => errors.hasPrefix(`translations.${l}`)}
+              />
+            </FormRow>
             <LocalePanel locale={locale}>
               <TextField
                 label={t.title}
@@ -249,7 +252,7 @@ export function DocumentSheet({
                 hint={titles[locale].trim() ? undefined : t.notTranslated}
               />
             </LocalePanel>
-          </div>
+          </FormCard>
         </form>
         <ConfirmDialog
           open={confirm}

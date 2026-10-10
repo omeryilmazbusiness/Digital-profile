@@ -264,8 +264,9 @@ export function ProfileContent({
           <ShareCard
             title={`${card.name} — ${card.title}`}
             url={shareUrl}
-            vcardHref={card.vcardHref}
-            vcardFileName={`${card.name}.vcf`}
+            cardHref={card.businessCardHref ?? card.vcardHref}
+            cardFileName={card.businessCardHref ? undefined : `${card.name}.vcf`}
+            cardIsImage={card.businessCardHref !== undefined}
             ui={ui}
           />
         </div>

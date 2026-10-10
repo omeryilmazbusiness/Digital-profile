@@ -8,15 +8,16 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ErrorState } from "@/components/ui/error-state";
 import { IconButton } from "@/components/ui/icon-button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TextField } from "@/components/ui/text-field";
+import { insetRow, TextField } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toast";
 import { type Locale, locales, nativeNames } from "@/i18n/locales";
 import { formatFileSize } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 import { refreshPublicSite } from "../actions";
 import { PageHeader } from "../admin-shell";
 import { api, type Schemas, unwrap } from "../api";
-import { FormCard, reportError, useFieldErrors } from "../form-parts";
+import { FormCard, FormRow, reportError, useFieldErrors } from "../form-parts";
 import { useSession } from "../session";
 import { DocumentSheet } from "./document-sheet";
 import { TopicSheet } from "./topic-sheet";
@@ -99,7 +100,22 @@ export function DiscoverScreen() {
 
   return (
     <>
-      <PageHeader title={t.discover} lead={t.discoverLead} />
+      <PageHeader
+        title={t.discover}
+        lead={t.discoverLead}
+        actions={
+          sections && (
+            <IconButton
+              label={t.addTopic}
+              size="sm"
+              variant="tinted"
+              onClick={() => open({ kind: "topic" })}
+            >
+              <Plus strokeWidth={2.5} />
+            </IconButton>
+          )
+        }
+      />
 
       {failed ? (
         <ErrorState
@@ -113,19 +129,27 @@ export function DiscoverScreen() {
         />
       ) : !sections || tourUrl === undefined ? (
         <div className="grid gap-4" aria-busy aria-label={t.loading}>
-          <Skeleton className="h-44 rounded-[1.5rem]" />
-          <Skeleton className="h-64 rounded-[1.5rem]" />
+          <Skeleton className="h-40 rounded-[1.375rem]" />
+          <Skeleton className="h-64 rounded-[1.375rem]" />
         </div>
       ) : (
-        <div className="grid gap-10">
+        <div className="grid gap-9">
           <TourCard initial={tourUrl} onSaved={setTourUrl} />
 
-          <section aria-labelledby="topics" className="grid gap-4">
-            <div className="flex items-end justify-between gap-3 px-1">
-              <h2 id="topics" className="text-title-2 font-semibold">
+          <section aria-labelledby="topics" className="grid gap-2">
+            <div className="flex items-end justify-between gap-3 ps-4 pe-1">
+              <h2
+                id="topics"
+                className="text-footnote font-medium tracking-[0.04em] text-label-secondary uppercase"
+              >
                 {t.topicsTitle}
               </h2>
-              <Button size="sm" variant="tinted" onClick={() => open({ kind: "topic" })}>
+              <Button
+                size="sm"
+                variant="plain"
+                className="-mb-1.5"
+                onClick={() => open({ kind: "topic" })}
+              >
                 <Plus aria-hidden />
                 {t.addTopic}
               </Button>
@@ -133,7 +157,7 @@ export function DiscoverScreen() {
 
             {sections.length === 0 ? (
               <EmptyState
-                className="rounded-[1.5rem] bg-bg-grouped-secondary py-12"
+                className="rounded-[1.375rem] bg-bg-grouped-secondary py-12"
                 icon={<FileText aria-hidden />}
                 title={t.noTopics}
                 description={t.noTopicsLead}
@@ -145,7 +169,7 @@ export function DiscoverScreen() {
                 }
               />
             ) : (
-              <ol className="grid gap-4">
+              <ol className="grid gap-5">
                 {sections.map((section, index) => (
                   <li key={section.id}>
                     <TopicCard
@@ -219,7 +243,6 @@ function TourCard({ initial, onSaved }: { initial: string; onSaved: (url: string
   return (
     <FormCard title={t.tourTitle} description={t.tourLead}>
       <form
-        className="grid gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           void save();
@@ -237,19 +260,26 @@ function TourCard({ initial, onSaved }: { initial: string; onSaved: (url: string
           onChange={(e) => setUrl(e.target.value)}
           error={errors.error("tourUrl")}
         />
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <FormRow className="flex flex-wrap items-center justify-end gap-2 py-2.5">
           {initial && (
-            <Button asChild variant="plain" size="sm">
+            <Button asChild variant="plain" size="sm" shape="capsule">
               <a href={initial} target="_blank" rel="noopener noreferrer">
                 <ExternalLink aria-hidden />
                 {t.openLink}
               </a>
             </Button>
           )}
-          <Button type="submit" size="sm" loading={pending} disabled={!dirty}>
+          <Button
+            type="submit"
+            size="sm"
+            shape="capsule"
+            className="px-5"
+            loading={pending}
+            disabled={!dirty}
+          >
             {t.save}
           </Button>
-        </div>
+        </FormRow>
       </form>
     </FormCard>
   );
@@ -281,17 +311,15 @@ function TopicCard({
   const missing = locales.filter((l) => !section.translations[l]);
 
   return (
-    <article className="overflow-hidden rounded-[1.5rem] bg-bg-grouped-secondary shadow-card ring-1 ring-label/[0.04]">
-      <header className="flex items-start gap-3 p-5 pb-4 sm:p-6 sm:pb-4">
+    <article className="overflow-hidden rounded-[1.375rem] bg-bg-grouped-secondary shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
+      <header className="flex items-start gap-3 px-4 pt-4 pb-3.5">
         <div className="grid min-w-0 flex-1 gap-1">
           {text?.eyebrow && (
             <p className="truncate text-[0.6875rem] font-semibold tracking-[0.22em] text-gold uppercase">
               {text.eyebrow}
             </p>
           )}
-          <h3 className="font-display text-title-3 leading-snug font-semibold text-balance">
-            {text?.title ?? t.untitled}
-          </h3>
+          <h3 className="text-headline leading-snug text-balance">{text?.title ?? t.untitled}</h3>
           {text?.body && (
             <p className="line-clamp-2 text-subheadline text-label-secondary">{text.body}</p>
           )}
@@ -326,25 +354,28 @@ function TopicCard({
         </div>
       </header>
 
-      <ul className="border-t border-separator/70">
+      <ul className="border-t-[0.5px] border-separator">
         {section.documents.length === 0 && (
-          <li className="px-5 py-4 text-subheadline text-label-secondary sm:px-6">
-            {t.noDocuments}
-          </li>
+          <li className={cn(insetRow, "text-subheadline text-label-secondary")}>{t.noDocuments}</li>
         )}
         {section.documents.map((doc) => (
-          <li key={doc.id} className="border-b border-separator/70 last:border-b-0">
+          <li key={doc.id} className={cn(insetRow, "py-0")}>
             <DocumentRow document={doc} locale={locale} onEdit={() => onEditDocument(doc)} />
           </li>
         ))}
+        <li className={cn(insetRow, "p-0")}>
+          <button
+            type="button"
+            onClick={onUpload}
+            className="flex min-h-12 w-full items-center gap-3 px-4 text-start text-body font-medium text-tint transition-colors hover:bg-fill-quaternary active:bg-fill-tertiary"
+          >
+            <span className="grid size-6 place-items-center rounded-full bg-tint text-white">
+              <Upload aria-hidden className="size-3.5" strokeWidth={2.5} />
+            </span>
+            {t.uploadPdf}
+          </button>
+        </li>
       </ul>
-
-      <div className="border-t border-separator/70 p-3 sm:px-4">
-        <Button variant="plain" size="sm" onClick={onUpload}>
-          <Upload aria-hidden />
-          {t.uploadPdf}
-        </Button>
-      </div>
     </article>
   );
 }
@@ -369,7 +400,7 @@ function DocumentRow({
     .join(" · ");
 
   return (
-    <div className="flex items-center gap-3 px-5 py-3 sm:px-6">
+    <div className="flex items-center gap-3 py-2.5">
       <span
         aria-hidden
         className="grid h-11 w-9 shrink-0 place-items-end justify-center rounded-[0.4rem] bg-bg pb-1 text-[0.5rem] font-bold tracking-[0.14em] text-gold shadow-card ring-1 ring-label/[0.08]"

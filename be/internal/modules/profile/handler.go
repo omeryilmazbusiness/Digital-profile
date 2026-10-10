@@ -7,8 +7,12 @@ import (
 	"strconv"
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/media"
 )
+
+// businessCardCache revalidates every download: the URL stays the same when a new card is chosen.
+const businessCardCache = "public, no-cache"
 
 // Handler implements the profile operations of api.StrictServerInterface.
 type Handler struct {
@@ -51,6 +55,45 @@ func (h *Handler) GetProfileVCard(ctx context.Context, in api.GetProfileVCardReq
 	return vcardResponse{body: card, disposition: Filename(p.FullName())}, nil
 }
 
+func (h *Handler) GetProfileBusinessCard(ctx context.Context, in api.GetProfileBusinessCardRequestObject) (api.GetProfileBusinessCardResponseObject, error) {
+	p, err := h.svc.BusinessCard(ctx)
+	if err != nil {
+		return nil, err
+	}
+	etag, cache := `"`+p.BusinessCard.ID.String()+`"`, businessCardCache
+	if in.Params.IfNoneMatch != nil && httpx.ETagMatches(*in.Params.IfNoneMatch, etag) {
+		return api.GetProfileBusinessCard304Response{
+			Headers: api.GetProfileBusinessCard304ResponseHeaders{CacheControl: &cache, ETag: &etag},
+		}, nil
+	}
+	jpg, err := h.svc.BusinessCardJPEG(ctx, p.BusinessCard.ID)
+	if err != nil {
+		return nil, err
+	}
+	return businessCardResponse{body: jpg, etag: etag, disposition: BusinessCardFilename(p.FullName())}, nil
+}
+
+// businessCardResponse adds the cross-origin resource policy the generated type cannot
+// express: the site may run on another origin than the API.
+type businessCardResponse struct {
+	body        []byte
+	etag        string
+	disposition string
+}
+
+func (r businessCardResponse) VisitGetProfileBusinessCardResponse(w http.ResponseWriter) error {
+	h := w.Header()
+	h.Set("Content-Type", "image/jpeg")
+	h.Set("Content-Length", strconv.Itoa(len(r.body)))
+	h.Set("Content-Disposition", r.disposition)
+	h.Set("Cache-Control", businessCardCache)
+	h.Set("ETag", r.etag)
+	h.Set("Cross-Origin-Resource-Policy", "cross-origin")
+	w.WriteHeader(http.StatusOK)
+	_, err := bytes.NewReader(r.body).WriteTo(w)
+	return err
+}
+
 // vcardResponse adds the charset the generated response type leaves out: without it some
 // Android versions decode the card as Latin-1 and garble Arabic names.
 type vcardResponse struct {
@@ -79,7 +122,8 @@ func fromAPI(b *api.ProfileInput) Input {
 	in := Input{
 		FirstName: b.FirstName, LastName: val(b.LastName), Organization: val(b.Organization),
 		PortraitMediaID: b.PortraitMediaId, VCardPhotoMediaID: b.VcardPhotoMediaId,
-		Phone: val(b.Phone), WhatsApp: val(b.Whatsapp), Email: val(b.Email),
+		BusinessCardMediaID: b.BusinessCardMediaId,
+		Phone:               val(b.Phone), WhatsApp: val(b.Whatsapp), Email: val(b.Email),
 		PostalCode: val(b.PostalCode), MapURL: val(b.MapUrl), LinkedInURL: val(b.LinkedinUrl),
 		Translations: map[string]Translation{},
 	}
@@ -124,6 +168,10 @@ func toAPI(p *Profile) api.Profile {
 	if p.VCardPhoto != nil {
 		m := media.ToAPI(p.VCardPhoto)
 		out.VcardPhoto = &m
+	}
+	if p.BusinessCard != nil {
+		m := media.ToAPI(p.BusinessCard)
+		out.BusinessCard = &m
 	}
 	for loc := range p.Translations {
 		t := p.Translations[loc]
@@ -179,6 +227,10 @@ func ToPublicAPI(p *Profile, requested string) api.PublicProfile {
 			}
 		}
 		out.Portrait = img
+	}
+	if p.BusinessCard != nil {
+		u := BusinessCardPath + "?locale=" + loc
+		out.BusinessCardUrl = &u
 	}
 	return out
 }

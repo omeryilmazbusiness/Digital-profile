@@ -4,11 +4,12 @@ SELECT * FROM profile WHERE id = 1;
 -- name: UpsertProfile :one
 INSERT INTO profile (
     id, first_name, last_name, organization, portrait_media_id, vcard_photo_media_id,
-    phone, whatsapp, email, languages, postal_code, map_url, linkedin_url
+    business_card_media_id, phone, whatsapp, email, languages, postal_code, map_url, linkedin_url
 )
 VALUES (
     1, @first_name, @last_name, @organization, @portrait_media_id, @vcard_photo_media_id,
-    @phone, @whatsapp, @email, @languages::text[], @postal_code, @map_url, @linkedin_url
+    @business_card_media_id, @phone, @whatsapp, @email, @languages::text[], @postal_code, @map_url,
+    @linkedin_url
 )
 ON CONFLICT (id) DO UPDATE SET
     first_name           = EXCLUDED.first_name,
@@ -16,6 +17,7 @@ ON CONFLICT (id) DO UPDATE SET
     organization         = EXCLUDED.organization,
     portrait_media_id    = EXCLUDED.portrait_media_id,
     vcard_photo_media_id = EXCLUDED.vcard_photo_media_id,
+    business_card_media_id = EXCLUDED.business_card_media_id,
     phone                = EXCLUDED.phone,
     whatsapp             = EXCLUDED.whatsapp,
     email                = EXCLUDED.email,

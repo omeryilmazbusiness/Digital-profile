@@ -67,6 +67,7 @@ export interface ProfileForm {
   organization: string;
   portrait?: Media;
   vcardPhoto?: Media;
+  businessCard?: Media;
   phone: string;
   whatsapp: string;
   email: string;
@@ -99,6 +100,7 @@ export function toForm(profile?: Profile): ProfileForm {
     organization: profile?.organization ?? "",
     portrait: profile?.portrait,
     vcardPhoto: profile?.vcardPhoto,
+    businessCard: profile?.businessCard,
     phone: profile?.phone ?? "",
     whatsapp: profile?.whatsapp ?? "",
     email: profile?.email ?? "",
@@ -146,6 +148,7 @@ export function toPayload(form: ProfileForm): ProfileInput {
     organization: optional(form.organization),
     portraitMediaId: form.portrait?.id,
     vcardPhotoMediaId: form.vcardPhoto?.id,
+    businessCardMediaId: form.businessCard?.id,
     phone: optional(form.phone),
     whatsapp: optional(form.whatsapp),
     email: optional(form.email),

@@ -8,6 +8,7 @@ import type * as React from "react";
 import { Button } from "@/components/ui/button";
 import { MediaImage } from "@/components/ui/media-image";
 import { SegmentedControl } from "@/components/ui/segmented-control";
+import { FieldStyleContext, insetRow } from "@/components/ui/text-field";
 import { toast } from "@/components/ui/toast";
 import { directionOf, type Locale, locales } from "@/i18n/locales";
 import { cn } from "@/lib/utils";
@@ -69,13 +70,16 @@ export function LocaleTabs({
 /** The fields of one language, written in its direction. */
 export function LocalePanel({ locale, children }: { locale: Locale; children: React.ReactNode }) {
   return (
-    <div lang={locale} dir={directionOf(locale)} className="grid gap-4">
+    <div lang={locale} dir={directionOf(locale)} className="grid">
       {children}
     </div>
   );
 }
 
-/** A titled group of fields on a raised card. */
+/**
+ * An iOS inset grouped section: a small caps title over a rounded white group whose fields
+ * render as rows, and an optional note beneath.
+ */
 export function FormCard({
   title,
   description,
@@ -83,7 +87,7 @@ export function FormCard({
   className,
   ...props
 }: {
-  title: string;
+  title?: string;
   description?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
@@ -91,22 +95,31 @@ export function FormCard({
   const id = useId();
   return (
     <section
-      aria-labelledby={id}
-      className={cn(
-        "grid gap-5 rounded-[1.5rem] bg-bg-grouped-secondary p-5 shadow-card ring-1 ring-label/[0.04] sm:p-6",
-        className,
-      )}
+      aria-labelledby={title ? id : undefined}
+      className={cn("grid gap-2", className)}
       {...props}
     >
-      <div className="grid gap-1">
-        <h2 id={id} className="text-title-3 font-semibold">
+      {title && (
+        <h2
+          id={id}
+          className="px-4 text-footnote font-medium tracking-[0.04em] text-label-secondary uppercase"
+        >
           {title}
         </h2>
-        {description && <p className="text-subheadline text-label-secondary">{description}</p>}
+      )}
+      <div className="overflow-hidden rounded-[1.375rem] bg-bg-grouped-secondary shadow-[0_1px_2px_rgb(0_0_0/0.03)]">
+        <FieldStyleContext value="inset">{children}</FieldStyleContext>
       </div>
-      {children}
+      {description && (
+        <p className="px-4 text-footnote text-pretty text-label-secondary">{description}</p>
+      )}
     </section>
   );
+}
+
+/** Any other content as a row of a FormCard. */
+export function FormRow({ className, ...props }: React.ComponentProps<"div">) {
+  return <div className={cn(insetRow, className)} {...props} />;
 }
 
 /** The API's field errors in the admin's words, keyed by field path. */
@@ -117,6 +130,14 @@ export function useFieldErrors(t: AdminStrings) {
     error: (field: string) => (errors[field] ? fieldMessage(t, errors[field]) : undefined),
     hasPrefix: (prefix: string) => Object.keys(errors).some((k) => k.startsWith(prefix)),
     clear: () => setErrors({}),
+    /** Forgets a field's error once it is edited. */
+    dismiss: (field: string) =>
+      setErrors((all) => {
+        if (!(field in all)) return all;
+        const rest = { ...all };
+        delete rest[field];
+        return rest;
+      }),
     /** Shows errors found before asking the API, keyed like the API's. */
     set: setErrors,
     /** Keeps the field errors of a failed save and returns them; empty when there are none. */
@@ -339,48 +360,59 @@ export function ImageField({
 
   const shown = localError ?? error;
   return (
-    <div className="grid gap-3 sm:grid-cols-[9rem_1fr] sm:items-center sm:gap-5">
-      <div
+    <div className={cn(insetRow, "flex items-start gap-4")}>
+      <button
+        type="button"
+        onClick={() => input.current?.click()}
+        aria-label={`${value ? t.changeImage : t.uploadImage}: ${label}`}
         className={cn(
-          "relative w-36 overflow-hidden rounded-xl bg-fill-tertiary ring-1 ring-label/[0.06]",
+          "relative w-18 shrink-0 pressable overflow-hidden rounded-[0.875rem] bg-fill-tertiary ring-[0.5px] ring-label/10",
           aspect,
+          shown && "ring-2 ring-system-red/70",
         )}
       >
         {value ? (
-          <MediaImage source={value} alt="" sizes="9rem" fill />
+          <MediaImage source={value} alt="" sizes="4.5rem" fill />
         ) : (
           <span className="absolute inset-0 grid place-items-center text-label-tertiary">
-            <ImagePlus aria-hidden className="size-8" />
+            <ImagePlus aria-hidden className="size-6" strokeWidth={1.6} />
           </span>
         )}
         {progress !== undefined && (
-          <span className="absolute inset-x-3 bottom-3">
+          <span className="absolute inset-0 grid place-items-center bg-black/35 px-2">
             <Progress value={progress} label="" />
           </span>
         )}
-      </div>
-      <div className="grid gap-2">
-        <p className="text-headline">{label}</p>
-        <p className="text-footnote text-label-secondary">{hint}</p>
-        <div className="mt-1 flex flex-wrap gap-2">
+      </button>
+      <div className="grid min-w-0 flex-1 gap-0.5">
+        <p className="text-body font-medium">{label}</p>
+        <p className="text-footnote text-pretty text-label-secondary">{hint}</p>
+        {shown && <p className="text-footnote text-system-red">{shown}</p>}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <Button
             type="button"
             size="sm"
             variant="tinted"
+            shape="capsule"
             loading={progress !== undefined}
             onClick={() => input.current?.click()}
           >
-            <ImagePlus aria-hidden />
             {value ? t.changeImage : t.uploadImage}
           </Button>
           {value && (
-            <Button type="button" size="sm" variant="plain" onClick={() => onChange(undefined)}>
+            <Button
+              type="button"
+              size="sm"
+              variant="plain"
+              shape="capsule"
+              className="text-system-red"
+              onClick={() => onChange(undefined)}
+            >
               <Trash2 aria-hidden />
               {t.removeImage}
             </Button>
           )}
         </div>
-        {shown && <p className="text-footnote text-system-red">{shown}</p>}
       </div>
       <input
         ref={input}

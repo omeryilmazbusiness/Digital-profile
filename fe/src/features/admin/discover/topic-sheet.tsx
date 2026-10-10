@@ -9,7 +9,15 @@ import { Textarea, TextField } from "@/components/ui/text-field";
 import { type Locale, locales } from "@/i18n/locales";
 
 import { api, type Schemas, unwrap } from "../api";
-import { ConfirmDialog, LocalePanel, LocaleTabs, reportError, useFieldErrors } from "../form-parts";
+import {
+  ConfirmDialog,
+  FormCard,
+  FormRow,
+  LocalePanel,
+  LocaleTabs,
+  reportError,
+  useFieldErrors,
+} from "../form-parts";
 import { useSession } from "../session";
 
 type Section = Schemas["DiscoverSection"];
@@ -118,6 +126,7 @@ export function TopicSheet({
       <SheetContent
         title={title}
         closeLabel={t.close}
+        className="bg-bg-grouped"
         footer={
           <div className="flex gap-2">
             {section && (
@@ -139,50 +148,56 @@ export function TopicSheet({
       >
         <form
           id="topic-form"
-          className="grid gap-5"
+          className="pt-2"
           onSubmit={(e) => {
             e.preventDefault();
             void save();
           }}
         >
-          <LocaleTabs
-            label={t.language}
-            value={locale}
-            onChange={setLocale}
-            filled={(l) => isFilled(texts[l])}
-            invalid={(l) => errors.hasPrefix(`translations.${l}`)}
-          />
-          {errors.error("translations") && (
-            <p className="text-footnote text-system-red">{errors.error("translations")}</p>
-          )}
-          <LocalePanel locale={locale}>
-            <TextField
-              label={t.eyebrow}
-              hint={t.eyebrowHint}
-              maxLength={60}
-              value={current.eyebrow}
-              onChange={(e) => set("eyebrow", e.target.value)}
-              error={errors.error(`${prefix}eyebrow`)}
-            />
-            <TextField
-              label={t.title}
-              maxLength={160}
-              value={current.title}
-              onChange={(e) => set("title", e.target.value)}
-              error={errors.error(`${prefix}title`)}
-            />
-            <Textarea
-              label={t.body}
-              hint={t.paragraphHint}
-              maxLength={3000}
-              value={current.body}
-              onChange={(e) => set("body", e.target.value)}
-              error={errors.error(`${prefix}body`)}
-            />
-            {!isFilled(current) && (
-              <p className="text-footnote text-label-secondary">{t.notTranslated}</p>
-            )}
-          </LocalePanel>
+          <FormCard>
+            <FormRow>
+              <LocaleTabs
+                label={t.language}
+                value={locale}
+                onChange={setLocale}
+                filled={(l) => isFilled(texts[l])}
+                invalid={(l) => errors.hasPrefix(`translations.${l}`)}
+              />
+              {errors.error("translations") && (
+                <p className="mt-2 px-1 text-footnote text-system-red">
+                  {errors.error("translations")}
+                </p>
+              )}
+              {!isFilled(current) && (
+                <p className="mt-2 px-1 text-footnote text-label-secondary">{t.notTranslated}</p>
+              )}
+            </FormRow>
+            <LocalePanel locale={locale}>
+              <TextField
+                label={t.eyebrow}
+                hint={t.eyebrowHint}
+                maxLength={60}
+                value={current.eyebrow}
+                onChange={(e) => set("eyebrow", e.target.value)}
+                error={errors.error(`${prefix}eyebrow`)}
+              />
+              <TextField
+                label={t.title}
+                maxLength={160}
+                value={current.title}
+                onChange={(e) => set("title", e.target.value)}
+                error={errors.error(`${prefix}title`)}
+              />
+              <Textarea
+                label={t.body}
+                hint={t.paragraphHint}
+                maxLength={3000}
+                value={current.body}
+                onChange={(e) => set("body", e.target.value)}
+                error={errors.error(`${prefix}body`)}
+              />
+            </LocalePanel>
+          </FormCard>
         </form>
         <ConfirmDialog
           open={confirm}

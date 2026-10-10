@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   reactCompiler: true,
+  // HarfBuzz loads its WebAssembly next to itself, so it runs from node_modules unbundled;
+  // the server writes the profile name with it in these fonts (features/profile/name-signature).
+  serverExternalPackages: ["harfbuzzjs"],
+  outputFileTracingIncludes: { "/sheraton/**": ["./node_modules/harfbuzzjs/dist/harfbuzz.wasm"] },
   experimental: {
     // The site's root layout sits under /sheraton/[locale]: unmatched URLs need their own page.
     globalNotFound: true,
