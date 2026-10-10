@@ -298,7 +298,8 @@ height the server already lays out, so nothing moves when scripts load, and a vi
 
 Set `API_URL` (where the server reaches the API, e.g. `http://api:8080`) at build time and at
 runtime: the `/api/v1/*` forwarding is fixed when building, and pages read published content
-through it. Leave `NEXT_PUBLIC_API_URL` empty in that setup.
+through it. Leave `NEXT_PUBLIC_API_URL` empty in that setup. The API needn't be reachable while
+building: an unanswered request isn't baked into the pages and is asked again within seconds.
 
 Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) at build time: the QR code, canonical and
 hreflang links, Open Graph image, JSON-LD, `sitemap.xml` and the sitemap line of `robots.txt` need
@@ -316,6 +317,45 @@ node scripts/prepare-portrait.mjs      # assets/portraits/momen.jpg → public/p
 node scripts/generate-signature.mjs    # the written name (Inter) and the hotel signature
 python3 scripts/build-display-font.py  # Playfair Display subset; needs fonttools + brotli
 ```
+
+## Deploying to Railway
+
+One project with three services; both apps build from their `Dockerfile` (`be/`, `fe/`).
+
+| Service    | Source                    | Settings                                                                                                                                                       |
+| ---------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Postgres` | Railway PostgreSQL        | —                                                                                                                                                              |
+| `api`      | this repo, root dir `/be` | watch paths `/be/**`; pre-deploy `/app/cli migrate up`; healthcheck `/readyz`; volume at `/data`; **no public domain** (reached only over the private network) |
+| `web`      | this repo, root dir `/fe` | watch paths `/fe/**`; healthcheck `/sheraton/en`; public domain on port `3000`                                                                                 |
+
+`api` variables:
+
+```sh
+APP_ENV=production
+APP_PUBLIC_ORIGIN=https://${{web.RAILWAY_PUBLIC_DOMAIN}}   # or the custom domain
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+AUTH_JWT_KEYS=<make -C be jwt-key>
+AUTH_COOKIE_SECURE=true
+# Only the web service reaches the API: trust its private address for the visitor's IP.
+HTTP_TRUSTED_PROXIES=fd00::/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16
+STORAGE_DRIVER=local
+STORAGE_LOCAL_DIR=/data/storage
+# Railway mounts volumes as root; the image runs as an unprivileged user otherwise.
+RAILWAY_RUN_UID=0
+```
+
+`web` variables (also passed to the build):
+
+```sh
+API_URL=http://${{api.RAILWAY_PRIVATE_DOMAIN}}:8080
+NEXT_PUBLIC_SITE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}   # or the custom domain
+PORT=3000
+```
+
+The image defaults cover the rest (`HTTP_ADDR=:8080`, JSON logs). For S3-compatible storage
+(e.g. a Railway bucket) instead of the volume, set `STORAGE_DRIVER=s3` and the `S3_*` variables.
+Create the admin once the API is up: `railway ssh -s api` then
+`/app/cli admin create -email you@example.com`.
 
 ## Changing the API
 

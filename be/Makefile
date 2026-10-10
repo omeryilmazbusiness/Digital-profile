@@ -157,8 +157,8 @@ cover: ## Run tests and print coverage
 
 .PHONY: build
 build: ## Build static, versioned binaries (api, cli) into ./bin
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/api ./cmd/api
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/cli ./cmd/cli
+	CGO_ENABLED=0 go build -tags nodynamic -trimpath -ldflags "$(LDFLAGS)" -o bin/api ./cmd/api
+	CGO_ENABLED=0 go build -tags nodynamic -trimpath -ldflags "$(LDFLAGS)" -o bin/cli ./cmd/cli
 
 .PHONY: check
 check: tidy-check lint test build ## Everything CI runs for the backend
