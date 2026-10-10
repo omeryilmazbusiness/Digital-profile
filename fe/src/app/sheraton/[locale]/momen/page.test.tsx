@@ -132,15 +132,16 @@ test("links every page of the card in the language it is read in", async () => {
   ]);
 });
 
-test("reads in Arabic at /ar, and in English where there's no translation yet", async () => {
+test("reads in each language at its own address", async () => {
   const ar = await getSiteContent("ar");
   expect(ar.locale).toBe("ar");
   expect(ar.contact.profile.name).toBe("مؤمن توفيق الكسواني");
   expect(ar.ui.saveContact).toBe("حفظ جهة الاتصال");
 
   const id = await getSiteContent("id");
-  expect(id.locale).toBe("en");
-  expect(id.ui.saveContact).toBe("Save contact");
+  expect(id.locale).toBe("id");
+  expect(id.profile.eyebrow).toBe("Profil");
+  expect(id.ui.saveContact).toBe("Simpan kontak");
   expect(id.contact.profile.href).toBe("/sheraton/id/momen");
 });
 

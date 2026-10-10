@@ -40,6 +40,6 @@ test("fills placeholders and counts pages the way each language does", () => {
   expect(pageCount(uiStrings("ar"), 2)).toBe("صفحتان");
   expect(pageCount(uiStrings("ar"), 8)).toBe("8 صفحات");
   expect(pageCount(uiStrings("ar"), 12)).toBe("12 صفحة");
-  // Not translated yet: the interface reads in English.
-  expect(uiStrings("id")).toBe(uiStrings("en"));
+  expect(pageCount(uiStrings("id"), 1)).toBe("1 halaman");
+  expect(pageCount(uiStrings("id"), 6)).toBe("6 halaman");
 });

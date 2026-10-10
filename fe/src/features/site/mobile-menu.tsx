@@ -14,7 +14,7 @@ import { fill, type UiStrings } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 import type { NavItem } from "./content";
-import { LanguageSwitch } from "./language-switch";
+import { LanguagePicker } from "./language-switch";
 import { Wordmark } from "./wordmark";
 
 export interface QuickAction {
@@ -79,54 +79,60 @@ export function MobileMenu({ hotelName, home, nav, quickActions, ui, className }
             </Dialog.Close>
           </div>
 
-          <nav aria-label={ui.mainNav} className="flex-1 overflow-y-auto px-safe-6 pt-10">
-            <ul className="flex flex-col gap-1">
-              {nav.map((item, i) => (
-                <li key={item.href}>
-                  <Entrance delay={80 + i * 70}>
-                    <AnchorLink
-                      href={item.href}
-                      onNavigate={close}
-                      aria-current={pathname === item.href ? "page" : undefined}
-                      className={cn(
-                        "flex items-baseline gap-4 py-2.5 text-[2.5rem] leading-tight font-semibold tracking-tight",
-                        item.image && "mt-6 items-center border-t border-separator pt-8",
-                      )}
-                    >
-                      <span
-                        aria-hidden
-                        className="w-6 shrink-0 self-baseline font-mono text-caption-1 text-label-tertiary"
-                      >
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <span className="flex min-w-0 flex-1 flex-col">
-                        <span className={cn(item.image && "text-[1.75rem] leading-[1.15]")}>
-                          {item.label}
-                        </span>
-                        {item.caption && (
-                          <span className="mt-1.5 text-caption-1 font-medium tracking-[0.24em] text-label-secondary uppercase">
-                            {item.caption}
-                          </span>
+          <div className="flex-1 overflow-y-auto px-safe-6 pt-10 pb-8">
+            <nav aria-label={ui.mainNav}>
+              <ul className="flex flex-col gap-1">
+                {nav.map((item, i) => (
+                  <li key={item.href}>
+                    <Entrance delay={80 + i * 70}>
+                      <AnchorLink
+                        href={item.href}
+                        onNavigate={close}
+                        aria-current={pathname === item.href ? "page" : undefined}
+                        className={cn(
+                          "flex items-baseline gap-4 py-2.5 text-[2.5rem] leading-tight font-semibold tracking-tight",
+                          item.image && "mt-6 items-center border-t border-separator pt-8",
                         )}
-                      </span>
-                      {item.image && (
-                        // eslint-disable-next-line @next/next/no-img-element -- a 3 KB pre-sized avatar
-                        <img
-                          src={item.image}
-                          alt=""
-                          width={56}
-                          height={56}
-                          className="size-14 shrink-0 rounded-full shadow-card"
-                        />
-                      )}
-                    </AnchorLink>
-                  </Entrance>
-                </li>
-              ))}
-            </ul>
-          </nav>
+                      >
+                        <span
+                          aria-hidden
+                          className="w-6 shrink-0 self-baseline font-mono text-caption-1 text-label-tertiary"
+                        >
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        <span className="flex min-w-0 flex-1 flex-col">
+                          <span className={cn(item.image && "text-[1.75rem] leading-[1.15]")}>
+                            {item.label}
+                          </span>
+                          {item.caption && (
+                            <span className="mt-1.5 text-caption-1 font-medium tracking-[0.24em] text-label-secondary uppercase">
+                              {item.caption}
+                            </span>
+                          )}
+                        </span>
+                        {item.image && (
+                          // eslint-disable-next-line @next/next/no-img-element -- a 3 KB pre-sized avatar
+                          <img
+                            src={item.image}
+                            alt=""
+                            width={56}
+                            height={56}
+                            className="size-14 shrink-0 rounded-full shadow-card"
+                          />
+                        )}
+                      </AnchorLink>
+                    </Entrance>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            {/* Under the card's link, the last item. */}
+            <Entrance delay={80 + nav.length * 70}>
+              <LanguagePicker label={ui.language} className="mt-8 border-t border-separator pt-6" />
+            </Entrance>
+          </div>
 
-          <Entrance delay={80 + nav.length * 70} className="px-safe-6 pb-safe-8">
+          <Entrance delay={80 + (nav.length + 1) * 70} className="px-safe-6 pb-safe-8">
             <div className="flex gap-3 border-t border-separator pt-6">
               {quickActions.map((action) => (
                 <Button key={action.href} asChild variant="gray" block className="flex-1">
@@ -140,10 +146,6 @@ export function MobileMenu({ hotelName, home, nav, quickActions, ui, className }
                 </Button>
               ))}
             </div>
-            <LanguageSwitch
-              label={ui.language}
-              className="mt-5 justify-center text-subheadline font-medium text-label-secondary"
-            />
           </Entrance>
         </Dialog.Content>
       </Dialog.Portal>

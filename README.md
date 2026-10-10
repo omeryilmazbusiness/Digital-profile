@@ -211,13 +211,15 @@ to the visitor's language (`fe/src/proxy.ts`): the `locale` cookie — set on ev
 the browser's `Accept-Language`, then English. Any other language is a 404.
 
 Content links are written without a language (`"/"`, `"/#tour"`, `"/momen"`) and
-`getSiteContent(locale)` puts them under the page's. The site is translated into English and
-Arabic: the content (`mock-content.ts`, `mock-content.ar.ts`) and the interface's own words —
-buttons, labels, announcements (`fe/src/i18n/ui.ts`). Indonesian shows the English text until its
-translation exists, as the API will (fallback en → id → ar). `<html lang dir>` follows the language
-actually shown, so `/sheraton/ar` reads right to left; Arabic text is never letter-spaced or
-slanted (`globals.css`). The header, phone menu and footer link to the page in the other
-language, and each page lists its other languages for search engines (hreflang).
+`getSiteContent(locale)` puts them under the page's. The site is fully translated into English,
+Arabic and Indonesian: one edition of the content per language (`mock-content.ts`,
+`mock-content.ar.ts`, `mock-content.id.ts`) and of the interface's own words — buttons, labels,
+announcements (`fe/src/i18n/messages/<locale>.ts`). Both registries are keyed by `Locale`, so a
+new language doesn't type-check until it has both. `<html lang dir>` follows the language, so
+`/sheraton/ar` reads right to left; Arabic text is never letter-spaced or slanted
+(`globals.css`). The phone menu lists every language under the card's link, the current one
+marked; the header and footer link to the others; each page lists them for search engines
+(hreflang).
 
 ### Profile (`/sheraton/<locale>/momen`)
 

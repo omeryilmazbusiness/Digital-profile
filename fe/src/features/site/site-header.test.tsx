@@ -7,6 +7,12 @@ import { uiStrings } from "@/i18n/ui";
 import type { NavItem } from "./content";
 import { SiteHeader } from "./site-header";
 
+const navigation = vi.hoisted(() => ({ pathname: null as string | null }));
+vi.mock("next/navigation", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/navigation")>()),
+  usePathname: () => navigation.pathname,
+}));
+
 const nav: NavItem[] = [
   { label: "Discover", href: "/#discover" },
   { label: "Momen Tawfiq Alkiswani", href: "/momen", caption: "Digital business card" },
@@ -111,4 +117,23 @@ test("the phone menu offers the digital business card by name", async () => {
   const card = within(menu).getByRole("link", { name: /Momen Tawfiq Alkiswani/ });
   expect(card).toHaveAttribute("href", "/momen");
   expect(card).toHaveTextContent("Digital business card");
+});
+
+test("the phone menu offers every language under the card, the current one marked", async () => {
+  mockObserver();
+  navigation.pathname = "/sheraton/id/momen";
+  const user = userEvent.setup();
+  renderHeader();
+
+  await user.click(screen.getByRole("button", { name: "Open menu" }));
+  const menu = screen.getByRole("dialog", { name: "Menu" });
+  const languages = within(menu).getByRole("navigation", { name: "Language" });
+  const links = within(languages).getAllByRole("link");
+  expect(links.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
+    ["English", "/sheraton/en/momen"],
+    ["العربية", "/sheraton/ar/momen"],
+    ["Bahasa Indonesia", "/sheraton/id/momen"],
+  ]);
+  expect(within(languages).getByRole("link", { current: true })).toHaveAttribute("lang", "id");
+  navigation.pathname = null;
 });

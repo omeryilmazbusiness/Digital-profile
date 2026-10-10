@@ -5,6 +5,13 @@ export type Locale = (typeof locales)[number];
 
 export const defaultLocale: Locale = "en";
 
+/** Each language's name in that language, as speakers write it. */
+export const nativeNames: Record<Locale, string> = {
+  en: "English",
+  ar: "العربية",
+  id: "Bahasa Indonesia",
+};
+
 export function isLocale(value: string | undefined): value is Locale {
   return (locales as readonly string[]).includes(value ?? "");
 }

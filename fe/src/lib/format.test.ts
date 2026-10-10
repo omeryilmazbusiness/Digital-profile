@@ -17,5 +17,5 @@ test("dates show month and year, independent of the time zone", () => {
 test("languages are named in their own language", () => {
   expect(languageName("en")).toBe("English");
   expect(languageName("ar")).toBe("العربية");
-  expect(languageName("id")).toBe("Indonesia");
+  expect(languageName("id")).toBe("Bahasa Indonesia");
 });

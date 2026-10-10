@@ -4,6 +4,7 @@ import { type UiStrings, uiStrings } from "@/i18n/ui";
 
 import { mockSiteContent } from "./mock-content";
 import { mockSiteContentAr } from "./mock-content.ar";
+import { mockSiteContentId } from "./mock-content.id";
 
 /** Languages the site and its documents are published in. */
 export type ContentLanguage = Locale;
@@ -184,18 +185,19 @@ export interface SiteCredit {
 
 /**
  * Everything the public page shows in `locale`, its links pointing at that language's pages.
- * Mock data (English and Arabic) for now; it becomes the single `GET /public/site?locale=`
- * request (SET-03), which falls back to English the same way, so components don't change when
- * it does.
+ * Mock data in every language for now; it becomes the single `GET /public/site?locale=`
+ * request (SET-03), so components don't change when it does.
  */
 export async function getSiteContent(locale: Locale = defaultLocale): Promise<SiteContent> {
-  const content = mockContent[locale] ?? mockSiteContent;
+  const content = mockContent[locale];
   return localizeLinks({ ...content, ui: uiStrings(content.locale) }, locale);
 }
 
-const mockContent: Partial<Record<Locale, Omit<SiteContent, "ui">>> = {
+/** One edition per language; a new language doesn't type-check until it has one. */
+const mockContent: Record<Locale, Omit<SiteContent, "ui">> = {
   en: mockSiteContent,
   ar: mockSiteContentAr,
+  id: mockSiteContentId,
 };
 
 function localizeLinks(content: SiteContent, locale: Locale): SiteContent {
