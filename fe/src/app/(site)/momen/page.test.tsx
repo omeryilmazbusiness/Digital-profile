@@ -79,6 +79,28 @@ test("lays out every part of the card", async () => {
   );
 });
 
+test("writes the name white across the suit and black at its ends", async () => {
+  const { container } = render(await ProfilePage());
+  const fills = [...container.querySelectorAll("[data-name] path")].map((p) =>
+    p.getAttribute("fill") === "#fff" ? "w" : "b",
+  );
+  // M · o m e n T a w fi · q, then Alkiswani.
+  expect(fills.join("")).toBe(`b${"w".repeat(8)}b${"b".repeat(9)}`);
+});
+
+test("offers the CV to view and to download", async () => {
+  render(await ProfilePage());
+  const cv = mockSiteContent.profile.cv!;
+  expect(screen.getByRole("heading", { level: 2, name: cv.title })).toBeInTheDocument();
+  expect(
+    screen.getByRole("link", { name: `View: ${cv.document.title} (opens in a new tab)` }),
+  ).toHaveAttribute("href", cv.document.url);
+  expect(screen.getByRole("link", { name: `Download: ${cv.document.title}` })).toHaveAttribute(
+    "download",
+    cv.document.fileName,
+  );
+});
+
 test("describes the person for search engines", async () => {
   const { container } = render(await ProfilePage());
   const script = container.querySelector('script[type="application/ld+json"]');

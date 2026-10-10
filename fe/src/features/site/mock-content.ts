@@ -44,7 +44,7 @@ export const mockSiteContent: SiteContent = {
       label: "Momen Tawfiq Alkiswani",
       href: "/momen",
       image: "/profile/momen-avatar.webp",
-      caption: "Digital business card",
+      caption: "Profile",
     },
   ],
   discover: {
@@ -109,7 +109,7 @@ export const mockSiteContent: SiteContent = {
       name: "Momen Tawfiq Alkiswani",
       givenName: "Momen Tawfiq",
       familyName: "Alkiswani",
-      title: "Sales Manager, Travel Trade",
+      title: "Sales, Travel Trade",
       tagline: "Helping agencies plan stays in Makkah since 2014.",
       languages: ["ar", "en", "id"],
       phone: { e164: "+966500000000", display: "+966 50 000 0000" },
@@ -124,7 +124,6 @@ export const mockSiteContent: SiteContent = {
         alt: "Momen Tawfiq Alkiswani in a navy suit, arms folded, smiling",
         avatar: "/profile/momen-avatar.webp",
         ogImage: "/profile/momen-og.jpg",
-        ink: "/profile/momen-ink.webp",
       },
       href: "/momen",
       vcardHref: "/momen/vcard",
@@ -132,7 +131,7 @@ export const mockSiteContent: SiteContent = {
   },
   // Figures, hours and links are placeholders to be confirmed by Momen before launch.
   profile: {
-    eyebrow: "Digital business card",
+    eyebrow: "Profile",
     statement:
       "One direct line for every group you bring to Makkah — from the first quote to the last checkout.",
     stats: [
@@ -148,6 +147,21 @@ export const mockSiteContent: SiteContent = {
         "Momen looks after travel agencies and tour operators at Sheraton Makkah Jabal Al Kaaba — quotes, allotments, rooming lists and everything in between.",
         "He works in Arabic, English and Bahasa Indonesia, so your team and your guests are always understood, in season and out.",
       ],
+    },
+    cv: {
+      eyebrow: "Résumé",
+      title: "Curriculum vitae",
+      body: "Experience, education and languages — on a few pages, ready to keep on file.",
+      document: {
+        id: "momen-cv",
+        title: "Momen Tawfiq Alkiswani — CV",
+        language: "en",
+        url: SAMPLE_PDF,
+        fileName: "Momen-Tawfiq-Alkiswani-CV.pdf",
+        sizeBytes: 245_760,
+        pages: 2,
+        updatedAt: "2026-09-01",
+      },
     },
     services: {
       eyebrow: "How I can help",

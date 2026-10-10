@@ -11,6 +11,8 @@ export interface SignatureGlyph {
   d: string;
   /** Outline length, which sets how long the pen spends on the glyph. */
   length: number;
+  /** Part of the signature's accented passage. */
+  accent?: boolean;
 }
 
 /** A text pre-rendered as glyph outlines in writing order (scripts/generate-signature.mjs). */

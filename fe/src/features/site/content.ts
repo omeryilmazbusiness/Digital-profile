@@ -58,8 +58,6 @@ export interface Portrait {
   avatar: string;
   /** 1200×630 sharing image. */
   ogImage: string;
-  /** Alpha mask of the portrait's dark areas, where type laid over it turns white. */
-  ink?: string;
 }
 
 export interface ContactProfile {
@@ -121,6 +119,8 @@ export interface DigitalProfile {
   statement: string;
   stats: readonly ProfileStat[];
   about: { eyebrow: string; title: string; paragraphs: readonly string[] };
+  /** The contact's résumé, as a PDF. */
+  cv?: { eyebrow: string; title: string; body: string; document: SiteDocument };
   services: { eyebrow: string; title: string; items: readonly ProfileService[] };
   reach: { eyebrow: string; title: string };
   availability: Availability;

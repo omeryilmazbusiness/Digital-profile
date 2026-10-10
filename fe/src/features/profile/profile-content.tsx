@@ -1,7 +1,9 @@
 import {
+  ArrowDownToLine,
   ArrowUpRight,
   CalendarRange,
   Crown,
+  FileText,
   Languages,
   Mail,
   MapPin,
@@ -20,7 +22,7 @@ import type {
   ProfileServiceIcon,
   SiteContent,
 } from "@/features/site/content";
-import { languageName } from "@/lib/format";
+import { formatFileSize, formatMonthYear, languageName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 import { actionLinkProps, contactActions } from "./contact-actions";
@@ -118,6 +120,8 @@ export function ProfileContent({ card, profile, hotel, shareUrl }: ProfileConten
           </div>
         </div>
       </section>
+
+      {profile.cv && <CvSection cv={profile.cv} name={card.name} />}
 
       {/* Services */}
       <section aria-labelledby="profile-services" className="bg-white py-24 sm:py-36">
@@ -291,6 +295,96 @@ export function ProfileContent({ card, profile, hotel, shareUrl }: ProfileConten
         </div>
       </section>
     </RiseGroup>
+  );
+}
+
+function CvSection({ cv, name }: { cv: NonNullable<DigitalProfile["cv"]>; name: string }) {
+  const { document } = cv;
+  return (
+    <section aria-labelledby="profile-cv" className="bg-white py-24 sm:py-36">
+      <div className="mx-auto grid max-w-5xl items-center gap-12 px-safe-6 md:grid-cols-[1fr_1.15fr] md:gap-16">
+        <div {...rise}>
+          <Heading id="profile-cv" eyebrow={cv.eyebrow}>
+            {cv.title}
+          </Heading>
+          <p className="mt-5 max-w-sm text-body text-pretty text-neutral-600">{cv.body}</p>
+        </div>
+
+        <div
+          {...rise}
+          className="flex flex-col items-center gap-8 rounded-[2rem] bg-neutral-50 p-7 ring-1 ring-neutral-950/5 sm:flex-row sm:items-center sm:p-9"
+        >
+          <a
+            href={document.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${document.title} (opens in a new tab)`}
+            className="group relative shrink-0"
+          >
+            {/* A sheet of the CV, drawn rather than rendered from the PDF. */}
+            <span
+              aria-hidden
+              className="absolute inset-0 translate-x-2 translate-y-2 rotate-3 rounded-md bg-white ring-1 ring-neutral-950/5"
+            />
+            <span
+              aria-hidden
+              className="relative flex aspect-[3/4] w-32 -rotate-2 flex-col rounded-md bg-white px-4 py-5 ring-1 shadow-lift ring-neutral-950/5 transition-transform duration-500 ease-ios group-hover:rotate-0 sm:w-36"
+            >
+              <span className="text-[0.45rem] font-semibold tracking-[0.2em] whitespace-nowrap text-neutral-400 uppercase">
+                Curriculum vitae
+              </span>
+              <span className="mt-1.5 font-display text-[0.8rem] leading-tight font-bold text-neutral-950">
+                {name}
+              </span>
+              <span className="mt-2 h-px w-6 bg-neutral-950" />
+              {[92, 80, 86, 64, 0, 88, 76, 82, 58].map((width, i) =>
+                width ? (
+                  <span
+                    key={i}
+                    style={{ width: `${width}%` }}
+                    className="mt-1.5 h-[3px] rounded-full bg-neutral-200"
+                  />
+                ) : (
+                  <span key={i} className="mt-2.5" />
+                ),
+              )}
+            </span>
+          </a>
+
+          <div className="flex w-full min-w-0 flex-col items-center text-center sm:items-start sm:text-start">
+            <h3 className="font-display text-[1.35rem] leading-snug font-semibold text-balance">
+              {document.title}
+            </h3>
+            <p className="mt-2 text-footnote text-neutral-500">
+              PDF · {formatFileSize(document.sizeBytes)} · {document.pages}{" "}
+              {document.pages === 1 ? "page" : "pages"} · Updated{" "}
+              {formatMonthYear(document.updatedAt)}
+            </p>
+            <div className="mt-6 flex w-full flex-col gap-2.5 sm:flex-row">
+              <a
+                href={document.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`View: ${document.title} (opens in a new tab)`}
+                className="flex h-12 pressable items-center justify-center gap-2 rounded-full bg-neutral-950 px-6 text-subheadline font-semibold text-white shadow-lift sm:flex-1 [&_svg]:size-4"
+              >
+                <FileText aria-hidden />
+                View CV
+              </a>
+              <a
+                href={document.url}
+                download={document.fileName}
+                aria-label={`Download: ${document.title}`}
+                className="flex h-12 pressable items-center justify-center gap-2 rounded-full px-6 text-subheadline font-semibold text-neutral-950 ring-1 ring-neutral-950/15 hover:bg-white sm:flex-1 [&_svg]:size-4"
+              >
+                <ArrowDownToLine aria-hidden />
+                Download
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 

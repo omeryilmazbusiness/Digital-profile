@@ -15,7 +15,8 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * One manifest per file; one signature per language. Each line is written in turn; lines are
- * centered. `variations` pins the axes of a variable font (e.g. "wght=500").
+ * centered. `variations` pins the axes of a variable font (e.g. "wght=500"); `accent` marks the
+ * glyphs of a part of one line, which the page can set apart (e.g. in another color).
  */
 const OUTPUTS = [
   {
@@ -42,9 +43,11 @@ const OUTPUTS = [
     signatures: [
       {
         lang: "en",
-        font: "assets/fonts/instrument-serif/InstrumentSerif-Regular.ttf",
+        font: "assets/fonts/playfair-display/PlayfairDisplay-wght.ttf",
+        variations: ["wght=700"],
         lines: ["Momen Tawfiq", "Alkiswani"],
-        lineHeight: 0.98,
+        lineHeight: 1.02,
+        accent: "omen Tawfi",
       },
     ],
   },
@@ -162,10 +165,14 @@ function bezier(ctrl, t) {
   return pts[0];
 }
 
-async function build({ lang, font: file, variations, lines, lineHeight }) {
+async function build({ lang, font: file, variations, lines, lineHeight, accent }) {
   const { font, scale } = await loadFont(file, variations);
   const shaped = lines.map((text) => shapeLine(font, scale, text));
   const width = Math.max(...shaped.map((l) => l.width));
+  const accentLine = accent ? lines.findIndex((text) => text.includes(accent)) : -1;
+  if (accent && accentLine < 0) throw new Error(`"${accent}" is in none of ${lines.join(" / ")}`);
+  const accentFrom = accentLine < 0 ? 0 : lines[accentLine].indexOf(accent);
+  const accentTo = accentFrom + (accent?.length ?? 0);
 
   const glyphs = [];
   const all = [];
@@ -175,7 +182,8 @@ async function build({ lang, font: file, variations, lines, lineHeight }) {
     for (const glyph of line.glyphs) {
       const o = outline(font, scale, glyph, dx, baseline);
       if (!o) continue;
-      glyphs.push({ d: o.d, length: o.length });
+      const accented = i === accentLine && glyph.cluster >= accentFrom && glyph.cluster < accentTo;
+      glyphs.push({ d: o.d, length: o.length, ...(accented ? { accent: true } : {}) });
       all.push(...o.points);
     }
   });

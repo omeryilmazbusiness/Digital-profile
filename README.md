@@ -196,7 +196,7 @@ Header, footer and sections live in `fe/src/features/site`. All their data comes
 PDF in `fe/public/mock`) until the `GET /public/site` endpoint exists (SET-03). The mock contact
 details are fictitious on purpose.
 
-### Digital business card (`/momen`)
+### Profile (`/momen`)
 
 The site is a single landing page: hero, Discover, the 360° tour and, last, Momen Tawfiq
 Alkiswani's card (`fe/src/features/profile`). `/` and `/momen` render the same page; `/momen` (the
@@ -204,11 +204,12 @@ link in the menu, the QR code and the shared URL) opens it at the card, and scro
 the rest of the site. Links to sections in the page scroll there and update the URL instead of
 navigating (`fe/src/lib/arrival.ts`).
 
-On the card, the portrait settles in on white and his name writes itself beneath it in Instrument
-Serif as you scroll, white where it crosses the suit; then the actions, figures, services, contact
-details with live office hours, a QR share card and a closing call to action follow.
-`/momen/vcard` serves the contact card with the photo embedded. The figures, hours and LinkedIn
-link in `mock-content.ts` are placeholders.
+On the card, the portrait settles in on white and his name writes itself beneath it in Playfair
+Display as you scroll ("omen Tawfi", over the suit, in white — the `accent` of its manifest in
+`generate-signature.mjs`); then the actions, figures, his CV (PDF), services, contact details with
+live office hours, a QR share card and a closing call to action follow. `/momen/vcard` serves the
+contact card with the photo embedded. The figures, hours, LinkedIn link and the CV (the sample
+PDF until the real one is added) in `mock-content.ts` are placeholders.
 
 Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) in production so the QR code, canonical
 URL, Open Graph image and JSON-LD use absolute links.
@@ -217,10 +218,9 @@ Assets are generated, not edited by hand — rerun after replacing a source:
 
 ```sh
 cd fe
-node scripts/prepare-portrait.mjs      # assets/portraits/momen.jpg → public/profile/* (incl. the
-                                       # ink mask for the name), vCard photo
+node scripts/prepare-portrait.mjs      # assets/portraits/momen.jpg → public/profile/*, vCard photo
 node scripts/generate-signature.mjs    # the written name (and the hotel signature)
-python3 scripts/build-display-font.py  # Instrument Serif subset; needs fonttools + brotli
+python3 scripts/build-display-font.py  # Playfair Display subset; needs fonttools + brotli
 ```
 
 ## Changing the API
