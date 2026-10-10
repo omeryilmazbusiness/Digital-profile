@@ -163,7 +163,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
         ref={root}
         id={PROFILE_INTRO_ID}
         aria-labelledby="profile-name"
-        style={{ "--portrait": "min(88vw, 30rem, 50svh)" } as React.CSSProperties}
+        style={{ "--portrait": "min(94vw, 32rem, 54svh)" } as React.CSSProperties}
         className="relative top-0 flex min-h-svh flex-col items-center justify-center overflow-hidden bg-white px-safe-5 pt-safe-20 pb-safe-10 motion-safe:sticky"
       >
         <p
@@ -182,7 +182,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
               data-intro="portrait"
               src={profile.portrait.src}
               srcSet={profile.portrait.srcSet}
-              sizes="(min-width: 640px) 30rem, 88vw"
+              sizes="(min-width: 640px) 32rem, 94vw"
               width={profile.portrait.width}
               height={profile.portrait.height}
               alt={profile.portrait.alt}
@@ -205,7 +205,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             aria-hidden
             viewBox={`${x} ${y} ${w} ${h}`}
             strokeWidth={0.7}
-            className="block h-auto w-[calc(var(--portrait)*0.94)] overflow-visible"
+            className="block h-auto w-[calc(var(--portrait)*0.95)] overflow-visible"
           >
             {signature.glyphs.map((glyph, i) => (
               <path

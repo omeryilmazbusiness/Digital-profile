@@ -1,9 +1,8 @@
-Copyright 2026 The Tinos Project Authors (https://github.com/googlefonts/tinos)
+Copyright (c) 2018, Fredrick R. Brennan (<copypaste@kittens.ph>),
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:
-https://openfontlicense.org
-
+http://scripts.sil.org/OFL
 
 -----------------------------------------------------------
 SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007

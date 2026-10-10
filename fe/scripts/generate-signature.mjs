@@ -45,9 +45,8 @@ const OUTPUTS = [
     signatures: [
       {
         lang: "en",
-        font: "assets/fonts/tinos/Tinos-Bold.ttf",
+        font: "assets/fonts/chomsky/Chomsky.otf",
         features: ["-liga"],
-        tracking: 0.04,
         lines: ["Momen Tawfiq", "Alkiswani"],
         lineHeight: 1.04,
         accent: "omen Tawfi",
