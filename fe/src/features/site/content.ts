@@ -4,6 +4,7 @@ import { profileSignatures } from "@/features/profile/profile-signature.gen";
 import { defaultLocale, type Locale } from "@/i18n/locales";
 import { localizeHref } from "@/i18n/routing";
 import { type UiStrings, uiStrings } from "@/i18n/ui";
+import { apiOrigin } from "@/lib/api/server";
 
 import { mergeSite } from "./merge-site";
 import { mockSiteContent } from "./mock-content";
@@ -202,12 +203,17 @@ export interface SiteCredit {
 /**
  * Everything the public page shows in `locale`, its links pointing at that language's pages:
  * what the admin panel published (`GET /public/site`) over the built-in edition, which also
- * stands in while the API is unreachable.
+ * stands in while the API is unreachable — except for the documents, which only ever come from
+ * the admin panel once there is an API.
  */
 export async function getSiteContent(locale: Locale = defaultLocale): Promise<SiteContent> {
   const base = mockContent[locale];
   const site = await fetchPublicSite(locale);
-  const merged = site ? mergeSite(base, site, locale) : base;
+  const merged = site
+    ? mergeSite(base, site, locale)
+    : apiOrigin()
+      ? { ...base, sections: [] }
+      : base;
   const card = merged.contact.profile;
   const content = {
     ...merged,

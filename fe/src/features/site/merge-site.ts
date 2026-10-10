@@ -9,15 +9,12 @@ type PublicProfile = Schemas["PublicProfile"];
 type PublicImage = Schemas["PublicImage"];
 
 /**
- * Lays what the admin panel published over the built-in content: each part the admin has
- * filled in (topics, the tour link, the profile) replaces its built-in counterpart, and
- * anything not yet entered keeps showing the built-in edition, so the page is never empty.
+ * Lays what the admin panel published over the built-in content. The Discover topics are
+ * the admin's alone, even while there are none; the tour link and the profile replace their
+ * built-in counterparts once entered.
  */
 export function mergeSite(base: Content, site: PublicSite, locale: Locale): Content {
-  let content: Content = base;
-  if (site.sections.length > 0) {
-    content = { ...content, sections: site.sections.map(toSection) };
-  }
+  let content: Content = { ...base, sections: site.sections.map(toSection) };
   if (site.tour) {
     content = { ...content, tour: { ...content.tour, url: site.tour.url } };
   }

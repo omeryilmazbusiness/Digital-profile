@@ -7,8 +7,8 @@ import type { PublicSite } from "./site-api";
 
 const empty: PublicSite = { locale: "en", sections: [] };
 
-test("keeps the built-in content while nothing is published", () => {
-  expect(mergeSite(base, empty, "en")).toBe(base);
+test("keeps the built-in content while nothing is published, but none of its documents", () => {
+  expect(mergeSite(base, empty, "en")).toEqual({ ...base, sections: [] });
 });
 
 test("published topics and the tour link replace the built-in ones", () => {

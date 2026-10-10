@@ -236,9 +236,11 @@ cd fe && node scripts/generate-signature.mjs
 Header, footer and sections live in `fe/src/features/site`. All their data comes from
 `getSiteContent()` in `content.ts`: what the admin panel published (`GET /api/v1/public/site`,
 cached under the `site` tag and refreshed on every save) laid over the built-in edition
-(`mock-content*.ts`, with a sample PDF in `fe/public/mock`). Each part — Discover topics, the tour
-link, the profile — switches over once the admin fills it in, and the built-in edition stays in
-place while the API is unset or unreachable, so the site never renders empty. The built-in contact
+(`mock-content*.ts`, with a sample PDF in `fe/public/mock`). The tour link and the profile switch
+over once the admin fills them in, and the built-in edition stays in place while the API is
+unreachable, so the site never renders empty. Discover topics and their PDFs are the exception:
+with an API configured they only ever come from the admin panel (none until entered); the
+built-in ones show only when `API_URL` is unset. The built-in contact
 details are fictitious on purpose; the figures, services and office hours on the card are not
 editable yet.
 
