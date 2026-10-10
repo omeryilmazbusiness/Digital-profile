@@ -1,5 +1,5 @@
 import { ScrollCanvasVideo, type Scene } from "@/components/scroll/scroll-canvas-video";
-import { SceneCard } from "@/components/scroll/scene-card";
+import { SceneStory } from "@/components/scroll/scene-story";
 import { Handwriting } from "@/components/signature/handwriting";
 
 import { heroFrames } from "./hero-frames.gen";
@@ -39,12 +39,16 @@ const scenes: readonly Scene[] = [
     end: 0.5,
     align: "center",
     content: (
-      <SceneCard eyebrow="For travel partners" title="Every pilgrim, received with care">
+      <SceneStory
+        index="01"
+        eyebrow="For travel partners"
+        title="Every pilgrim, received with care"
+      >
         <p>
           Dedicated support for Umrah and Hajj groups — from the first enquiry to the final
           farewell.
         </p>
-      </SceneCard>
+      </SceneStory>
     ),
   },
   {
@@ -52,11 +56,16 @@ const scenes: readonly Scene[] = [
     start: 0.6,
     end: 0.9,
     content: (
-      <SceneCard eyebrow="Inside" title="A calm arrival after a long journey">
+      <SceneStory
+        index="02"
+        eyebrow="Inside"
+        title="A calm arrival after a long journey"
+        align="start"
+      >
         <p>
           Smooth group check-in, multilingual service and one point of contact for every booking.
         </p>
-      </SceneCard>
+      </SceneStory>
     ),
   },
 ];

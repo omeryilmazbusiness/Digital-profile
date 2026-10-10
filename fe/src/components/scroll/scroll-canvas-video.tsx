@@ -20,6 +20,7 @@ import { sceneKeyframes, type SceneTiming } from "@/lib/scroll-scenes";
 import { cn } from "@/lib/utils";
 
 import { FrameLoader } from "./frame-loader";
+import { addSceneReveal } from "./scene-reveal";
 import { useScrollLock } from "./smooth-scroll-provider";
 
 export interface Scene extends SceneTiming {
@@ -142,7 +143,8 @@ function ScrubbedSequence({
       scenes.forEach((scene, i) => {
         const overlay = overlays[i];
         if (!overlay) return;
-        const { fadeIn, fadeOut } = sceneKeyframes(scene);
+        const keyframes = sceneKeyframes(scene);
+        const { fadeIn, fadeOut } = keyframes;
         gsap.set(overlay, { autoAlpha: fadeIn ? 0 : 1, y: fadeIn ? SCENE_SHIFT : 0 });
         if (fadeIn) {
           timeline.to(
@@ -158,6 +160,7 @@ function ScrubbedSequence({
             fadeOut.at,
           );
         }
+        addSceneReveal(timeline, overlay, scene, keyframes);
       });
       // A timeline shorter than 1 would compress the scroll mapping.
       if (timeline.duration() < 1) timeline.set({}, {}, 1);
