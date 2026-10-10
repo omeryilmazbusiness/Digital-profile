@@ -182,19 +182,33 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
 
         <div data-intro="stage" className="relative w-(--portrait)">
           {profile.portrait && (
-            // eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP set, prepared for the white page
-            <img
+            <div
               data-intro="portrait"
-              src={profile.portrait.src}
-              srcSet={profile.portrait.srcSet}
-              sizes="(min-width: 640px) 32rem, 94vw"
-              width={profile.portrait.width}
-              height={profile.portrait.height}
-              alt={profile.portrait.alt}
-              decoding="async"
-              className="h-auto w-full select-none motion-safe:opacity-40 motion-safe:blur-xl"
-              draggable={false}
-            />
+              className="relative motion-safe:opacity-40 motion-safe:blur-xl"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element -- pre-sized WebP set */}
+              <img
+                src={profile.portrait.src}
+                srcSet={profile.portrait.srcSet}
+                sizes="(min-width: 640px) 32rem, 94vw"
+                width={profile.portrait.width}
+                height={profile.portrait.height}
+                alt={profile.portrait.alt}
+                decoding="async"
+                className="block h-auto w-full select-none"
+                draggable={false}
+              />
+              {/* Uploaded photos end in a hard edge: it dissolves into the page through a
+                  deepening blur, the white held back until below the name's white line. */}
+              <span
+                aria-hidden
+                className="absolute inset-x-0 bottom-0 h-[30%] [mask-image:linear-gradient(to_bottom,transparent,black_80%)] backdrop-blur-xl"
+              />
+              <span
+                aria-hidden
+                className="absolute inset-x-0 -bottom-px h-[30%] bg-linear-to-b from-white/0 from-35% via-white/50 via-75% to-white"
+              />
+            </div>
           )}
         </div>
 
