@@ -26,9 +26,12 @@ RUN apk add --no-cache ca-certificates tzdata \
 WORKDIR /app
 COPY --from=build /out/api /out/cli /app/
 # Uploads live in the database unless STORAGE_DRIVER says otherwise (local needs a volume).
+# The API also applies pending migrations itself (under a database lock), so a deploy without
+# the pre-deploy step never serves a schema older than its code.
 ENV APP_ENV=production \
     HTTP_ADDR=:8080 \
     LOG_FORMAT=json \
+    DATABASE_AUTO_MIGRATE=true \
     STORAGE_DRIVER=postgres \
     STORAGE_LOCAL_DIR=/data/storage
 USER app

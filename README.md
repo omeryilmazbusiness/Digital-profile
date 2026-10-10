@@ -141,8 +141,8 @@ regardless. The browser talks to the API on the site's own origin: Next forwards
 ## Database
 
 - Schema changes are SQL migrations in `be/db/migrations`, embedded into the binaries.
-  In development the API applies them on startup (`DATABASE_AUTO_MIGRATE=true`); in production
-  run `cli migrate up` as a release step. `/readyz` reports 503 while the schema does not match
+  The API applies them on startup with `DATABASE_AUTO_MIGRATE=true` (development, and the
+  production image as a safety net); in production also run `cli migrate up` as a release step. `/readyz` reports 503 while the schema does not match
   the version the binary expects.
 - Queries are plain SQL compiled to type-safe Go by sqlc (`make generate`).
 - Integration tests run against real PostgreSQL: `TEST_DATABASE_URL` if set, otherwise a

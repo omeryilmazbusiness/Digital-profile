@@ -106,8 +106,8 @@ type DB struct {
 	MaxConnLifetime time.Duration `env:"MAX_CONN_LIFETIME"  envDefault:"1h"`
 	MaxConnIdleTime time.Duration `env:"MAX_CONN_IDLE_TIME" envDefault:"15m"`
 	ConnectTimeout  time.Duration `env:"CONNECT_TIMEOUT"    envDefault:"5s"`
-	// AutoMigrate applies pending migrations at startup. Intended for development;
-	// production deploys run `cli migrate up` as an explicit release step.
+	// AutoMigrate applies pending migrations at startup. Production deploys also run
+	// `cli migrate up` as a release step; the image enables this as a safety net.
 	AutoMigrate bool `env:"AUTO_MIGRATE" envDefault:"false"`
 }
 
