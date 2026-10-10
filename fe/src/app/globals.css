@@ -548,3 +548,14 @@
     }
   }
 }
+
+/* Arabic is a joined script: letter-spacing pulls its words apart and a synthetic slant
+   distorts them. Unlayered, so these win over the tracking and italic utilities. The display
+   serif is Latin only; Arabic falls through to the system's Arabic face, not to Times. */
+:lang(ar) {
+  letter-spacing: normal;
+  font-style: normal;
+}
+:lang(ar) .font-display {
+  font-family: var(--font-display-serif), var(--font-sans);
+}

@@ -24,6 +24,7 @@ import type {
   SiteCredit,
 } from "@/features/site/content";
 import { Credit } from "@/features/site/credit";
+import { fill, type UiStrings } from "@/i18n/ui";
 import { languageName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -50,18 +51,26 @@ interface ProfileContentProps {
   shareUrl: string;
   /** The studio's signature, set large under the closing call to action. */
   credit?: SiteCredit;
+  ui: UiStrings;
 }
 
 /** Everything below the opening, in reading order. */
-export function ProfileContent({ card, profile, hotel, shareUrl, credit }: ProfileContentProps) {
-  const actions = contactActions(card);
+export function ProfileContent({
+  card,
+  profile,
+  hotel,
+  shareUrl,
+  credit,
+  ui,
+}: ProfileContentProps) {
+  const actions = contactActions(card, ui);
   const whatsapp = actions.find((a) => a.id === "whatsapp")!;
   const save = actions.find((a) => a.id === "save")!;
 
   return (
     <RiseGroup>
       {/* Statement */}
-      <section aria-label="Introduction" className="bg-white py-24 sm:py-36">
+      <section aria-label={ui.introduction} className="bg-white py-24 sm:py-36">
         <div className="mx-auto max-w-4xl px-safe-6">
           <ScrubText
             text={profile.statement}
@@ -71,7 +80,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
       </section>
 
       {/* Figures */}
-      <section aria-label="At a glance" className="bg-white pb-24 sm:pb-36">
+      <section aria-label={ui.atAGlance} className="bg-white pb-24 sm:pb-36">
         <dl className="mx-auto grid max-w-5xl grid-cols-2 gap-x-6 gap-y-12 px-safe-6 md:grid-cols-4">
           {profile.stats.map((stat) => (
             <div
@@ -85,6 +94,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
                   value={stat.value}
                   prefix={stat.prefix}
                   suffix={stat.suffix}
+                  locale={ui.formatLocale}
                   className="mb-3 block font-display text-[2.75rem] leading-none tabular-nums sm:text-6xl"
                 />
               </dd>
@@ -108,7 +118,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
               </p>
             ))}
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="sr-only">Speaks:</span>
+              <span className="sr-only">{ui.speaks}</span>
               {card.languages.map((code) => (
                 <span
                   key={code}
@@ -169,14 +179,14 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
             >
               <DetailRow
                 icon={<Phone aria-hidden />}
-                label="Mobile"
+                label={ui.mobile}
                 value={card.phone.display}
                 href={`tel:${card.phone.e164}`}
                 ltr
               />
               <DetailRow
                 icon={<MessageCircle aria-hidden />}
-                label="WhatsApp"
+                label={ui.whatsapp}
                 value={card.phone.display}
                 href={card.whatsappUrl}
                 external
@@ -184,20 +194,20 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
               />
               <DetailRow
                 icon={<Mail aria-hidden />}
-                label="Email"
+                label={ui.email}
                 value={card.email}
                 href={`mailto:${card.email}`}
               />
               <DetailRow
                 icon={<MapPin aria-hidden />}
-                label="Office"
+                label={ui.office}
                 value={hotel.address}
                 href={hotel.mapUrl}
                 external
               />
               <DetailRow
                 icon={<Languages aria-hidden />}
-                label="Languages"
+                label={ui.languages}
                 value={card.languages.map((code) => languageName(code)).join(" · ")}
               />
             </ul>
@@ -205,7 +215,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
               {...rise}
               className="rounded-[1.75rem] bg-white p-6 ring-1 shadow-lift ring-neutral-950/5 sm:p-8"
             >
-              <OfficeStatus availability={profile.availability} />
+              <OfficeStatus availability={profile.availability} ui={ui} />
             </div>
           </div>
         </div>
@@ -224,7 +234,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
               ...profile.resources.links,
               ...profile.social.map((s): ProfileLink => ({
                 label: s.label,
-                description: `${card.name} on ${s.label}`,
+                description: fill(ui.onNetwork, { name: card.name, network: s.label }),
                 href: s.href,
                 external: true,
               })),
@@ -256,6 +266,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
             url={shareUrl}
             vcardHref={card.vcardHref}
             vcardFileName={`${card.name}.vcf`}
+            ui={ui}
           />
         </div>
       </section>
@@ -289,7 +300,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
               className="flex h-14 w-full pressable items-center justify-center gap-2.5 rounded-full px-8 text-headline text-neutral-950 ring-1 ring-neutral-950/15 hover:bg-neutral-50 sm:w-auto [&_svg]:size-5"
             >
               {save.icon}
-              Save contact
+              {ui.saveContact}
             </a>
           </div>
         </div>
@@ -297,7 +308,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl, credit }: Profi
           <div className="mt-24 flex flex-col items-center gap-6 px-safe-6 sm:mt-32">
             <span {...draw} aria-hidden className="h-px w-16 bg-neutral-300" />
             <div {...rise}>
-              <Credit credit={credit} size="lg" />
+              <Credit credit={credit} ui={ui} size="lg" />
             </div>
           </div>
         )}

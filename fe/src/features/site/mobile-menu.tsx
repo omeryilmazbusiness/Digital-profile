@@ -10,9 +10,11 @@ import { AnchorLink } from "@/components/scroll/anchor-link";
 import { useScrollLock } from "@/components/scroll/smooth-scroll-provider";
 import { Button } from "@/components/ui/button";
 import { Entrance } from "@/components/ui/motion";
+import { fill, type UiStrings } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 import type { NavItem } from "./content";
+import { LanguageSwitch } from "./language-switch";
 import { Wordmark } from "./wordmark";
 
 export interface QuickAction {
@@ -30,11 +32,12 @@ export interface MobileMenuProps {
   nav: readonly NavItem[];
   /** Contact shortcuts at the foot of the menu. */
   quickActions: readonly QuickAction[];
+  ui: UiStrings;
   className?: string;
 }
 
 /** Full-screen navigation for phones, opened from a two-line menu button. */
-export function MobileMenu({ hotelName, home, nav, quickActions, className }: MobileMenuProps) {
+export function MobileMenu({ hotelName, home, nav, quickActions, ui, className }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
   const pathname = usePathname();
@@ -43,7 +46,7 @@ export function MobileMenu({ hotelName, home, nav, quickActions, className }: Mo
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
-        aria-label="Open menu"
+        aria-label={ui.openMenu}
         className={cn("-me-2.5 grid size-11 pressable place-items-center rounded-full", className)}
       >
         <span aria-hidden className="flex w-5 flex-col gap-1.5">
@@ -59,20 +62,24 @@ export function MobileMenu({ hotelName, home, nav, quickActions, className }: Mo
             "data-[state=closed]:animate-fade-out data-[state=open]:animate-fade-in",
           )}
         >
-          <Dialog.Title className="sr-only">Menu</Dialog.Title>
+          <Dialog.Title className="sr-only">{ui.menu}</Dialog.Title>
           <div className="flex h-14 items-center justify-between px-safe-5">
-            <AnchorLink href={home} onNavigate={close} aria-label={`${hotelName} — home`}>
+            <AnchorLink
+              href={home}
+              onNavigate={close}
+              aria-label={fill(ui.homeLink, { hotel: hotelName })}
+            >
               <Wordmark name={hotelName} />
             </AnchorLink>
             <Dialog.Close
-              aria-label="Close menu"
+              aria-label={ui.closeMenu}
               className="-me-2.5 grid size-11 pressable place-items-center rounded-full"
             >
               <X aria-hidden className="size-6" strokeWidth={1.5} />
             </Dialog.Close>
           </div>
 
-          <nav aria-label="Main" className="flex-1 overflow-y-auto px-safe-6 pt-10">
+          <nav aria-label={ui.mainNav} className="flex-1 overflow-y-auto px-safe-6 pt-10">
             <ul className="flex flex-col gap-1">
               {nav.map((item, i) => (
                 <li key={item.href}>
@@ -133,6 +140,10 @@ export function MobileMenu({ hotelName, home, nav, quickActions, className }: Mo
                 </Button>
               ))}
             </div>
+            <LanguageSwitch
+              label={ui.language}
+              className="mt-5 justify-center text-subheadline font-medium text-label-secondary"
+            />
           </Entrance>
         </Dialog.Content>
       </Dialog.Portal>

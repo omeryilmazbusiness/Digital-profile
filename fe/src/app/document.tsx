@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Toaster } from "@/components/ui/toast";
 import { defaultLocale, directionOf, type Locale } from "@/i18n/locales";
+import type { UiStrings } from "@/i18n/ui";
 import { siteUrl } from "@/lib/site-url";
 
 import "./globals.css";
@@ -29,16 +30,18 @@ export const viewport: Viewport = {
 /** The html document, in the language (and so the direction) of what it shows. */
 export function Document({
   lang = defaultLocale,
+  ui,
   children,
 }: {
   lang?: Locale;
+  ui?: Pick<UiStrings, "notifications">;
   children: ReactNode;
 }) {
   return (
     <html lang={lang} dir={directionOf(lang)}>
       <body className="min-h-dvh antialiased">
         {children}
-        <Toaster />
+        <Toaster label={ui?.notifications} />
       </body>
     </html>
   );

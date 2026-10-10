@@ -82,13 +82,13 @@ test("lays out every part of the card", async () => {
   );
 });
 
-test("writes the name white across the suit and black at its ends", async () => {
+test("writes the first line of the name white, over the suit, and the family name black", async () => {
   const { container } = render(await ProfilePage(props));
   const fills = [...container.querySelectorAll("[data-name] path")].map((p) =>
     p.getAttribute("fill") === "#fff" ? "w" : "b",
   );
-  // M · o m e n T a w f i · q, then Alkiswani.
-  expect(fills.join("")).toBe(`b${"w".repeat(9)}b${"b".repeat(9)}`);
+  // Momen Tawfiq, then Alkiswani.
+  expect(fills.join("")).toBe(`${"w".repeat(11)}${"b".repeat(9)}`);
 });
 
 test("describes the person for search engines", async () => {
@@ -130,4 +130,38 @@ test("links every page of the card in the language it is read in", async () => {
     "/sheraton/ar#tour",
     "/sheraton/ar/momen",
   ]);
+});
+
+test("reads in Arabic at /ar, and in English where there's no translation yet", async () => {
+  const ar = await getSiteContent("ar");
+  expect(ar.locale).toBe("ar");
+  expect(ar.contact.profile.name).toBe("مؤمن توفيق الكسواني");
+  expect(ar.ui.saveContact).toBe("حفظ جهة الاتصال");
+
+  const id = await getSiteContent("id");
+  expect(id.locale).toBe("en");
+  expect(id.ui.saveContact).toBe("Save contact");
+  expect(id.contact.profile.href).toBe("/sheraton/id/momen");
+});
+
+test("writes the Arabic name with its first line white", async () => {
+  const { container } = render(
+    await ProfilePage({ params: Promise.resolve({ locale: "ar" }) } as typeof props),
+  );
+  expect(
+    screen.getByRole("heading", { level: 2, name: "مؤمن توفيق الكسواني" }),
+  ).toBeInTheDocument();
+  const fills = [...container.querySelectorAll("[data-name] path")]
+    .map((p) => (p.getAttribute("fill") === "#fff" ? "w" : "b"))
+    .join("");
+  expect(fills).toMatch(/^w+b+$/);
+});
+
+test("serves the Arabic contact card", async () => {
+  const response = await GET(new Request("https://example.com"), {
+    params: Promise.resolve({ locale: "ar" }),
+  });
+  const body = (await response.text()).replace(/\r\n /g, "");
+  expect(body).toContain("FN:مؤمن توفيق الكسواني\r\n");
+  expect(response.headers.get("content-disposition")).toContain("filename*=UTF-8''");
 });

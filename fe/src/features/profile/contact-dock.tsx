@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 
 import type { ContactProfile } from "@/features/site/content";
+import { fill, type UiStrings } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 import { actionLinkProps, contactActions } from "./contact-actions";
 
 interface ContactDockProps {
   profile: ContactProfile;
+  ui: UiStrings;
   /** Shown once this element has scrolled above the viewport… */
   afterId: string;
   /** …and hidden again while this one is on screen. */
@@ -19,11 +21,11 @@ interface ContactDockProps {
  * A slim black capsule floating above the home indicator while the visitor reads the card:
  * who it is, and call, WhatsApp and save a thumb away.
  */
-export function ContactDock({ profile, afterId, hideWhileId }: ContactDockProps) {
+export function ContactDock({ profile, ui, afterId, hideWhileId }: ContactDockProps) {
   const [past, setPast] = useState(false);
   const [hidden, setHidden] = useState(false);
   const visible = past && !hidden;
-  const actions = contactActions(profile).filter((a) => a.id !== "email");
+  const actions = contactActions(profile, ui).filter((a) => a.id !== "email");
 
   useEffect(() => {
     const after = document.getElementById(afterId);
@@ -52,7 +54,7 @@ export function ContactDock({ profile, afterId, hideWhileId }: ContactDockProps)
       )}
     >
       <nav
-        aria-label={`Contact ${profile.name}`}
+        aria-label={fill(ui.contactName, { name: profile.name })}
         className="pointer-events-auto flex items-center gap-1 rounded-full bg-neutral-950 p-1 text-white shadow-[0_18px_40px_-14px_rgb(0_0_0/0.55),0_0_0_0.5px_rgb(255_255_255/0.12)_inset]"
       >
         {profile.portrait && (

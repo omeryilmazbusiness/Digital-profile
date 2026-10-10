@@ -1,3 +1,4 @@
+import type { UiStrings } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 import type { SiteCredit } from "./content";
@@ -18,11 +19,13 @@ const sizes = {
  */
 export function Credit({
   credit,
+  ui,
   tone = "dark",
   size = "sm",
   className,
 }: {
   credit: SiteCredit | undefined;
+  ui: Pick<UiStrings, "opensInNewTab">;
   tone?: keyof typeof tones;
   size?: keyof typeof sizes;
   className?: string;
@@ -46,7 +49,7 @@ export function Credit({
       <span data-name className="font-medium tracking-[0.22em] transition-colors duration-500">
         {credit.name}
       </span>{" "}
-      <span className="sr-only">(opens in a new tab)</span>
+      <span className="sr-only">{ui.opensInNewTab}</span>
     </a>
   );
 }

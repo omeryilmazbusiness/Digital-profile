@@ -2,6 +2,8 @@ import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, test, vi } from "vitest";
 
+import { uiStrings } from "@/i18n/ui";
+
 import type { NavItem } from "./content";
 import { SiteHeader } from "./site-header";
 
@@ -20,6 +22,7 @@ function renderHeader() {
         nav={nav}
         cta={nav[1]!}
         quickActions={[{ label: "Call", href: "tel:+966500000000", icon: null }]}
+        ui={uiStrings("en")}
       />
       <section id="discover">Discover</section>
     </>,

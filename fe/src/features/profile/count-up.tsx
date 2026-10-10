@@ -5,12 +5,12 @@ import { useRef } from "react";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { gsap, useGSAP } from "@/lib/gsap";
 
-const number = new Intl.NumberFormat("en-US");
-
 interface CountUpProps {
   value: number;
   prefix?: string;
   suffix?: string;
+  /** Locale the digits are grouped for. */
+  locale?: string;
   className?: string;
 }
 
@@ -19,7 +19,14 @@ interface CountUpProps {
  * suffix ("<", "+", "h") are set small beside it. Assistive technology reads the final
  * figure only.
  */
-export function CountUp({ value, prefix = "", suffix = "", className }: CountUpProps) {
+export function CountUp({
+  value,
+  prefix = "",
+  suffix = "",
+  locale = "en",
+  className,
+}: CountUpProps) {
+  const number = new Intl.NumberFormat(locale);
   const digits = useRef<HTMLSpanElement>(null);
   const reducedMotion = useReducedMotion();
 
@@ -43,7 +50,7 @@ export function CountUp({ value, prefix = "", suffix = "", className }: CountUpP
         el.textContent = number.format(value);
       };
     },
-    { dependencies: [reducedMotion, value], revertOnUpdate: true },
+    { dependencies: [reducedMotion, value, locale], revertOnUpdate: true },
   );
 
   const affix =

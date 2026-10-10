@@ -16,14 +16,14 @@ export { generateStaticParams } from "./locale";
  * storytelling, in a document marked with the language the content is actually in.
  */
 export default async function SiteLayout({ children, params }: LayoutProps<"/sheraton/[locale]">) {
-  const { locale, home, hotel, nav, footer, contact } = await getSiteContent(
+  const { locale, home, hotel, nav, footer, contact, ui } = await getSiteContent(
     await localeOf(params),
   );
   const { profile } = contact;
   const cta = nav.find((item) => item.href === profile.href) ?? nav[nav.length - 1]!;
 
   return (
-    <Document lang={locale}>
+    <Document lang={locale} ui={ui}>
       <SmoothScrollProvider>
         <SiteHeader
           hotelName={hotel.name}
@@ -32,16 +32,17 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/she
           cta={cta}
           quickActions={[
             {
-              label: "WhatsApp",
+              label: ui.whatsapp,
               href: profile.whatsappUrl,
               icon: <MessageCircle aria-hidden />,
               external: true,
             },
-            { label: "Call", href: `tel:${profile.phone.e164}`, icon: <Phone aria-hidden /> },
+            { label: ui.call, href: `tel:${profile.phone.e164}`, icon: <Phone aria-hidden /> },
           ]}
+          ui={ui}
         />
         {children}
-        <SiteFooter hotel={hotel} nav={nav} footer={footer} profile={profile} />
+        <SiteFooter hotel={hotel} nav={nav} footer={footer} profile={profile} ui={ui} />
       </SmoothScrollProvider>
     </Document>
   );

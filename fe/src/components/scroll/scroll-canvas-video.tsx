@@ -36,6 +36,8 @@ export interface ScrollCanvasVideoProps {
   scenes: readonly Scene[];
   /** Describes the footage for screen readers. */
   label: string;
+  /** Names the preload progress bar. */
+  loadingLabel?: string;
   /** Scroll distance the sequence plays over, in viewport heights. */
   length?: number;
   /** Seconds the playhead takes to catch up with the scrollbar; true follows it exactly. */
@@ -83,6 +85,7 @@ function ScrubbedSequence({
   sequence,
   scenes,
   label,
+  loadingLabel,
   length = 4,
   scrub = 0.5,
   focus,
@@ -215,7 +218,11 @@ function ScrubbedSequence({
       </section>
       {/* The scroll distance; a sticky element only travels within its parent's content. */}
       <div aria-hidden className="h-(--track)" />
-      <FrameLoader progress={loadingProgress} done={ready || (active && openedBelow)} />
+      <FrameLoader
+        progress={loadingProgress}
+        done={ready || (active && openedBelow)}
+        label={loadingLabel}
+      />
     </div>
   );
 }

@@ -4,16 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Reveal } from "@/components/ui/motion";
 import { frameUrl, type FrameSequence } from "@/lib/frame-sequence";
 
+import type { UiStrings } from "@/i18n/ui";
+
 import type { VirtualTour } from "./content";
 
 interface TourSectionProps {
   tour: VirtualTour;
+  ui: UiStrings;
   /** Footage the backdrop is taken from, and which frame. */
   backdrop: { sequence: FrameSequence; frame: number; alt: string };
 }
 
 /** The 360° tour: a full-bleed still with a slow drift, and the link out to the tour. */
-export function TourSection({ tour, backdrop }: TourSectionProps) {
+export function TourSection({ tour, ui, backdrop }: TourSectionProps) {
   const { sequence, frame, alt } = backdrop;
   return (
     <section
@@ -62,7 +65,7 @@ export function TourSection({ tour, backdrop }: TourSectionProps) {
                 <ArrowUpRight aria-hidden />
               </a>
             </Button>
-            <p className="text-caption-1 text-white/55">Opens in a new tab</p>
+            <p className="text-caption-1 text-white/55">{ui.opensInNewTabShort}</p>
           </div>
         </Reveal>
       </div>

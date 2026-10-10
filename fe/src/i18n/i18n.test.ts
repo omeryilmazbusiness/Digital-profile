@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { directionOf } from "./locales";
 import { negotiateLocale } from "./negotiate";
 import { localeOfPath, localizeHref } from "./routing";
+import { fill, pageCount, uiStrings } from "./ui";
 
 test("puts site links under /sheraton/<locale>", () => {
   expect(localizeHref("en", "/")).toBe("/sheraton/en");
@@ -30,4 +31,15 @@ test("opens in the remembered language, else the browser's best match, else Engl
 test("writes Arabic right to left", () => {
   expect(directionOf("ar")).toBe("rtl");
   expect(directionOf("id")).toBe("ltr");
+});
+
+test("fills placeholders and counts pages the way each language does", () => {
+  expect(fill("Call {name}", { name: "Momen" })).toBe("Call Momen");
+  expect(pageCount(uiStrings("en"), 1)).toBe("1 page");
+  expect(pageCount(uiStrings("en"), 8)).toBe("8 pages");
+  expect(pageCount(uiStrings("ar"), 2)).toBe("صفحتان");
+  expect(pageCount(uiStrings("ar"), 8)).toBe("8 صفحات");
+  expect(pageCount(uiStrings("ar"), 12)).toBe("12 صفحة");
+  // Not translated yet: the interface reads in English.
+  expect(uiStrings("id")).toBe(uiStrings("en"));
 });

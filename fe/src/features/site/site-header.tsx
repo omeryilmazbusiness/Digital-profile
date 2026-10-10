@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 
 import { AnchorLink } from "@/components/scroll/anchor-link";
 import { Button } from "@/components/ui/button";
+import { fill } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 import type { NavItem } from "./content";
+import { LanguageSwitch } from "./language-switch";
 import { MobileMenu, type MobileMenuProps } from "./mobile-menu";
 import { Wordmark } from "./wordmark";
 
@@ -20,7 +22,7 @@ interface SiteHeaderProps extends Omit<MobileMenuProps, "className"> {
  * Fixed top bar. Transparent with light text over the opening footage, frosted glass over
  * the content. Links on wider screens; a full-screen menu on phones.
  */
-export function SiteHeader({ hotelName, home, nav, cta, quickActions }: SiteHeaderProps) {
+export function SiteHeader({ hotelName, home, nav, cta, quickActions, ui }: SiteHeaderProps) {
   const overHero = useOverHero(home);
   const pathname = usePathname();
   const links = nav.filter((item) => item.href !== cta.href);
@@ -37,14 +39,18 @@ export function SiteHeader({ hotelName, home, nav, cta, quickActions }: SiteHead
         href="#main"
         className="sr-only rounded-full bg-bg px-4 py-2 text-label focus:not-sr-only focus:absolute focus:start-4 focus:top-[calc(env(safe-area-inset-top,0px)+0.5rem)]"
       >
-        Skip to content
+        {ui.skipToContent}
       </a>
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-6 px-safe-5">
-        <AnchorLink href={home} aria-label={`${hotelName} — home`} className="py-2">
+        <AnchorLink
+          href={home}
+          aria-label={fill(ui.homeLink, { hotel: hotelName })}
+          className="py-2"
+        >
           <Wordmark name={hotelName} />
         </AnchorLink>
 
-        <nav aria-label="Main" className="hidden md:block">
+        <nav aria-label={ui.mainNav} className="hidden md:block">
           <ul className="flex items-center gap-9">
             {links.map((item) => (
               <li key={item.href}>
@@ -64,6 +70,10 @@ export function SiteHeader({ hotelName, home, nav, cta, quickActions }: SiteHead
         </nav>
 
         <div className="flex items-center gap-2">
+          <LanguageSwitch
+            label={ui.language}
+            className="me-3 hidden text-subheadline font-medium opacity-80 transition-opacity hover:opacity-100 md:flex"
+          />
           <Button
             asChild
             size="sm"
@@ -87,6 +97,7 @@ export function SiteHeader({ hotelName, home, nav, cta, quickActions }: SiteHead
             home={home}
             nav={nav}
             quickActions={quickActions}
+            ui={ui}
             className="md:hidden"
           />
         </div>

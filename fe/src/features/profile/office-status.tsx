@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 
 import type { Availability } from "@/features/site/content";
+import type { UiStrings } from "@/i18n/ui";
 import { isOpen, zonedClock } from "@/lib/availability";
 import { cn } from "@/lib/utils";
 
@@ -17,7 +18,7 @@ const currentMinute = () => Math.floor(Date.now() / 60_000);
  * The office's local time and whether it's open now, live. Rendered on the client only: the
  * server can't know the visitor's moment, so it shows the hours without a status.
  */
-export function OfficeStatus({ availability }: { availability: Availability }) {
+export function OfficeStatus({ availability, ui }: { availability: Availability; ui: UiStrings }) {
   const minute = useSyncExternalStore(subscribe, currentMinute, () => null);
   const now = minute === null ? null : new Date(minute * 60_000);
   const open = now !== null && isOpen(now, availability);
@@ -27,7 +28,7 @@ export function OfficeStatus({ availability }: { availability: Availability }) {
       <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
         <div>
           <p className="text-caption-2 font-semibold tracking-[0.24em] whitespace-nowrap text-neutral-500 uppercase">
-            Local time · {availability.place}
+            {ui.localTime} · {availability.place}
           </p>
           <p className="mt-2 font-display text-6xl leading-none tabular-nums">
             {now ? zonedClock(now, availability.timeZone).time : "--:--"}
@@ -51,7 +52,7 @@ export function OfficeStatus({ availability }: { availability: Availability }) {
               )}
             />
           </span>
-          {open ? "Available now" : "Outside office hours"}
+          {open ? ui.availableNow : ui.outsideHours}
         </p>
       </div>
       <div className="border-t border-neutral-200 pt-5 text-subheadline text-neutral-600">

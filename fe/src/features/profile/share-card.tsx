@@ -5,6 +5,7 @@ import { useSyncExternalStore } from "react";
 import { encode } from "uqr";
 
 import { toast } from "@/components/ui/toast";
+import { fill, type UiStrings } from "@/i18n/ui";
 import { cn } from "@/lib/utils";
 
 interface ShareCardProps {
@@ -13,13 +14,14 @@ interface ShareCardProps {
   url: string;
   vcardHref: string;
   vcardFileName: string;
+  ui: UiStrings;
   className?: string;
 }
 
 const noSubscribe = () => () => {};
 
 /** QR code of the card's link, plus share and save buttons. */
-export function ShareCard({ title, url, vcardHref, vcardFileName, className }: ShareCardProps) {
+export function ShareCard({ title, url, vcardHref, vcardFileName, ui, className }: ShareCardProps) {
   // A path needs the browser's origin; the code appears once it's known.
   const href = useSyncExternalStore(
     noSubscribe,
@@ -33,18 +35,18 @@ export function ShareCard({ title, url, vcardHref, vcardFileName, className }: S
       try {
         await navigator.share({ title, url: href });
       } catch (error) {
-        if ((error as DOMException).name !== "AbortError") await copy(href);
+        if ((error as DOMException).name !== "AbortError") await copy(href, ui);
       }
       return;
     }
-    await copy(href);
+    await copy(href, ui);
   }
 
   return (
     <div className={cn("flex flex-col items-center gap-8 sm:flex-row sm:gap-10", className)}>
       <div className="shrink-0 rounded-[1.75rem] bg-white p-3.5 shadow-[0_30px_60px_-20px_rgb(0_0_0/0.6)]">
         {href ? (
-          <QrCode value={href} label={`QR code for ${href}`} />
+          <QrCode value={href} label={fill(ui.qrFor, { url: href })} />
         ) : (
           <div className="size-40 animate-pulse rounded-xl bg-neutral-100" />
         )}
@@ -57,7 +59,7 @@ export function ShareCard({ title, url, vcardHref, vcardFileName, className }: S
           className="flex h-13 pressable items-center justify-center gap-2.5 rounded-full bg-white px-7 text-headline text-neutral-950 disabled:opacity-50"
         >
           <Share aria-hidden className="size-5" />
-          Share this card
+          {ui.shareCard}
         </button>
         <a
           href={vcardHref}
@@ -65,19 +67,19 @@ export function ShareCard({ title, url, vcardHref, vcardFileName, className }: S
           className="flex h-13 pressable items-center justify-center gap-2.5 rounded-full px-7 text-headline text-white ring-1 ring-white/25 hover:bg-white/5"
         >
           <UserPlus aria-hidden className="size-5" />
-          Save business card
+          {ui.saveBusinessCard}
         </a>
       </div>
     </div>
   );
 }
 
-async function copy(href: string) {
+async function copy(href: string, ui: UiStrings) {
   try {
     await navigator.clipboard.writeText(href);
-    toast.success("Link copied");
+    toast.success(ui.linkCopied);
   } catch {
-    toast.error("Couldn't copy the link", { description: href });
+    toast.error(ui.copyFailed, { description: href });
   }
 }
 

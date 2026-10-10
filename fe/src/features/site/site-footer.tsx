@@ -2,15 +2,16 @@ import { AnchorLink } from "@/components/scroll/anchor-link";
 
 import type { SiteContent } from "./content";
 import { Credit } from "./credit";
+import { LanguageSwitch } from "./language-switch";
 import { Wordmark } from "./wordmark";
 
-type SiteFooterProps = Pick<SiteContent, "hotel" | "nav" | "footer"> & {
+type SiteFooterProps = Pick<SiteContent, "hotel" | "nav" | "footer" | "ui"> & {
   profile: SiteContent["contact"]["profile"];
 };
 
 const linkClass = "py-1 text-label-secondary transition-colors hover:text-label";
 
-export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
+export function SiteFooter({ hotel, nav, footer, profile, ui }: SiteFooterProps) {
   return (
     <footer className="border-t-[0.5px] border-separator bg-bg-secondary pt-16 pb-safe-10 md:pt-20">
       <div className="mx-auto grid max-w-6xl gap-12 px-safe-5 sm:grid-cols-2 md:grid-cols-[1.6fr_1fr_1fr]">
@@ -32,7 +33,7 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
             id="footer-explore"
             className="text-caption-1 font-semibold tracking-[0.2em] text-label-secondary uppercase"
           >
-            Explore
+            {ui.explore}
           </h2>
           <ul className="mt-4 flex flex-col gap-2 text-subheadline">
             {nav.map((item) => (
@@ -47,7 +48,7 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
 
         <div>
           <h2 className="text-caption-1 font-semibold tracking-[0.2em] text-label-secondary uppercase">
-            Contact
+            {ui.contact}
           </h2>
           <ul className="mt-4 flex flex-col gap-2 text-subheadline">
             <li>
@@ -67,15 +68,19 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
                 rel="noopener noreferrer"
                 className={linkClass}
               >
-                WhatsApp
+                {ui.whatsapp}
               </a>
             </li>
             <li>
               <a href={profile.vcardHref} download className={linkClass}>
-                Save contact
+                {ui.saveContact}
               </a>
             </li>
           </ul>
+          <LanguageSwitch
+            label={ui.language}
+            className="mt-6 text-subheadline [&_a]:py-1 [&_a]:text-label-secondary [&_a]:transition-colors [&_a:hover]:text-label"
+          />
         </div>
       </div>
 
@@ -84,6 +89,7 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
         <p className="md:text-center">{footer.privacy}</p>
         <Credit
           credit={footer.credit}
+          ui={ui}
           className="text-label-secondary hover:text-label [&_[data-name]]:text-label"
         />
       </div>

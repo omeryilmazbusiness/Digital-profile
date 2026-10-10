@@ -211,10 +211,13 @@ to the visitor's language (`fe/src/proxy.ts`): the `locale` cookie — set on ev
 the browser's `Accept-Language`, then English. Any other language is a 404.
 
 Content links are written without a language (`"/"`, `"/#tour"`, `"/momen"`) and
-`getSiteContent(locale)` puts them under the page's. Until translations exist every language shows
-the English text, as the API will (fallback en → id → ar); `<html lang dir>` follows the language
-actually shown, so Arabic switches to right-to-left once its text arrives. Each page lists its
-other languages for search engines (hreflang).
+`getSiteContent(locale)` puts them under the page's. The site is translated into English and
+Arabic: the content (`mock-content.ts`, `mock-content.ar.ts`) and the interface's own words —
+buttons, labels, announcements (`fe/src/i18n/ui.ts`). Indonesian shows the English text until its
+translation exists, as the API will (fallback en → id → ar). `<html lang dir>` follows the language
+actually shown, so `/sheraton/ar` reads right to left; Arabic text is never letter-spaced or
+slanted (`globals.css`). The header, phone menu and footer link to the page in the other
+language, and each page lists its other languages for search engines (hreflang).
 
 ### Profile (`/sheraton/<locale>/momen`)
 
@@ -229,8 +232,8 @@ its PDF cards follow one by one (`RiseGroup` in `fe/src/components/scroll/rise.t
 the card); with reduced motion everything is simply there.
 
 On the card, the portrait settles in on white and his name writes itself beneath it in Inter SemiBold, a plain
-business sans, as you scroll ("omen Tawfi", over the suit, in white — the `accent`
-of its manifest in `generate-signature.mjs`); then the actions, figures, services, contact details with
+business sans (IBM Plex Sans Arabic in Arabic), as you scroll ("Momen Tawfiq", over the suit, in
+white — the `accent` of its manifest in `generate-signature.mjs`); then the actions, figures, services, contact details with
 live office hours, a QR share card and a closing call to action follow. `.../momen/vcard` serves the
 contact card with the photo embedded. The figures, hours and LinkedIn link in `mock-content.ts` are
 placeholders.

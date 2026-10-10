@@ -2,6 +2,7 @@ import { Mail, MessageCircle, Phone, UserPlus } from "lucide-react";
 import type * as React from "react";
 
 import type { ContactProfile } from "@/features/site/content";
+import { fill, type UiStrings } from "@/i18n/ui";
 
 export interface ContactAction {
   id: "call" | "whatsapp" | "email" | "save";
@@ -16,34 +17,35 @@ export interface ContactAction {
 }
 
 /** The four ways to reach the profile's owner, in the order they're offered. */
-export function contactActions(profile: ContactProfile): ContactAction[] {
+export function contactActions(profile: ContactProfile, ui: UiStrings): ContactAction[] {
+  const name = { name: profile.name };
   return [
     {
       id: "call",
-      label: "Call",
-      description: `Call ${profile.name}`,
+      label: ui.call,
+      description: fill(ui.callName, name),
       href: `tel:${profile.phone.e164}`,
       icon: <Phone aria-hidden />,
     },
     {
       id: "whatsapp",
-      label: "WhatsApp",
-      description: `Message ${profile.name} on WhatsApp (opens WhatsApp)`,
+      label: ui.whatsapp,
+      description: fill(ui.messageName, name),
       href: profile.whatsappUrl,
       icon: <MessageCircle aria-hidden />,
       external: true,
     },
     {
       id: "email",
-      label: "Email",
-      description: `Email ${profile.name}`,
+      label: ui.email,
+      description: fill(ui.emailName, name),
       href: `mailto:${profile.email}`,
       icon: <Mail aria-hidden />,
     },
     {
       id: "save",
-      label: "Save",
-      description: `Save ${profile.name} to your contacts`,
+      label: ui.save,
+      description: fill(ui.saveName, name),
       href: profile.vcardHref,
       icon: <UserPlus aria-hidden />,
       download: `${profile.name}.vcf`,

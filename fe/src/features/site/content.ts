@@ -1,7 +1,9 @@
 import { defaultLocale, type Locale } from "@/i18n/locales";
 import { localizeHref } from "@/i18n/routing";
+import { type UiStrings, uiStrings } from "@/i18n/ui";
 
 import { mockSiteContent } from "./mock-content";
+import { mockSiteContentAr } from "./mock-content.ar";
 
 /** Languages the site and its documents are published in. */
 export type ContentLanguage = Locale;
@@ -42,6 +44,16 @@ export interface ContentSection {
   title: string;
   body: string;
   documents: readonly SiteDocument[];
+}
+
+/** The opening film: the line under the hotel's name and the two scenes that follow. */
+export interface HomeHero {
+  lead: string;
+  /** What the film shows, for assistive technology. */
+  film: string;
+  /** The tour's backdrop, a still of the lobby. */
+  lobbyAlt: string;
+  scenes: readonly { eyebrow: string; title: string; body: string }[];
 }
 
 export interface VirtualTour {
@@ -125,7 +137,6 @@ export interface DigitalProfile {
   statement: string;
   stats: readonly ProfileStat[];
   about: { eyebrow: string; title: string; paragraphs: readonly string[] };
-  /** The contact's résumé, as a PDF. */
   services: { eyebrow: string; title: string; items: readonly ProfileService[] };
   reach: { eyebrow: string; title: string };
   availability: Availability;
@@ -148,6 +159,7 @@ export interface SiteContent {
     mapUrl: string;
   };
   nav: readonly NavItem[];
+  hero: HomeHero;
   discover: { eyebrow: string; title: string; body: string; note: string };
   sections: readonly ContentSection[];
   tour: VirtualTour;
@@ -159,6 +171,8 @@ export interface SiteContent {
     /** The studio's signature; left out when the site turns it off (SET-02). */
     credit?: SiteCredit;
   };
+  /** The interface's own words, in the same language. */
+  ui: UiStrings;
 }
 
 /** "by widdigroup.com": a short lead-in and the studio's name, linking to its site. */
@@ -170,12 +184,19 @@ export interface SiteCredit {
 
 /**
  * Everything the public page shows in `locale`, its links pointing at that language's pages.
- * Mock data (English only) for now; it becomes the single `GET /public/site?locale=` request
- * (SET-03), which falls back to English the same way, so components don't change when it does.
+ * Mock data (English and Arabic) for now; it becomes the single `GET /public/site?locale=`
+ * request (SET-03), which falls back to English the same way, so components don't change when
+ * it does.
  */
 export async function getSiteContent(locale: Locale = defaultLocale): Promise<SiteContent> {
-  return localizeLinks(mockSiteContent, locale);
+  const content = mockContent[locale] ?? mockSiteContent;
+  return localizeLinks({ ...content, ui: uiStrings(content.locale) }, locale);
 }
+
+const mockContent: Partial<Record<Locale, Omit<SiteContent, "ui">>> = {
+  en: mockSiteContent,
+  ar: mockSiteContentAr,
+};
 
 function localizeLinks(content: SiteContent, locale: Locale): SiteContent {
   const href = (path: SiteHref) => localizeHref(locale, path);

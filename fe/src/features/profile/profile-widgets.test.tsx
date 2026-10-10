@@ -4,6 +4,7 @@ import { afterEach, expect, test, vi } from "vitest";
 
 import { Toaster } from "@/components/ui/toast";
 import { mockSiteContent } from "@/features/site/mock-content";
+import { uiStrings } from "@/i18n/ui";
 
 import { CountUp } from "./count-up";
 import { OfficeStatus } from "./office-status";
@@ -15,12 +16,13 @@ afterEach(() => {
 });
 
 const { availability } = mockSiteContent.profile;
+const ui = uiStrings("en");
 
 test("shows the office's local time and that it's open", () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   // 07:15 UTC on Sunday = 10:15 in Makkah.
   vi.setSystemTime(new Date("2026-10-11T07:15:00Z"));
-  render(<OfficeStatus availability={availability} />);
+  render(<OfficeStatus availability={availability} ui={ui} />);
   expect(screen.getByText("10:15")).toBeInTheDocument();
   expect(screen.getByText("Available now")).toBeInTheDocument();
 });
@@ -29,7 +31,7 @@ test("says when the office is closed", () => {
   vi.useFakeTimers({ toFake: ["Date"] });
   // Friday.
   vi.setSystemTime(new Date("2026-10-16T09:00:00Z"));
-  render(<OfficeStatus availability={availability} />);
+  render(<OfficeStatus availability={availability} ui={ui} />);
   expect(screen.getByText("Outside office hours")).toBeInTheDocument();
 });
 
@@ -39,7 +41,13 @@ test("draws a QR code of the card's address and copies the link where sharing is
   const writeText = vi.spyOn(navigator.clipboard, "writeText");
   render(
     <>
-      <ShareCard title="Momen" url="/momen" vcardHref="/momen/vcard" vcardFileName="Momen.vcf" />
+      <ShareCard
+        title="Momen"
+        url="/momen"
+        vcardHref="/momen/vcard"
+        vcardFileName="Momen.vcf"
+        ui={ui}
+      />
       <Toaster />
     </>,
   );
@@ -65,6 +73,7 @@ test("uses the system share sheet when there is one", async () => {
       url="https://example.com/momen"
       vcardHref="/momen/vcard"
       vcardFileName="Momen.vcf"
+      ui={ui}
     />,
   );
   await user.click(screen.getByRole("button", { name: "Share this card" }));

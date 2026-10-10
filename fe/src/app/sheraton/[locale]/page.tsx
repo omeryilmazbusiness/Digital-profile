@@ -9,8 +9,12 @@ import { localeOf } from "./locale";
 export async function generateMetadata({
   params,
 }: PageProps<"/sheraton/[locale]">): Promise<Metadata> {
-  const { home } = await getSiteContent(await localeOf(params));
-  return { alternates: { canonical: home, languages: languageAlternates("/") } };
+  const { home, hotel, footer } = await getSiteContent(await localeOf(params));
+  return {
+    title: hotel.name,
+    description: footer.tagline,
+    alternates: { canonical: home, languages: languageAlternates("/") },
+  };
 }
 
 export default async function Home({ params }: PageProps<"/sheraton/[locale]">) {

@@ -3,9 +3,9 @@ import type { SiteContent, SiteDocument } from "./content";
 // Placeholder content until the CMS and the approved PDFs arrive (DLV-01). Contact details are
 // fictitious on purpose: nothing here may reach production as real information.
 
-const SAMPLE_PDF = "/mock/sample.pdf";
+export const SAMPLE_PDF = "/mock/sample.pdf";
 
-function doc(
+export function doc(
   id: string,
   title: string,
   language: SiteDocument["language"],
@@ -25,7 +25,7 @@ function doc(
   };
 }
 
-export const mockSiteContent: SiteContent = {
+export const mockSiteContent: Omit<SiteContent, "ui"> = {
   locale: "en",
   home: "/",
   hotel: {
@@ -49,6 +49,23 @@ export const mockSiteContent: SiteContent = {
       caption: "Profile",
     },
   ],
+  hero: {
+    lead: "Moments from Masjid al-Haram. Scroll to step inside.",
+    film: "Walking from the entrance of Sheraton Makkah Jabal Al Kaaba into its lobby",
+    lobbyAlt: "The lobby of Sheraton Makkah Jabal Al Kaaba",
+    scenes: [
+      {
+        eyebrow: "For travel partners",
+        title: "Every pilgrim, received with care",
+        body: "Dedicated support for Umrah and Hajj groups — from the first enquiry to the final farewell.",
+      },
+      {
+        eyebrow: "Inside",
+        title: "A calm arrival after a long journey",
+        body: "Smooth group check-in, multilingual service and one point of contact for every booking.",
+      },
+    ],
+  },
   discover: {
     eyebrow: "Discover",
     title: "Everything your agency needs, in one place",

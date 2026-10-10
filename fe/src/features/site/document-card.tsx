@@ -1,6 +1,7 @@
 import { ArrowDownToLine, ArrowUpRight } from "lucide-react";
 import type * as React from "react";
 
+import { fill, pageCount, type UiStrings } from "@/i18n/ui";
 import { formatFileSize, formatMonthYear, languageName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -12,9 +13,10 @@ import type { SiteDocument } from "./content";
  */
 export function DocumentCard({
   document,
+  ui,
   className,
   ...props
-}: { document: SiteDocument } & Omit<React.ComponentProps<"article">, "children">) {
+}: { document: SiteDocument; ui: UiStrings } & Omit<React.ComponentProps<"article">, "children">) {
   const { title, language, url, fileName, sizeBytes, pages, updatedAt } = document;
   return (
     <article
@@ -43,8 +45,8 @@ export function DocumentCard({
               {title}
             </h4>
             <p className="mt-1 text-footnote text-label-secondary">
-              {formatFileSize(sizeBytes)} · {pages} {pages === 1 ? "page" : "pages"}· Updated{" "}
-              {formatMonthYear(updatedAt)}
+              {formatFileSize(sizeBytes, ui.formatLocale)} · {pageCount(ui, pages)} ·{" "}
+              {fill(ui.updated, { date: formatMonthYear(updatedAt, ui.formatLocale) })}
             </p>
           </div>
         </div>
@@ -54,20 +56,20 @@ export function DocumentCard({
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Preview: ${title} (opens in a new tab)`}
+            aria-label={fill(ui.previewDocument, { title })}
             className={cn(
               action,
               "text-label ring-1 ring-label/[0.12] ring-inset hover:bg-fill-quaternary",
               "[&_svg]:transition-transform hover:[&_svg]:translate-x-0.5 hover:[&_svg]:-translate-y-0.5 rtl:[&_svg]:-scale-x-100",
             )}
           >
-            Preview
+            {ui.preview}
             <ArrowUpRight aria-hidden />
           </a>
           <a
             href={url}
             download={fileName}
-            aria-label={`Download: ${title}`}
+            aria-label={fill(ui.downloadDocument, { title })}
             className={cn(
               action,
               "bg-label text-bg shadow-[0_8px_20px_-8px_rgb(0_0_0/0.45)] hover:bg-label/90",
@@ -75,7 +77,7 @@ export function DocumentCard({
             )}
           >
             <ArrowDownToLine aria-hidden />
-            Download
+            {ui.download}
           </a>
         </div>
       </div>

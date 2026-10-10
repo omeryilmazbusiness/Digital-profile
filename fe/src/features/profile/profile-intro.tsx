@@ -5,6 +5,7 @@ import type * as React from "react";
 
 import type { Signature } from "@/components/signature/handwriting";
 import type { ContactProfile } from "@/features/site/content";
+import type { UiStrings } from "@/i18n/ui";
 import { useReducedMotion } from "@/hooks/use-reduced-motion";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ interface ProfileIntroProps {
   eyebrow: string;
   /** The name as glyph outlines, written as the visitor scrolls. */
   signature: Signature;
+  ui: UiStrings;
 }
 
 /** Scroll distance the opening stays in place for, in viewport heights. */
@@ -30,17 +32,20 @@ export const PROFILE_INTRO_ID = "profile-intro";
  * role and the contact buttons, which rise with their shadows. The page scrolls on normally
  * afterwards.
  *
- * The name overlaps the bottom of the portrait: its accented glyphs ("omen Tawfi", over the
- * suit) are white, the rest black.
+ * The name overlaps the bottom of the portrait: its accented first line ("Momen Tawfiq", over
+ * the suit) is white, the rest black.
  *
  * With reduced motion (or before scripts run) everything is shown at rest.
  */
-export function ProfileIntro({ profile, organization, eyebrow, signature }: ProfileIntroProps) {
+export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: ProfileIntroProps) {
   const root = useRef<HTMLElement>(null);
   const track = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
-  const actions = contactActions(profile);
+  const actions = contactActions(profile, ui);
   const [x = 0, y = 0, w = 0, h = 0] = signature.viewBox;
+  // Width, against the portrait's, at which the white line stays over the suit. Arabic sets
+  // taller for its width.
+  const nameWidth = signature.dir === "rtl" ? 0.6 : 0.78;
 
   useGSAP(
     () => {
@@ -205,7 +210,8 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             aria-hidden
             viewBox={`${x} ${y} ${w} ${h}`}
             strokeWidth={0.7}
-            className="block h-auto w-[calc(var(--portrait)*0.9)] overflow-visible"
+            style={{ "--name": nameWidth } as React.CSSProperties}
+            className="block h-auto w-[calc(var(--portrait)*var(--name))] overflow-visible"
           >
             {signature.glyphs.map((glyph, i) => (
               <path
@@ -246,7 +252,10 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             {organization}
           </p>
 
-          <ul aria-label="Contact" className="mt-8 flex items-start justify-center gap-5 sm:gap-7">
+          <ul
+            aria-label={ui.contact}
+            className="mt-8 flex items-start justify-center gap-5 sm:gap-7"
+          >
             {actions.map((action) => (
               <li key={action.id} data-intro="action" className="motion-safe:invisible">
                 <a
@@ -282,7 +291,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             data-intro="arrive"
             className="text-caption-2 font-medium tracking-[0.32em] text-neutral-500 uppercase motion-safe:invisible"
           >
-            Scroll
+            {ui.scroll}
           </span>
           <span className="relative h-10 w-px overflow-hidden bg-neutral-200">
             <span className="absolute inset-x-0 top-0 h-1/2 animate-scroll-hint bg-linear-to-b from-transparent to-neutral-900" />

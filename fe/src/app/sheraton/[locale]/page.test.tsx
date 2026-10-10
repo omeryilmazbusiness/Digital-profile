@@ -65,3 +65,16 @@ test("signs the opening and the closing with the studio's credit", async () => {
     expect(link).toHaveAttribute("target", "_blank");
   }
 });
+
+test("reads entirely in Arabic at /ar", async () => {
+  render(await Home({ params: Promise.resolve({ locale: "ar" }) } as typeof props));
+  expect(
+    screen.getByRole("heading", { level: 1, name: "شيراتون مكة جبل الكعبة" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "ابدأ الجولة الافتراضية" })).toBeInTheDocument();
+  const list = screen.getByRole("list", { name: "غرف وأجنحة على بُعد لحظات من الحرم: المستندات" });
+  expect(
+    within(list).getByRole("link", { name: "تنزيل: النشرة التعريفية للغرف والأجنحة" }),
+  ).toBeInTheDocument();
+  expect(within(list).getByText(/8 صفحات/)).toBeInTheDocument();
+});

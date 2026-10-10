@@ -3,17 +3,19 @@ import { Info } from "lucide-react";
 import { draw, rise, RiseGroup } from "@/components/scroll/rise";
 import { ScrubText } from "@/components/scroll/scrub-text";
 
+import { fill, type UiStrings } from "@/i18n/ui";
+
 import type { ContentSection, SiteContent } from "./content";
 import { DocumentCard } from "./document-card";
 
-type DiscoverSectionProps = Pick<SiteContent, "discover" | "sections">;
+type DiscoverSectionProps = Pick<SiteContent, "discover" | "sections" | "ui">;
 
 /**
  * The hotel's topics, each with the PDFs agencies can share. Everything comes up as it scrolls
  * into view: the heading line by line, the lead inking in word by word, each topic's rule
  * drawing across before its text and cards rise.
  */
-export function DiscoverSection({ discover, sections }: DiscoverSectionProps) {
+export function DiscoverSection({ discover, sections, ui }: DiscoverSectionProps) {
   return (
     <section
       id="discover"
@@ -52,7 +54,7 @@ export function DiscoverSection({ discover, sections }: DiscoverSectionProps) {
 
         <div className="mt-16 md:mt-24">
           {sections.map((section, i) => (
-            <Topic key={section.id} section={section} index={i} />
+            <Topic key={section.id} section={section} index={i} ui={ui} />
           ))}
         </div>
       </RiseGroup>
@@ -60,7 +62,7 @@ export function DiscoverSection({ discover, sections }: DiscoverSectionProps) {
   );
 }
 
-function Topic({ section, index }: { section: ContentSection; index: number }) {
+function Topic({ section, index, ui }: { section: ContentSection; index: number; ui: UiStrings }) {
   const titleId = `${section.id}-title`;
   return (
     <article
@@ -97,12 +99,12 @@ function Topic({ section, index }: { section: ContentSection; index: number }) {
 
       {section.documents.length > 0 && (
         <ul
-          aria-label={`${section.title}: documents`}
+          aria-label={fill(ui.documentsOf, { title: section.title })}
           className="flex flex-col gap-4 md:col-span-7 md:pt-9"
         >
           {section.documents.map((document) => (
             <li key={document.id}>
-              <DocumentCard {...rise} document={document} />
+              <DocumentCard {...rise} document={document} ui={ui} />
             </li>
           ))}
         </ul>

@@ -12,7 +12,7 @@ import { profileSignatures } from "./profile-signature.gen";
  * its own (`contact.profile.href`, e.g. /sheraton/en/momen) that opens the page right here.
  */
 export function ProfileSection({ content }: { content: SiteContent }) {
-  const { hotel, contact, profile } = content;
+  const { hotel, contact, profile, ui } = content;
   const card = contact.profile;
   const origin = siteUrl();
 
@@ -32,7 +32,10 @@ export function ProfileSection({ content }: { content: SiteContent }) {
         profile={card}
         organization={hotel.name}
         eyebrow={profile.eyebrow}
-        signature={profileSignatures[0]!}
+        signature={
+          profileSignatures.find((s) => s.lang === content.locale) ?? profileSignatures[0]!
+        }
+        ui={ui}
       />
       <ProfileContent
         card={card}
@@ -40,8 +43,14 @@ export function ProfileSection({ content }: { content: SiteContent }) {
         hotel={hotel}
         shareUrl={origin ? new URL(card.href, origin).href : card.href}
         credit={content.footer.credit}
+        ui={ui}
       />
-      <ContactDock profile={card} afterId={PROFILE_INTRO_ID} hideWhileId={PROFILE_CLOSING_ID} />
+      <ContactDock
+        profile={card}
+        ui={ui}
+        afterId={PROFILE_INTRO_ID}
+        hideWhileId={PROFILE_CLOSING_ID}
+      />
     </div>
   );
 }
