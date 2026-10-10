@@ -296,10 +296,209 @@ export interface paths {
         };
         /**
          * Download the contact card
-         * @description vCard 3.0 (UTF-8, CRLF, folded lines) with the portrait embedded as a JPEG, which
-         *     both iOS Contacts and Google Contacts import. Same availability as the public profile.
+         * @description vCard 3.0 (UTF-8, CRLF, folded lines) with the contact card photo (the portrait unless
+         *     another image is chosen) embedded as a JPEG, which both iOS Contacts and Google Contacts
+         *     import. Same availability as the public profile.
          */
         get: operations["getProfileVCard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discover/sections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List the topics with their documents
+         * @description In display order; documents within a topic too.
+         */
+        get: operations["listDiscoverSections"];
+        put?: never;
+        /**
+         * Add a topic
+         * @description The new topic goes last. A title in at least one language is required.
+         */
+        post: operations["createDiscoverSection"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discover/section-order": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reorder the topics
+         * @description `ids` must list every topic exactly once, in the new order.
+         */
+        put: operations["reorderDiscoverSections"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discover/sections/{sectionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: components["parameters"]["SectionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Replace a topic's texts
+         * @description Languages missing from `translations` are removed.
+         */
+        put: operations["updateDiscoverSection"];
+        post?: never;
+        /** Delete a topic and its documents */
+        delete: operations["deleteDiscoverSection"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/discover/sections/{sectionId}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: components["parameters"]["SectionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Add a PDF to a topic
+         * @description `metadata` (JSON, `DocumentInput`) describes the file; `file` is the PDF, identified from
+         *     its content rather than its name. The document goes last within the topic.
+         */
+        post: operations["uploadDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/documents/{documentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /** Replace a document's titles and language */
+        put: operations["updateDocument"];
+        post?: never;
+        /** Delete a document */
+        delete: operations["deleteDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/documents/{documentId}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Upload a new version of the PDF
+         * @description Titles, language and position stay; the public link keeps working.
+         */
+        put: operations["replaceDocumentFile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/documents/{documentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * The PDF
+         * @description Opens in the browser's viewer, or is saved under its file name with `download=true`.
+         *     The `ETag` is the file's SHA-256, so a new version is fetched as soon as it is uploaded.
+         */
+        get: operations["getPublicDocument"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get the site settings
+         * @description Defaults until saved for the first time.
+         */
+        get: operations["getSettings"];
+        /** Replace the site settings */
+        put: operations["updateSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/public/site": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Everything the public site shows
+         * @description The published profile (absent until complete), the Discover topics with their documents
+         *     and the virtual tour link (absent until set), in the requested language with the same
+         *     fallback as the profile. Topics and documents without any text are left out.
+         */
+        get: operations["getPublicSite"];
         put?: never;
         post?: never;
         delete?: never;
@@ -465,6 +664,21 @@ export interface components {
             bio?: string;
             /** @description Text pre-filled in WhatsApp when a visitor starts a chat */
             whatsappMessage?: string;
+            /**
+             * @description The full name as written in this language; defaults to first and last name
+             * @example مؤمن توفيق الكسواني
+             */
+            displayName?: string;
+            address?: components["schemas"]["Address"];
+        };
+        /** @description Office address as written in one language */
+        Address: {
+            /** @example Ibrahim Al Khalil Street */
+            street?: string;
+            /** @example Makkah */
+            city?: string;
+            /** @example Saudi Arabia */
+            country?: string;
         };
         /** @description Texts per interface language; at least one language is needed to publish */
         LocalizedProfileText: {
@@ -482,12 +696,23 @@ export interface components {
              * @description An image from the media library
              */
             portraitMediaId?: string;
+            /**
+             * Format: uuid
+             * @description Image saved with the downloaded contact card; the portrait when left out
+             */
+            vcardPhotoMediaId?: string;
             /** @example +966 12 545 6789 */
             phone?: string;
             whatsapp?: string;
             email?: string;
             /** @description Spoken languages in display order; defaults to Arabic, English, Turkish */
             languages?: components["schemas"]["SpokenLanguage"][];
+            /** @example 24231 */
+            postalCode?: string;
+            /** @description https link to the office on a map */
+            mapUrl?: string;
+            /** @description https link to a linkedin.com page */
+            linkedinUrl?: string;
             translations: components["schemas"]["LocalizedProfileText"];
         };
         Profile: {
@@ -496,6 +721,7 @@ export interface components {
             fullName: string;
             organization: string;
             portrait?: components["schemas"]["Media"];
+            vcardPhoto?: components["schemas"]["Media"];
             /**
              * @description E.164
              * @example +966125456789
@@ -505,6 +731,9 @@ export interface components {
             whatsapp?: string;
             email?: string;
             languages: components["schemas"]["SpokenLanguage"][];
+            postalCode?: string;
+            mapUrl?: string;
+            linkedinUrl?: string;
             translations: components["schemas"]["LocalizedProfileText"];
             /** @description Whether the public card and vCard are published */
             complete: boolean;
@@ -546,6 +775,8 @@ export interface components {
             firstName: string;
             lastName: string;
             fullName: string;
+            /** @description The name as written in the response language */
+            displayName: string;
             organization: string;
             title: string;
             tagline?: string;
@@ -555,6 +786,136 @@ export interface components {
             whatsapp?: components["schemas"]["WhatsAppContact"];
             email?: string;
             languages: components["schemas"]["SpokenLanguage"][];
+            address?: components["schemas"]["PublicAddress"];
+            mapUrl?: string;
+            linkedinUrl?: string;
+        };
+        PublicAddress: {
+            street: string;
+            city: string;
+            postalCode: string;
+            country: string;
+        };
+        DiscoverSectionText: {
+            /**
+             * @description Short label above the title
+             * @example Groups & Umrah
+             */
+            eyebrow?: string;
+            title: string;
+            /** @description Plain text; blank lines separate paragraphs */
+            body?: string;
+        };
+        LocalizedDiscoverSectionText: {
+            en?: components["schemas"]["DiscoverSectionText"];
+            id?: components["schemas"]["DiscoverSectionText"];
+            ar?: components["schemas"]["DiscoverSectionText"];
+        };
+        DiscoverSectionInput: {
+            translations: components["schemas"]["LocalizedDiscoverSectionText"];
+        };
+        DiscoverSection: {
+            /** Format: uuid */
+            id: string;
+            /** Format: int32 */
+            position: number;
+            translations: components["schemas"]["LocalizedDiscoverSectionText"];
+            documents: components["schemas"]["Document"][];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DiscoverSectionList: {
+            items: components["schemas"]["DiscoverSection"][];
+        };
+        SectionOrder: {
+            ids: string[];
+        };
+        DocumentText: {
+            /** @example Groups and Umrah programmes */
+            title: string;
+        };
+        LocalizedDocumentText: {
+            en?: components["schemas"]["DocumentText"];
+            id?: components["schemas"]["DocumentText"];
+            ar?: components["schemas"]["DocumentText"];
+        };
+        DocumentInput: {
+            language: components["schemas"]["Locale"];
+            translations: components["schemas"]["LocalizedDocumentText"];
+        };
+        Document: {
+            /** Format: uuid */
+            id: string;
+            /** Format: uuid */
+            sectionId: string;
+            language: components["schemas"]["Locale"];
+            /** @example Groups-and-Umrah.pdf */
+            fileName: string;
+            /** Format: int64 */
+            byteSize: number;
+            /**
+             * Format: int32
+             * @description Absent when it cannot be read from the file
+             */
+            pageCount?: number;
+            translations: components["schemas"]["LocalizedDocumentText"];
+            /**
+             * @description Opens the PDF in the browser; relative to the API origin
+             * @example /api/v1/public/documents/0b0c6c1e-6b8e-4c2e-9d1a-2d9f8c3b7a10
+             */
+            url: string;
+            /** @description Saves the PDF under `fileName` */
+            downloadUrl: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        SettingsInput: {
+            /** @description https link to the 360° virtual tour; the tour section is hidden without it */
+            tourUrl?: string;
+        };
+        Settings: {
+            tourUrl?: string;
+            /**
+             * Format: date-time
+             * @description Zero time until saved for the first time
+             */
+            updatedAt: string;
+        };
+        PublicDocument: {
+            /** Format: uuid */
+            id: string;
+            title: string;
+            language: components["schemas"]["Locale"];
+            fileName: string;
+            /** Format: int64 */
+            byteSize: number;
+            /** Format: int32 */
+            pageCount?: number;
+            url: string;
+            downloadUrl: string;
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        PublicDiscoverSection: {
+            /** Format: uuid */
+            id: string;
+            eyebrow: string;
+            title: string;
+            body: string;
+            documents: components["schemas"]["PublicDocument"][];
+        };
+        PublicTour: {
+            url: string;
+        };
+        PublicSite: {
+            locale: components["schemas"]["Locale"];
+            profile?: components["schemas"]["PublicProfile"];
+            sections: components["schemas"]["PublicDiscoverSection"][];
+            tour?: components["schemas"]["PublicTour"];
         };
     };
     responses: {
@@ -572,6 +933,8 @@ export interface components {
         /** @description Preferred interface language */
         LocaleQuery: components["schemas"]["Locale"];
         MediaId: string;
+        SectionId: string;
+        DocumentId: string;
     };
     requestBodies: never;
     headers: {
@@ -1053,6 +1416,390 @@ export interface operations {
             };
             400: components["responses"]["Problem"];
             404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    listDiscoverSections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All topics */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverSectionList"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    createDiscoverSection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscoverSectionInput"];
+            };
+        };
+        responses: {
+            /** @description Topic created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverSection"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    reorderDiscoverSections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SectionOrder"];
+            };
+        };
+        responses: {
+            /** @description All topics in the new order */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverSectionList"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateDiscoverSection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: components["parameters"]["SectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiscoverSectionInput"];
+            };
+        };
+        responses: {
+            /** @description The saved topic */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DiscoverSection"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteDiscoverSection: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: components["parameters"]["SectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    uploadDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sectionId: components["parameters"]["SectionId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    metadata: components["schemas"]["DocumentInput"];
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Document stored */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            413: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentInput"];
+            };
+        };
+        responses: {
+            /** @description The saved document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    deleteDocument: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    replaceDocumentFile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                documentId: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The updated document */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            413: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPublicDocument: {
+        parameters: {
+            query?: {
+                download?: boolean;
+            };
+            header?: {
+                "If-None-Match"?: string;
+            };
+            path: {
+                documentId: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The PDF */
+            200: {
+                headers: {
+                    "Cache-Control"?: string;
+                    ETag?: string;
+                    "Content-Disposition"?: string;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            /** @description The client copy is current */
+            304: {
+                headers: {
+                    "Cache-Control"?: string;
+                    ETag?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: components["responses"]["Problem"];
+            404: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settings"];
+                };
+            };
+            401: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    updateSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SettingsInput"];
+            };
+        };
+        responses: {
+            /** @description The saved settings */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Settings"];
+                };
+            };
+            400: components["responses"]["Problem"];
+            401: components["responses"]["Problem"];
+            403: components["responses"]["Problem"];
+            422: components["responses"]["Problem"];
+            default: components["responses"]["Problem"];
+        };
+    };
+    getPublicSite: {
+        parameters: {
+            query?: {
+                /** @description Preferred interface language */
+                locale?: components["parameters"]["LocaleQuery"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The site content */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicSite"];
+                };
+            };
+            400: components["responses"]["Problem"];
             default: components["responses"]["Problem"];
         };
     };

@@ -35,3 +35,23 @@ test("remembers the language of a page, and leaves unknown ones to the 404", () 
   expect(unknown.headers.get("location")).toBeNull();
   expect(unknown.cookies.get("locale")).toBeUndefined();
 });
+
+test("sends visitors without a session from the admin panel to sign-in, and back after", () => {
+  const response = proxy(request("/sheraton/ar/admin/profile"));
+  expect(response.status).toBe(307);
+  expect(response.headers.get("location")).toBe(
+    "https://example.com/sheraton/ar/admin/login?next=%2Fsheraton%2Far%2Fadmin%2Fprofile",
+  );
+  expect(proxy(request("/sheraton/en/admin")).headers.get("location")).toBe(
+    "https://example.com/sheraton/en/admin/login?next=%2Fsheraton%2Fen%2Fadmin",
+  );
+});
+
+test("lets the sign-in page and signed-in admins through", () => {
+  expect(proxy(request("/sheraton/en/admin/login")).headers.get("location")).toBeNull();
+  for (const cookie of ["dp_access=x", "__Host-dp_access=x"]) {
+    expect(
+      proxy(request("/sheraton/id/admin/discover", { cookie })).headers.get("location"),
+    ).toBeNull();
+  }
+});

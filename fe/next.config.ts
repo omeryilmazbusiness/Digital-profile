@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
 
+import { apiOrigin } from "./src/lib/api/server";
+
+const api = apiOrigin();
+
 const nextConfig: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
@@ -10,6 +14,11 @@ const nextConfig: NextConfig = {
   experimental: {
     // The site's root layout sits under /sheraton/[locale]: unmatched URLs need their own page.
     globalNotFound: true,
+  },
+  // The API answers on the site's own origin, so session cookies are first-party and the
+  // browser makes no cross-origin calls. Read at build time: set API_URL when building.
+  async rewrites() {
+    return api ? [{ source: "/api/v1/:path*", destination: `${api}/api/v1/:path*` }] : [];
   },
   async headers() {
     return [

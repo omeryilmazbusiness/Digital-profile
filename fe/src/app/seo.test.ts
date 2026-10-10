@@ -21,7 +21,7 @@ test("lists every page in every language, with its translations", () => {
     "x-default": "https://example.com/sheraton/en/momen",
   });
   expect(robots()).toMatchObject({
-    rules: { disallow: "/design" },
+    rules: { disallow: ["/design", "/sheraton/*/admin"] },
     sitemap: "https://example.com/sitemap.xml",
   });
 });

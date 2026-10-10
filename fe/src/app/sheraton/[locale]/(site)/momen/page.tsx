@@ -4,7 +4,7 @@ import { getSiteContent } from "@/features/site/content";
 import { LandingPage } from "@/features/site/landing-page";
 import { languageAlternates } from "@/i18n/routing";
 
-import { localeOf } from "../locale";
+import { localeOf } from "../../locale";
 
 export async function generateMetadata({
   params,

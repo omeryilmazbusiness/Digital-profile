@@ -17,7 +17,7 @@ export function DocumentCard({
   className,
   ...props
 }: { document: SiteDocument; ui: UiStrings } & Omit<React.ComponentProps<"article">, "children">) {
-  const { title, language, url, fileName, sizeBytes, pages, updatedAt } = document;
+  const { title, language, url, downloadUrl, fileName, sizeBytes, pages, updatedAt } = document;
   return (
     <article
       {...props}
@@ -45,8 +45,13 @@ export function DocumentCard({
               {title}
             </h4>
             <p className="mt-1 text-footnote text-label-secondary">
-              {formatFileSize(sizeBytes, ui.formatLocale)} · {pageCount(ui, pages)} ·{" "}
-              {fill(ui.updated, { date: formatMonthYear(updatedAt, ui.formatLocale) })}
+              {[
+                formatFileSize(sizeBytes, ui.formatLocale),
+                pages ? pageCount(ui, pages) : undefined,
+                fill(ui.updated, { date: formatMonthYear(updatedAt, ui.formatLocale) }),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
         </div>
@@ -67,7 +72,7 @@ export function DocumentCard({
             <ArrowUpRight aria-hidden />
           </a>
           <a
-            href={url}
+            href={downloadUrl ?? url}
             download={fileName}
             aria-label={fill(ui.downloadDocument, { title })}
             className={cn(

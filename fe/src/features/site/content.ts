@@ -2,9 +2,11 @@ import { defaultLocale, type Locale } from "@/i18n/locales";
 import { localizeHref } from "@/i18n/routing";
 import { type UiStrings, uiStrings } from "@/i18n/ui";
 
+import { mergeSite } from "./merge-site";
 import { mockSiteContent } from "./mock-content";
 import { mockSiteContentAr } from "./mock-content.ar";
 import { mockSiteContentId } from "./mock-content.id";
+import { fetchPublicSite } from "./site-api";
 
 /** Languages the site and its documents are published in. */
 export type ContentLanguage = Locale;
@@ -29,11 +31,15 @@ export interface SiteDocument {
   title: string;
   /** The language the PDF itself is written in; interface translation doesn't change it. */
   language: ContentLanguage;
+  /** Opens the PDF in the browser. */
   url: string;
+  /** Saves the PDF; `url` with the download attribute when absent. */
+  downloadUrl?: string;
   /** Suggested name when downloading. */
   fileName: string;
   sizeBytes: number;
-  pages: number;
+  /** Absent when the file doesn't say. */
+  pages?: number;
   /** ISO date of the last file update. */
   updatedAt: string;
 }
@@ -86,7 +92,8 @@ export interface ContactProfile {
   familyName: string;
   title: string;
   tagline: string;
-  languages: readonly ContentLanguage[];
+  /** ISO 639-1 codes of the languages spoken, in display order. */
+  languages: readonly string[];
   phone: { e164: string; display: string };
   email: string;
   /** wa.me link with the prepared greeting. */
@@ -184,12 +191,14 @@ export interface SiteCredit {
 }
 
 /**
- * Everything the public page shows in `locale`, its links pointing at that language's pages.
- * Mock data in every language for now; it becomes the single `GET /public/site?locale=`
- * request (SET-03), so components don't change when it does.
+ * Everything the public page shows in `locale`, its links pointing at that language's pages:
+ * what the admin panel published (`GET /public/site`) over the built-in edition, which also
+ * stands in while the API is unreachable.
  */
 export async function getSiteContent(locale: Locale = defaultLocale): Promise<SiteContent> {
-  const content = mockContent[locale];
+  const base = mockContent[locale];
+  const site = await fetchPublicSite(locale);
+  const content = site ? mergeSite(base, site, locale) : base;
   return localizeLinks({ ...content, ui: uiStrings(content.locale) }, locale);
 }
 

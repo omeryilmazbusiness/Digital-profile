@@ -5,11 +5,11 @@ import { getSiteContent } from "@/features/site/content";
 import { SiteFooter } from "@/features/site/site-footer";
 import { SiteHeader } from "@/features/site/site-header";
 
-import { Document } from "../../document";
-import { localeOf } from "./locale";
+import { Document } from "../../../document";
+import { localeOf } from "../locale";
 
-export { metadata, viewport } from "../../document";
-export { generateStaticParams } from "./locale";
+export { metadata, viewport } from "../../../document";
+export { generateStaticParams } from "../locale";
 
 /**
  * The public site in one language: header, footer and smooth scrolling for its scroll-driven

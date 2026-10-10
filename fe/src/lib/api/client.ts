@@ -63,15 +63,19 @@ export function toProblem(body: unknown, response: Response): Problem {
   };
 }
 
-type FetchResult<T> =
-  | { data: T; error?: never; response: Response }
-  | { data?: never; error: unknown; response: Response };
+interface FetchResult {
+  data?: unknown;
+  error?: unknown;
+  response: Response;
+}
 
 /** Returns the success payload or throws an ApiError with a normalised problem. */
-export async function unwrap<T>(request: Promise<FetchResult<T>>): Promise<T> {
+export async function unwrap<R extends FetchResult>(
+  request: Promise<R>,
+): Promise<NonNullable<R["data"]>> {
   const { data, error, response } = await request;
   if (error !== undefined || !response.ok) {
     throw new ApiError(toProblem(error, response), error);
   }
-  return data as T;
+  return data as NonNullable<R["data"]>;
 }

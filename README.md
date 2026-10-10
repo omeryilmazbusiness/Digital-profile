@@ -108,6 +108,23 @@ make -C be admin-reset-password email=you@example.com   # also unlocks and signs
   `make -C be jwt-key`; rotate by prepending a new key and dropping the old one after 15 minutes.
 - Production requires `AUTH_COOKIE_SECURE=true` and an `https` `APP_PUBLIC_ORIGIN`.
 
+### Admin panel (`/sheraton/<locale>/admin`)
+
+Sign in at `/sheraton/en/admin` (or `ar`, `id` for the panel in Arabic or Indonesian). Built
+mobile-first: a tab bar on phones, a sidebar from tablets up (`fe/src/features/admin`).
+
+- **Discover** — the 360° tour link, and topics (label, title, text per language) in the order
+  they appear, each with its PDF brochures: upload with a title per language and the language the
+  PDF is written in, replace the file, rename, delete.
+- **Profile** — the portrait and the photo saved with "Save contact" (the portrait when empty),
+  name, hotel, phone, WhatsApp, e-mail, LinkedIn, spoken languages, map link, postal code, and per
+  language the displayed name, job title, tagline, about text, WhatsApp greeting and address.
+
+Saving refreshes the public site at once. Pages behind sign-in redirect to the sign-in page when
+there is no session cookie (`fe/src/proxy.ts`) and come back afterwards; the API checks every call
+regardless. The browser talks to the API on the site's own origin: Next forwards `/api/v1/*` to
+`API_URL`, so session cookies stay first-party.
+
 ## Database
 
 - Schema changes are SQL migrations in `be/db/migrations`, embedded into the binaries.
@@ -130,6 +147,18 @@ make -C be admin-reset-password email=you@example.com   # also unlocks and signs
   bucket (`STORAGE_DRIVER=s3`, `S3_*`); `/readyz` checks the storage too.
 - Images referenced by content cannot be deleted (`409`). Uploading the same file again returns the
   existing image.
+
+## Discover documents and site settings
+
+- `/api/v1/admin/discover/sections` manages the topics; `PUT .../section-order` sets their order.
+- `POST /api/v1/admin/discover/sections/{id}/documents` uploads a PDF (multipart: a `metadata`
+  JSON part and the `file`), at most `DOCUMENTS_MAX_UPLOAD_BYTES` (25 MiB). The file must start
+  and end like a PDF; its page count is read when possible. `PUT /api/v1/admin/documents/{id}/file`
+  replaces it.
+- `GET /api/v1/public/documents/{id}` serves the PDF inline (`?download=true` as an attachment),
+  sandboxed by CSP and revalidated by ETag.
+- `GET|PUT /api/v1/admin/settings` holds the 360° tour link. `GET /api/v1/public/site?locale=`
+  returns the published profile, topics with their documents, and the tour in one call.
 
 ## Profile
 
@@ -192,9 +221,13 @@ cd fe && node scripts/generate-signature.mjs
 ## Public site
 
 Header, footer and sections live in `fe/src/features/site`. All their data comes from
-`getSiteContent()` in `content.ts`, which serves **mock content** (`mock-content.ts`, with a sample
-PDF in `fe/public/mock`) until the `GET /public/site` endpoint exists (SET-03). The mock contact
-details are fictitious on purpose.
+`getSiteContent()` in `content.ts`: what the admin panel published (`GET /api/v1/public/site`,
+cached under the `site` tag and refreshed on every save) laid over the built-in edition
+(`mock-content*.ts`, with a sample PDF in `fe/public/mock`). Each part — Discover topics, the tour
+link, the profile — switches over once the admin fills it in, and the built-in edition stays in
+place while the API is unset or unreachable, so the site never renders empty. The built-in contact
+details are fictitious on purpose; the figures, services and office hours on the card are not
+editable yet.
 
 ### Languages and addresses
 
@@ -249,6 +282,10 @@ height the server already lays out, so nothing moves when scripts load, and a vi
 `.../momen` or `#tour` opens there before the first paint (`ArrivalScript`).
 
 ### Production
+
+Set `API_URL` (where the server reaches the API, e.g. `http://api:8080`) at build time and at
+runtime: the `/api/v1/*` forwarding is fixed when building, and pages read published content
+through it. Leave `NEXT_PUBLIC_API_URL` empty in that setup.
 
 Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) at build time: the QR code, canonical and
 hreflang links, Open Graph image, JSON-LD, `sitemap.xml` and the sitemap line of `robots.txt` need

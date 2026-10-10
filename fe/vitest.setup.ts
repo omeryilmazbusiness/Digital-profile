@@ -10,6 +10,13 @@ vi.mock("next/font/local", () => ({
   default: () => ({ className: "font-local", variable: "font-local-variable", style: {} }),
 }));
 
+// "use cache" only means something inside Next; tests run every call uncached.
+vi.mock("next/cache", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/cache")>()),
+  cacheTag: () => {},
+  cacheLife: () => {},
+}));
+
 // Browser APIs that jsdom lacks but the components (and Radix) use.
 if (!window.matchMedia) {
   window.matchMedia = vi.fn((query: string) => ({
