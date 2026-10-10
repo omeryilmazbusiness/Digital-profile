@@ -168,6 +168,38 @@ func TestUpload_SameBytesReturnExistingImage(t *testing.T) {
 	}
 }
 
+func TestUpload_SameBytesRestoreLostFiles(t *testing.T) {
+	e := newEnv(t)
+	src := photo(t, 2000, 1000, 4)
+	m, _, err := e.svc.Upload(t.Context(), "a.jpg", src)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range m.Variants {
+		if err := e.store.Delete(t.Context(), "media/"+fileName(v.URL)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, _, err := e.svc.OpenVariant(t.Context(), fileName(m.Variants[0].URL)); apperr.KindOf(err) != apperr.KindNotFound {
+		t.Fatalf("OpenVariant before repair: %v, want not found", err)
+	}
+
+	again, created, err := e.svc.Upload(t.Context(), "a.jpg", src)
+	if err != nil || created || again.ID != m.ID {
+		t.Fatalf("re-upload = %+v created=%v err=%v, want the existing image", again, created, err)
+	}
+	for _, v := range again.Variants {
+		rc, obj, err := e.svc.OpenVariant(t.Context(), fileName(v.URL))
+		if err != nil {
+			t.Fatalf("OpenVariant %s after repair: %v", v.URL, err)
+		}
+		_ = rc.Close()
+		if obj.Size != v.ByteSize {
+			t.Errorf("restored %s is %d bytes, want %d", v.URL, obj.Size, v.ByteSize)
+		}
+	}
+}
+
 func TestUpload_RejectsNonImages(t *testing.T) {
 	e := newEnv(t)
 	valid := photo(t, 800, 600, 4)

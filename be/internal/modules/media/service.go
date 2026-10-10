@@ -98,6 +98,9 @@ func (s *Service) q(ctx context.Context) *store.Queries {
 func (s *Service) Upload(ctx context.Context, filename string, data []byte) (m Media, created bool, err error) {
 	sum := sha256.Sum256(data)
 	if existing, err := s.byChecksum(ctx, sum[:]); err == nil {
+		if err := s.restoreMissing(ctx, sum[:], data); err != nil {
+			return Media{}, false, err
+		}
 		return existing, false, nil
 	} else if !errors.Is(err, pgx.ErrNoRows) {
 		return Media{}, false, err
@@ -160,6 +163,50 @@ func (s *Service) Upload(ctx context.Context, filename string, data []byte) (m M
 
 	m, err = s.Get(ctx, row.ID)
 	return m, true, err
+}
+
+// restoreMissing re-renders the variants of an already registered image whose files are gone
+// from storage (lost with an ephemeral disk), so uploading the same file again repairs it.
+func (s *Service) restoreMissing(ctx context.Context, sum, data []byte) error {
+	row, err := s.q(ctx).GetMediaByChecksum(ctx, sum)
+	if err != nil {
+		return database.MapError(err)
+	}
+	variants, err := s.q(ctx).ListVariants(ctx, []uuid.UUID{row.ID})
+	if err != nil {
+		return database.MapError(err)
+	}
+	missing := map[string]bool{}
+	for _, v := range variants {
+		if _, err := s.storage.Stat(ctx, v.StorageKey); errors.Is(err, storage.ErrNotFound) {
+			missing[v.StorageKey] = true
+		} else if err != nil {
+			return apperr.Unavailable("image storage is unavailable; try again").Wrap(err)
+		}
+	}
+	if len(missing) == 0 {
+		return nil
+	}
+
+	res, err := s.proc.Process(ctx, data)
+	if err != nil {
+		return processingError(err)
+	}
+	for _, v := range res.Variants {
+		h := sha256.Sum256(v.Data)
+		key := keyPrefix + hex.EncodeToString(h[:]) + ".webp"
+		if !missing[key] {
+			continue
+		}
+		if err := s.storage.Put(ctx, key, bytes.NewReader(v.Data), int64(len(v.Data)), imaging.OutputType); err != nil {
+			return apperr.Unavailable("image storage is unavailable; try again").Wrap(err)
+		}
+		delete(missing, key)
+	}
+	for key := range missing {
+		s.log.WarnContext(ctx, "media variant could not be restored from the re-uploaded file", "key", key)
+	}
+	return nil
 }
 
 func processingError(err error) error {
