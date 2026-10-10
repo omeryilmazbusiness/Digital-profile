@@ -15,8 +15,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 /**
  * One manifest per file; one signature per language. Each line is written in turn; lines are
- * centered. `variations` pins the axes of a variable font (e.g. "wght=500"); `accent` marks the
- * glyphs of a part of one line, which the page can set apart (e.g. in another color).
+ * centered. `variations` pins the axes of a variable font (e.g. "wght=500"); `features` sets
+ * OpenType features (e.g. "-liga": letters spaced apart shouldn't join); `tracking` spaces the
+ * letters, in em; `accent` marks the glyphs of a part of one line, which the page can set apart
+ * (e.g. in another color).
  */
 const OUTPUTS = [
   {
@@ -43,10 +45,12 @@ const OUTPUTS = [
     signatures: [
       {
         lang: "en",
-        font: "assets/fonts/playfair-display/PlayfairDisplay-wght.ttf",
+        font: "assets/fonts/cormorant-garamond/CormorantGaramond-wght.ttf",
         variations: ["wght=700"],
+        features: ["-liga"],
+        tracking: 0.06,
         lines: ["Momen Tawfiq", "Alkiswani"],
-        lineHeight: 1.02,
+        lineHeight: 1.04,
         accent: "omen Tawfi",
       },
     ],
@@ -72,11 +76,15 @@ async function loadFont(file, variations = []) {
 }
 
 /** Shapes a line and returns its glyphs in logical (writing) order, positioned from x = 0. */
-function shapeLine(font, scale, text) {
+function shapeLine(font, scale, text, { features = [], tracking = 0 } = {}) {
   const buffer = new hb.Buffer();
   buffer.addText(text);
   buffer.guessSegmentProperties();
-  hb.shape(font, buffer);
+  hb.shape(
+    font,
+    buffer,
+    features.map((f) => hb.Feature.fromString(f)),
+  );
   const infos = buffer.getGlyphInfos();
   const positions = buffer.getGlyphPositions();
 
@@ -89,7 +97,7 @@ function shapeLine(font, scale, text) {
       x: (pen + p.xOffset) * scale,
       y: p.yOffset * scale,
     };
-    pen += p.xAdvance;
+    pen += p.xAdvance + (i < infos.length - 1 ? (tracking * EM) / scale : 0);
     return glyph;
   });
   // HarfBuzz returns right-to-left runs in visual order; the pen writes in logical order.
@@ -165,9 +173,18 @@ function bezier(ctrl, t) {
   return pts[0];
 }
 
-async function build({ lang, font: file, variations, lines, lineHeight, accent }) {
+async function build({
+  lang,
+  font: file,
+  variations,
+  features,
+  tracking,
+  lines,
+  lineHeight,
+  accent,
+}) {
   const { font, scale } = await loadFont(file, variations);
-  const shaped = lines.map((text) => shapeLine(font, scale, text));
+  const shaped = lines.map((text) => shapeLine(font, scale, text, { features, tracking }));
   const width = Math.max(...shaped.map((l) => l.width));
   const accentLine = accent ? lines.findIndex((text) => text.includes(accent)) : -1;
   if (accent && accentLine < 0) throw new Error(`"${accent}" is in none of ${lines.join(" / ")}`);

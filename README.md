@@ -228,22 +228,37 @@ In Discover, each topic's rule draws across as it scrolls in, its text rises out
 its PDF cards follow one by one (`RiseGroup` in `fe/src/components/scroll/rise.tsx`, shared with
 the card); with reduced motion everything is simply there.
 
-On the card, the portrait settles in on white and his name writes itself beneath it in Playfair
-Display as you scroll ("omen Tawfi", over the suit, in white — the `accent` of its manifest in
-`generate-signature.mjs`); then the actions, figures, his CV (PDF), services, contact details with
+On the card, the portrait settles in on white and his name writes itself beneath it in Cormorant
+Garamond Bold, letter-spaced, as you scroll ("omen Tawfi", over the suit, in white — the `accent`
+of its manifest in `generate-signature.mjs`); then the actions, figures, his CV (PDF), services, contact details with
 live office hours, a QR share card and a closing call to action follow. `.../momen/vcard` serves the
 contact card with the photo embedded. The figures, hours, LinkedIn link and the CV (the sample
 PDF until the real one is added) in `mock-content.ts` are placeholders.
 
-Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) in production so the QR code, canonical
-URL, Open Graph image and JSON-LD use absolute links.
+The studio's signature, "by widdigroup.com" (`footer.credit`, which the site settings can turn
+off), sits under the scroll hint of the opening screen, large under the card's closing call to
+action and in the footer.
+
+The film and the card's opening stay in place with CSS `position: sticky` inside a track whose
+height the server already lays out, so nothing moves when scripts load, and a visit to
+`.../momen` or `#tour` opens there before the first paint (`ArrivalScript`).
+
+### Production
+
+Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) at build time: the QR code, canonical and
+hreflang links, Open Graph image, JSON-LD, `sitemap.xml` and the sitemap line of `robots.txt` need
+the absolute origin (the sitemap is empty without it). The app icon, Apple touch icon and web
+manifest are served from `fe/src/app`. Every response carries security headers
+(`next.config.ts`): HSTS, `nosniff`, `SAMEORIGIN` framing, a strict referrer policy, a
+permissions policy and a CSP limited to framing, base URI, forms and plugins — scripts aren't
+restricted, since statically prerendered pages can't carry per-request nonces.
 
 Assets are generated, not edited by hand — rerun after replacing a source:
 
 ```sh
 cd fe
 node scripts/prepare-portrait.mjs      # assets/portraits/momen.jpg → public/profile/*, vCard photo
-node scripts/generate-signature.mjs    # the written name (and the hotel signature)
+node scripts/generate-signature.mjs    # the written name (Cormorant Garamond) and the hotel signature
 python3 scripts/build-display-font.py  # Playfair Display subset; needs fonttools + brotli
 ```
 

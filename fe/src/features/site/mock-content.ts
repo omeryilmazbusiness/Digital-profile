@@ -238,6 +238,6 @@ export const mockSiteContent: SiteContent = {
   footer: {
     tagline: "Digital sales experience for travel agencies and tour operators.",
     privacy: "This site uses no cookies and collects no personal data unless you send a request.",
-    credit: "Crafted by Widdi",
+    credit: { label: "by", name: "widdigroup.com", href: "https://widdigroup.com" },
   },
 };

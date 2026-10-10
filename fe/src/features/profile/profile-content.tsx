@@ -15,7 +15,7 @@ import {
 import type * as React from "react";
 
 import { AnchorLink } from "@/components/scroll/anchor-link";
-import { rise, RiseGroup } from "@/components/scroll/rise";
+import { draw, rise, RiseGroup } from "@/components/scroll/rise";
 import { ScrubText } from "@/components/scroll/scrub-text";
 import type {
   ContactProfile,
@@ -23,7 +23,9 @@ import type {
   ProfileLink,
   ProfileServiceIcon,
   SiteContent,
+  SiteCredit,
 } from "@/features/site/content";
+import { Credit } from "@/features/site/credit";
 import { formatFileSize, formatMonthYear, languageName } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -48,10 +50,12 @@ interface ProfileContentProps {
   hotel: SiteContent["hotel"];
   /** Absolute link to this page when the site's origin is configured, else its path. */
   shareUrl: string;
+  /** The studio's signature, set large under the closing call to action. */
+  credit?: SiteCredit;
 }
 
 /** Everything below the opening, in reading order. */
-export function ProfileContent({ card, profile, hotel, shareUrl }: ProfileContentProps) {
+export function ProfileContent({ card, profile, hotel, shareUrl, credit }: ProfileContentProps) {
   const actions = contactActions(card);
   const whatsapp = actions.find((a) => a.id === "whatsapp")!;
   const save = actions.find((a) => a.id === "save")!;
@@ -142,7 +146,7 @@ export function ProfileContent({ card, profile, hotel, shareUrl }: ProfileConten
                   <span className="grid size-12 place-items-center rounded-full bg-neutral-950 text-white [&_svg]:size-5 [&_svg]:stroke-[1.6]">
                     {serviceIcons[item.icon]}
                   </span>
-                  <span aria-hidden className="font-mono text-caption-1 text-neutral-400">
+                  <span aria-hidden className="font-mono text-caption-1 text-neutral-500">
                     {String(i + 1).padStart(2, "0")}
                   </span>
                 </div>
@@ -293,6 +297,14 @@ export function ProfileContent({ card, profile, hotel, shareUrl }: ProfileConten
             </a>
           </div>
         </div>
+        {credit && (
+          <div className="mt-24 flex flex-col items-center gap-6 px-safe-6 sm:mt-32">
+            <span {...draw} aria-hidden className="h-px w-16 bg-neutral-300" />
+            <div {...rise}>
+              <Credit credit={credit} size="lg" />
+            </div>
+          </div>
+        )}
       </section>
     </RiseGroup>
   );
@@ -318,7 +330,9 @@ function CvSection({ cv, name }: { cv: NonNullable<DigitalProfile["cv"]>; name: 
             href={document.url}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`Open ${document.title} (opens in a new tab)`}
+            // The same document as "View CV" beside it: one link for assistive technology.
+            aria-hidden
+            tabIndex={-1}
             className="group relative shrink-0"
           >
             {/* A sheet of the CV, drawn rather than rendered from the PDF. */}
@@ -330,7 +344,7 @@ function CvSection({ cv, name }: { cv: NonNullable<DigitalProfile["cv"]>; name: 
               aria-hidden
               className="relative flex aspect-[3/4] w-32 -rotate-2 flex-col rounded-md bg-white px-4 py-5 ring-1 shadow-lift ring-neutral-950/5 transition-transform duration-500 ease-ios group-hover:rotate-0 sm:w-36"
             >
-              <span className="text-[0.45rem] font-semibold tracking-[0.2em] whitespace-nowrap text-neutral-400 uppercase">
+              <span className="text-[0.45rem] font-semibold tracking-[0.2em] whitespace-nowrap text-neutral-500 uppercase">
                 Curriculum vitae
               </span>
               <span className="mt-1.5 font-display text-[0.8rem] leading-tight font-bold text-neutral-950">
@@ -365,7 +379,7 @@ function CvSection({ cv, name }: { cv: NonNullable<DigitalProfile["cv"]>; name: 
                 href={document.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`View: ${document.title} (opens in a new tab)`}
+                aria-label={`View CV: ${document.title} (opens in a new tab)`}
                 className="flex h-12 pressable items-center justify-center gap-2 rounded-full bg-neutral-950 px-6 text-subheadline font-semibold text-white shadow-lift sm:flex-1 [&_svg]:size-4"
               >
                 <FileText aria-hidden />

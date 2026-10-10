@@ -54,3 +54,14 @@ test("links the virtual tour out in a new tab", async () => {
   expect(link).toHaveAttribute("href", mockSiteContent.tour.url);
   expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
 });
+
+test("signs the opening and the closing with the studio's credit", async () => {
+  render(await Home(props));
+  const credit = mockSiteContent.footer.credit!;
+  const links = screen.getAllByRole("link", { name: `by ${credit.name} (opens in a new tab)` });
+  expect(links).toHaveLength(2);
+  for (const link of links) {
+    expect(link).toHaveAttribute("href", credit.href);
+    expect(link).toHaveAttribute("target", "_blank");
+  }
+});

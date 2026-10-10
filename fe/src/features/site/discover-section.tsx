@@ -44,7 +44,7 @@ export function DiscoverSection({ discover, sections }: DiscoverSectionProps) {
             text={discover.body}
             className="mt-5 text-body text-pretty text-label-secondary md:text-title-3"
           />
-          <p {...rise} className="mt-6 flex items-start gap-2 text-footnote text-label-tertiary">
+          <p {...rise} className="mt-6 flex items-start gap-2 text-footnote text-label-secondary">
             <Info aria-hidden className="mt-px size-4 shrink-0" />
             {discover.note}
           </p>
@@ -76,7 +76,7 @@ function Topic({ section, index }: { section: ContentSection; index: number }) {
       <div className="md:sticky md:top-28 md:col-span-5 md:self-start">
         <p
           {...rise}
-          className="flex items-baseline gap-3 text-caption-1 font-semibold tracking-[0.2em] text-label-tertiary uppercase"
+          className="flex items-baseline gap-3 text-caption-1 font-semibold tracking-[0.2em] text-label-secondary uppercase"
         >
           <span className="font-display text-title-2 font-medium tracking-normal text-gold italic">
             {String(index + 1).padStart(2, "0")}

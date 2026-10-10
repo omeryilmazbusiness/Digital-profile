@@ -1,6 +1,7 @@
 import { AnchorLink } from "@/components/scroll/anchor-link";
 
 import type { SiteContent } from "./content";
+import { Credit } from "./credit";
 import { Wordmark } from "./wordmark";
 
 type SiteFooterProps = Pick<SiteContent, "hotel" | "nav" | "footer"> & {
@@ -20,7 +21,7 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
             href={hotel.mapUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-4 inline-block max-w-xs text-footnote text-label-tertiary transition-colors hover:text-label-secondary"
+            className="mt-4 inline-block max-w-xs text-footnote text-label-secondary transition-colors hover:text-label"
           >
             {hotel.address}
           </a>
@@ -29,7 +30,7 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
         <nav aria-labelledby="footer-explore">
           <h2
             id="footer-explore"
-            className="text-caption-1 font-semibold tracking-[0.2em] text-label-tertiary uppercase"
+            className="text-caption-1 font-semibold tracking-[0.2em] text-label-secondary uppercase"
           >
             Explore
           </h2>
@@ -45,7 +46,7 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
         </nav>
 
         <div>
-          <h2 className="text-caption-1 font-semibold tracking-[0.2em] text-label-tertiary uppercase">
+          <h2 className="text-caption-1 font-semibold tracking-[0.2em] text-label-secondary uppercase">
             Contact
           </h2>
           <ul className="mt-4 flex flex-col gap-2 text-subheadline">
@@ -78,10 +79,13 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
         </div>
       </div>
 
-      <div className="mx-auto mt-14 flex max-w-6xl flex-col gap-2 border-t-[0.5px] border-separator px-safe-5 pt-6 text-caption-1 text-label-tertiary md:flex-row md:items-center md:justify-between md:gap-8">
+      <div className="mx-auto mt-14 flex max-w-6xl flex-col gap-2 border-t-[0.5px] border-separator px-safe-5 pt-6 text-caption-1 text-label-secondary md:flex-row md:items-center md:justify-between md:gap-8">
         <p>© {hotel.name}</p>
         <p className="md:text-center">{footer.privacy}</p>
-        {footer.credit && <p>{footer.credit}</p>}
+        <Credit
+          credit={footer.credit}
+          className="text-label-secondary hover:text-label [&_[data-name]]:text-label"
+        />
       </div>
     </footer>
   );

@@ -1,6 +1,8 @@
 import { ScrollCanvasVideo, type Scene } from "@/components/scroll/scroll-canvas-video";
 import { SceneStory } from "@/components/scroll/scene-story";
 import { Handwriting } from "@/components/signature/handwriting";
+import type { SiteCredit } from "@/features/site/content";
+import { Credit } from "@/features/site/credit";
 
 import { heroFrames } from "./hero-frames.gen";
 import { hotelSignatures } from "./hotel-signature.gen";
@@ -8,7 +10,7 @@ import { hotelSignatures } from "./hotel-signature.gen";
 export const HOTEL_NAME = "Sheraton Makkah Jabal Al Kaaba";
 
 // Placeholder copy until localized content arrives from the CMS (FE-02, CNT-*).
-const scenes: readonly Scene[] = [
+const heroScenes = (credit: SiteCredit | undefined): readonly Scene[] => [
   {
     id: "arrival",
     start: 0,
@@ -30,6 +32,7 @@ const scenes: readonly Scene[] = [
           Moments from Masjid al-Haram. Scroll to step inside.
         </p>
         <ScrollHint />
+        <Credit credit={credit} tone="light" className="relative mt-8" />
       </div>
     ),
   },
@@ -70,13 +73,16 @@ const scenes: readonly Scene[] = [
   },
 ];
 
-/** The home page opening: the hotel name writes itself, then the walk into the lobby. */
-export function HomeHero() {
+/**
+ * The home page opening: the hotel name writes itself over the studio's signature, then the walk
+ * into the lobby.
+ */
+export function HomeHero({ credit }: { credit?: SiteCredit }) {
   return (
     <div data-header-overlay="">
       <ScrollCanvasVideo
         sequence={heroFrames}
-        scenes={scenes}
+        scenes={heroScenes(credit)}
         label={`Walking from the entrance of ${HOTEL_NAME} into its lobby`}
         length={4}
         scrub={0.5}

@@ -87,8 +87,8 @@ test("writes the name white across the suit and black at its ends", async () => 
   const fills = [...container.querySelectorAll("[data-name] path")].map((p) =>
     p.getAttribute("fill") === "#fff" ? "w" : "b",
   );
-  // M · o m e n T a w fi · q, then Alkiswani.
-  expect(fills.join("")).toBe(`b${"w".repeat(8)}b${"b".repeat(9)}`);
+  // M · o m e n T a w f i · q, then Alkiswani.
+  expect(fills.join("")).toBe(`b${"w".repeat(9)}b${"b".repeat(9)}`);
 });
 
 test("offers the CV to view and to download", async () => {
@@ -96,7 +96,7 @@ test("offers the CV to view and to download", async () => {
   const cv = mockSiteContent.profile.cv!;
   expect(screen.getByRole("heading", { level: 2, name: cv.title })).toBeInTheDocument();
   expect(
-    screen.getByRole("link", { name: `View: ${cv.document.title} (opens in a new tab)` }),
+    screen.getByRole("link", { name: `View CV: ${cv.document.title} (opens in a new tab)` }),
   ).toHaveAttribute("href", cv.document.url);
   expect(screen.getByRole("link", { name: `Download: ${cv.document.title}` })).toHaveAttribute(
     "download",

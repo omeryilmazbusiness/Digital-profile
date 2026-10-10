@@ -39,6 +39,7 @@ export function ProfileSection({ content }: { content: SiteContent }) {
         profile={profile}
         hotel={hotel}
         shareUrl={origin ? new URL(card.href, origin).href : card.href}
+        credit={content.footer.credit}
       />
       <ContactDock profile={card} afterId={PROFILE_INTRO_ID} hideWhileId={PROFILE_CLOSING_ID} />
     </div>

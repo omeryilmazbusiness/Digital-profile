@@ -16,7 +16,7 @@ import {
   type FrameSequence,
   type FrameSetName,
 } from "@/lib/frame-sequence";
-import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
+import { gsap, useGSAP } from "@/lib/gsap";
 import { sceneKeyframes, type SceneTiming } from "@/lib/scroll-scenes";
 import { cn } from "@/lib/utils";
 
@@ -50,8 +50,8 @@ const alignClass = { start: "items-start", center: "items-center", end: "items-e
 const SCENE_SHIFT = 32;
 
 /**
- * A full-screen image sequence that plays as the page scrolls: the section pins while the
- * scroll distance (`length` viewports) maps onto the frames, and scene overlays fade in and
+ * A full-screen image sequence that plays as the page scrolls: the section sticks in a track
+ * `length` viewports taller than itself while that scroll distance maps onto the frames, and scene overlays fade in and
  * out at their windows. Frames preload first, with scrolling locked so scrubbing is instant:
  * meanwhile the section stays black with the opening scenes on it and a progress bar at the
  * foot, and the footage fades in once ready.
@@ -90,6 +90,7 @@ function ScrubbedSequence({
   active,
 }: ScrollCanvasVideoProps & { active: boolean }) {
   const root = useRef<HTMLElement>(null);
+  const track = useRef<HTMLDivElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
   // Chosen once: switching sets on rotation would reload every frame mid-scroll; cover
   // cropping keeps either set filling the screen.
@@ -111,11 +112,9 @@ function ScrubbedSequence({
   useGSAP(
     () => {
       const section = root.current;
+      const rail = track.current;
       const el = canvas.current;
-      if (!ready || !section || !el) return;
-      // Pinning adds the scroll distance below the section; a visitor already past it (who
-      // opened further down) keeps their place.
-      const passed = section.getBoundingClientRect().bottom <= 0;
+      if (!ready || !section || !rail || !el) return;
 
       const renderer = new CanvasFrameRenderer(el, () => frames.current, focus);
       const resize = () =>
@@ -128,16 +127,13 @@ function ScrubbedSequence({
       const timeline = gsap.timeline({
         defaults: { ease: "none" },
         scrollTrigger: {
-          trigger: section,
+          trigger: rail,
           start: "top top",
-          end: `+=${length * 100}%`,
-          pin: true,
-          anticipatePin: 1,
+          // The section sticks for the track's extra height, which the server already laid
+          // out: nothing on the page moves when this starts.
+          end: () => `+=${rail.offsetHeight - section.offsetHeight}`,
           scrub,
           invalidateOnRefresh: true,
-          // Created once the frames load — after the sections below it, whose positions
-          // depend on its pin spacing. Refresh it first.
-          refreshPriority: 1,
         },
       });
       timeline.to(
@@ -176,10 +172,6 @@ function ScrubbedSequence({
       // A timeline shorter than 1 would compress the scroll mapping.
       if (timeline.duration() < 1) timeline.set({}, {}, 1);
 
-      // Pinning added spacing below the section: positions of later triggers changed.
-      ScrollTrigger.refresh();
-      const spacer = section.parentElement;
-      if (passed && spacer) window.scrollBy(0, spacer.offsetHeight - section.offsetHeight);
       return () => observer.disconnect();
     },
     {
@@ -190,11 +182,11 @@ function ScrubbedSequence({
   );
 
   return (
-    <>
+    <div ref={track} style={{ "--track": `${length * 100}svh` } as React.CSSProperties}>
       <section
         ref={root}
         aria-label={label}
-        className={cn("relative h-dvh w-full overflow-hidden bg-black", className)}
+        className={cn("sticky top-0 h-dvh w-full overflow-hidden bg-black", className)}
       >
         <canvas
           ref={canvas}
@@ -221,8 +213,10 @@ function ScrubbedSequence({
           </div>
         ))}
       </section>
+      {/* The scroll distance; a sticky element only travels within its parent's content. */}
+      <div aria-hidden className="h-(--track)" />
       <FrameLoader progress={loadingProgress} done={ready || (active && openedBelow)} />
-    </>
+    </div>
   );
 }
 

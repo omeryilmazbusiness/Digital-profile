@@ -37,9 +37,12 @@ export function RiseGroup({
       const items = gsap.utils.toArray<HTMLElement>("[data-rise]", root.current);
       const rules = gsap.utils.toArray<HTMLElement>("[data-draw]", root.current);
       const lifted = (el: Element) => el.classList.contains("shadow-lift");
-      gsap.set(items, { autoAlpha: 0, y: 56 });
-      gsap.set(items.filter(lifted), { "--lift": 0 });
-      gsap.set(rules, { scaleX: 0 });
+      // GSAP warns about empty targets; a group may have no cards or no rules.
+      const set = (targets: HTMLElement[], vars: gsap.TweenVars) =>
+        targets.length > 0 && gsap.set(targets, vars);
+      set(items, { autoAlpha: 0, y: 56 });
+      set(items.filter(lifted), { "--lift": 0 });
+      set(rules, { scaleX: 0 });
 
       ScrollTrigger.batch(items, {
         start: "top 90%",
@@ -59,7 +62,9 @@ export function RiseGroup({
               clearProps: "filter,transform",
             },
           );
-          gsap.to(batch.filter(lifted), {
+          const settling = batch.filter(lifted);
+          if (settling.length === 0) return;
+          gsap.to(settling, {
             "--lift": 1,
             duration: 1.4,
             delay: 0.15,
@@ -69,6 +74,7 @@ export function RiseGroup({
         },
       });
 
+      if (rules.length === 0) return;
       ScrollTrigger.batch(rules, {
         start: "top 92%",
         once: true,

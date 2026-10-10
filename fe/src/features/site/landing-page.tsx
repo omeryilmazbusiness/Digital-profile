@@ -1,3 +1,4 @@
+import { ArrivalScript } from "@/components/scroll/arrival-script";
 import { ArrivalScroll } from "@/components/scroll/arrival-scroll";
 import { HOTEL_NAME, HomeHero } from "@/features/home/home-hero";
 import { heroFrames } from "@/features/home/hero-frames.gen";
@@ -14,10 +15,10 @@ import { TourSection } from "./tour-section";
  * at the card.
  */
 export function LandingPage({ content }: { content: SiteContent }) {
-  const { discover, sections, tour, home } = content;
+  const { discover, sections, tour, home, footer } = content;
   return (
     <main id="main" data-path={home} data-landing="" className={displayFont.variable}>
-      <HomeHero />
+      <HomeHero credit={footer.credit} />
       <DiscoverSection discover={discover} sections={sections} />
       <TourSection
         tour={tour}
@@ -28,6 +29,7 @@ export function LandingPage({ content }: { content: SiteContent }) {
         }}
       />
       <ProfileSection content={content} />
+      <ArrivalScript />
       <ArrivalScroll />
     </main>
   );

@@ -154,7 +154,19 @@ export interface SiteContent {
   tour: VirtualTour;
   contact: { eyebrow: string; title: string; body: string; profile: ContactProfile };
   profile: DigitalProfile;
-  footer: { tagline: string; privacy: string; credit?: string };
+  footer: {
+    tagline: string;
+    privacy: string;
+    /** The studio's signature; left out when the site turns it off (SET-02). */
+    credit?: SiteCredit;
+  };
+}
+
+/** "by widdigroup.com": a short lead-in and the studio's name, linking to its site. */
+export interface SiteCredit {
+  label: string;
+  name: string;
+  href: string;
 }
 
 /**

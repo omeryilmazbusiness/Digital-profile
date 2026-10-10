@@ -36,15 +36,15 @@ export function DocumentCard({
         <div className="flex min-w-0 flex-1 items-center gap-4 sm:gap-5">
           <Sheet />
           <div className="min-w-0">
-            <p className="text-caption-2 font-semibold tracking-[0.22em] text-label-tertiary uppercase">
+            <p className="text-caption-2 font-semibold tracking-[0.22em] text-label-secondary uppercase">
               PDF · <span lang={language}>{languageName(language)}</span>
             </p>
             <h4 className="mt-1.5 font-display text-[1.1875rem] leading-snug font-semibold text-balance">
               {title}
             </h4>
             <p className="mt-1 text-footnote text-label-secondary">
-              {formatFileSize(sizeBytes)} · {pages} {pages === 1 ? "page" : "pages"}
-              <span className="text-label-tertiary"> · Updated {formatMonthYear(updatedAt)}</span>
+              {formatFileSize(sizeBytes)} · {pages} {pages === 1 ? "page" : "pages"}· Updated{" "}
+              {formatMonthYear(updatedAt)}
             </p>
           </div>
         </div>
