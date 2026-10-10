@@ -82,13 +82,14 @@ test("lays out every part of the card", async () => {
   );
 });
 
-test("writes the first line of the name white, over the suit, and the family name black", async () => {
+test("writes the name in black below the portrait", async () => {
   const { container } = render(await ProfilePage(props));
   const fills = [...container.querySelectorAll("[data-name] path")].map((p) =>
-    p.getAttribute("fill") === "#fff" ? "w" : "b",
+    p.getAttribute("fill"),
   );
   // Momen Tawfiq, then Alkiswani.
-  expect(fills.join("")).toBe(`${"w".repeat(11)}${"b".repeat(9)}`);
+  expect(fills).toHaveLength(20);
+  expect(new Set(fills)).toEqual(new Set(["#0a0a0a"]));
 });
 
 test("describes the person for search engines", async () => {
@@ -145,17 +146,14 @@ test("reads in each language at its own address", async () => {
   expect(id.contact.profile.href).toBe("/sheraton/id/momen");
 });
 
-test("writes the Arabic name with its first line white", async () => {
+test("writes the Arabic name", async () => {
   const { container } = render(
     await ProfilePage({ params: Promise.resolve({ locale: "ar" }) } as typeof props),
   );
   expect(
     screen.getByRole("heading", { level: 2, name: "مؤمن توفيق الكسواني" }),
   ).toBeInTheDocument();
-  const fills = [...container.querySelectorAll("[data-name] path")]
-    .map((p) => (p.getAttribute("fill") === "#fff" ? "w" : "b"))
-    .join("");
-  expect(fills).toMatch(/^w+b+$/);
+  expect(container.querySelectorAll("[data-name] path").length).toBeGreaterThan(0);
 });
 
 test("serves the Arabic contact card", async () => {

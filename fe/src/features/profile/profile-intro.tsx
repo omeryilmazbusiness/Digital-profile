@@ -32,8 +32,7 @@ export const PROFILE_INTRO_ID = "profile-intro";
  * role and the contact buttons, which rise with their shadows. The page scrolls on normally
  * afterwards.
  *
- * The name overlaps the bottom of the portrait: its accented first line ("Momen Tawfiq", over
- * the suit) is white, the rest black.
+ * The name is set just below the portrait, whose bottom edge dissolves into the page.
  *
  * With reduced motion (or before scripts run) everything is shown at rest.
  */
@@ -43,9 +42,8 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
   const reducedMotion = useReducedMotion();
   const actions = contactActions(profile, ui);
   const [x = 0, y = 0, w = 0, h = 0] = signature?.viewBox ?? [];
-  // Width, against the portrait's, at which the white line stays over the suit. Arabic sets
-  // taller for its width.
-  const nameWidth = signature?.dir === "rtl" ? 0.6 : 0.78;
+  // Width against the portrait's; Arabic sets taller for its width.
+  const nameWidth = signature?.dir === "rtl" ? 0.56 : 0.72;
 
   useGSAP(
     () => {
@@ -168,7 +166,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
         ref={root}
         id={PROFILE_INTRO_ID}
         aria-labelledby="profile-name"
-        style={{ "--portrait": "min(94vw, 32rem, 54svh)" } as React.CSSProperties}
+        style={{ "--portrait": "min(88vw, 30rem, 46svh)" } as React.CSSProperties}
         className="relative top-0 flex min-h-svh flex-col items-center justify-center overflow-hidden bg-white px-safe-5 pt-safe-20 pb-safe-10 motion-safe:sticky"
       >
         <p
@@ -190,7 +188,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
               <img
                 src={profile.portrait.src}
                 srcSet={profile.portrait.srcSet}
-                sizes="(min-width: 640px) 32rem, 94vw"
+                sizes="(min-width: 640px) 30rem, 88vw"
                 width={profile.portrait.width}
                 height={profile.portrait.height}
                 alt={profile.portrait.alt}
@@ -199,14 +197,14 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
                 draggable={false}
               />
               {/* Uploaded photos end in a hard edge: it dissolves into the page through a
-                  deepening blur, the white held back until below the name's white line. */}
+                  deepening blur. */}
               <span
                 aria-hidden
                 className="absolute inset-x-0 bottom-0 h-[30%] [mask-image:linear-gradient(to_bottom,transparent,black_80%)] backdrop-blur-xl"
               />
               <span
                 aria-hidden
-                className="absolute inset-x-0 -bottom-px h-[30%] bg-linear-to-b from-white/0 from-35% via-white/50 via-75% to-white"
+                className="absolute inset-x-0 -bottom-px h-[30%] bg-linear-to-b from-white/0 from-20% via-white/60 via-70% to-white"
               />
             </div>
           )}
@@ -214,7 +212,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
 
         <div
           data-intro="below"
-          className="relative z-10 -mt-[calc(var(--portrait)*0.22)] flex w-full flex-col items-center text-center"
+          className="relative z-10 mt-5 flex w-full flex-col items-center text-center"
         >
           <h2 id="profile-name" className={cn(signature && "sr-only")}>
             {!signature && <NameText name={profile.name} />}
@@ -234,18 +232,14 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
                   key={i}
                   data-length={glyph.length}
                   d={glyph.d}
-                  fill={glyph.accent ? "#fff" : "#0a0a0a"}
-                  stroke={glyph.accent ? "#fff" : "#0a0a0a"}
+                  fill="#0a0a0a"
+                  stroke="#0a0a0a"
                   pathLength={1}
                   strokeDasharray="1 1"
                   strokeDashoffset={1}
                   strokeOpacity={0}
                   fillOpacity={0}
-                  className={cn(
-                    "motion-reduce:[fill-opacity:1]",
-                    // Keeps the white letters legible where they cross the shirt.
-                    glyph.accent && "drop-shadow-[0_1px_5px_rgb(0_0_0/0.45)]",
-                  )}
+                  className="motion-reduce:[fill-opacity:1]"
                 />
               ))}
             </svg>
@@ -327,8 +321,8 @@ export function ProfileIntro({ profile, organization, eyebrow, signature, ui }: 
 }
 
 /**
- * The name as text, for when it can't be written as outlines: the first words white over the
- * portrait like the written name's first line, the last word beneath.
+ * The name as text, for when it can't be written as outlines: the last word on its own line,
+ * like the written name.
  */
 function NameText({ name }: { name: string }) {
   const words = name.trim().split(/\s+/);
@@ -336,10 +330,10 @@ function NameText({ name }: { name: string }) {
   return (
     <span
       data-intro="meta"
-      className="flex flex-col items-center text-[clamp(2rem,9vw,3rem)] leading-[1.08] font-semibold tracking-tight motion-safe:invisible"
+      className="flex flex-col items-center text-[clamp(1.75rem,8vw,2.75rem)] leading-[1.08] font-semibold tracking-tight text-neutral-950 motion-safe:invisible"
     >
-      <span className="text-white drop-shadow-[0_1px_5px_rgb(0_0_0/0.45)]">{words.join(" ")}</span>
-      {last && <span className="text-neutral-950">{last}</span>}
+      <span>{words.join(" ")}</span>
+      {last && <span>{last}</span>}
     </span>
   );
 }

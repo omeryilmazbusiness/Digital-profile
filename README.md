@@ -279,9 +279,9 @@ In Discover, each topic's rule draws across as it scrolls in, its text rises out
 its PDF cards follow one by one (`RiseGroup` in `fe/src/components/scroll/rise.tsx`, shared with
 the card); with reduced motion everything is simply there.
 
-On the card, the portrait settles in on white and his name writes itself beneath it in Inter SemiBold, a plain
-business sans (IBM Plex Sans Arabic in Arabic), as you scroll ("Momen Tawfiq", over the suit, in
-white — the `accent` of its manifest in `generate-signature.mjs`); then the actions, figures, services, contact details with
+On the card, the portrait settles in on white, its bottom edge dissolving into the page through a
+deepening blur, and his name writes itself just below it in Inter SemiBold, a plain business sans
+(IBM Plex Sans Arabic in Arabic), as you scroll; then the actions, figures, services, contact details with
 live office hours, a QR share card and a closing call to action follow. `.../momen/vcard` serves the
 contact card with the photo embedded. The figures, hours and LinkedIn link in `mock-content.ts` are
 placeholders.
