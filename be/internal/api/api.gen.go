@@ -229,6 +229,18 @@ func (e SpokenLanguage) Valid() bool {
 	}
 }
 
+// Address Office address as written in one language
+type Address struct {
+	// City Example: Makkah
+	City *string `json:"city,omitempty"`
+
+	// Country Example: Saudi Arabia
+	Country *string `json:"country,omitempty"`
+
+	// Street Example: Ibrahim Al Khalil Street
+	Street *string `json:"street,omitempty"`
+}
+
 // AdminUser defines model for AdminUser.
 type AdminUser struct {
 	Email             openapi_types.Email `json:"email"`
@@ -246,6 +258,78 @@ type ChangePasswordRequest struct {
 
 	// NewPassword 12–128 characters, different from the current password and the email
 	NewPassword string `json:"newPassword"`
+}
+
+// DiscoverSection defines model for DiscoverSection.
+type DiscoverSection struct {
+	CreatedAt    time.Time                    `json:"createdAt"`
+	Documents    []Document                   `json:"documents"`
+	Id           openapi_types.UUID           `json:"id"`
+	Position     int32                        `json:"position"`
+	Translations LocalizedDiscoverSectionText `json:"translations"`
+	UpdatedAt    time.Time                    `json:"updatedAt"`
+}
+
+// DiscoverSectionInput defines model for DiscoverSectionInput.
+type DiscoverSectionInput struct {
+	Translations LocalizedDiscoverSectionText `json:"translations"`
+}
+
+// DiscoverSectionList defines model for DiscoverSectionList.
+type DiscoverSectionList struct {
+	Items []DiscoverSection `json:"items"`
+}
+
+// DiscoverSectionText defines model for DiscoverSectionText.
+type DiscoverSectionText struct {
+	// Body Plain text; blank lines separate paragraphs
+	Body *string `json:"body,omitempty"`
+
+	// Eyebrow Short label above the title
+	//
+	// Example: Groups & Umrah
+	Eyebrow *string `json:"eyebrow,omitempty"`
+	Title   string  `json:"title"`
+}
+
+// Document defines model for Document.
+type Document struct {
+	ByteSize  int64     `json:"byteSize"`
+	CreatedAt time.Time `json:"createdAt"`
+
+	// DownloadUrl Saves the PDF under `fileName`
+	DownloadUrl string `json:"downloadUrl"`
+
+	// FileName Example: Groups-and-Umrah.pdf
+	FileName string             `json:"fileName"`
+	Id       openapi_types.UUID `json:"id"`
+
+	// Language Interface language
+	Language Locale `json:"language"`
+
+	// PageCount Absent when it cannot be read from the file
+	PageCount    *int32                `json:"pageCount,omitempty"`
+	SectionId    openapi_types.UUID    `json:"sectionId"`
+	Translations LocalizedDocumentText `json:"translations"`
+	UpdatedAt    time.Time             `json:"updatedAt"`
+
+	// Url Opens the PDF in the browser; relative to the API origin
+	//
+	// Example: /api/v1/public/documents/0b0c6c1e-6b8e-4c2e-9d1a-2d9f8c3b7a10
+	Url string `json:"url"`
+}
+
+// DocumentInput defines model for DocumentInput.
+type DocumentInput struct {
+	// Language Interface language
+	Language     Locale                `json:"language"`
+	Translations LocalizedDocumentText `json:"translations"`
+}
+
+// DocumentText defines model for DocumentText.
+type DocumentText struct {
+	// Title Example: Groups and Umrah programmes
+	Title string `json:"title"`
 }
 
 // FieldError defines model for FieldError.
@@ -301,6 +385,20 @@ type LocalizedAltText struct {
 	Ar *AltText `json:"ar,omitempty"`
 	En *AltText `json:"en,omitempty"`
 	Id *AltText `json:"id,omitempty"`
+}
+
+// LocalizedDiscoverSectionText defines model for LocalizedDiscoverSectionText.
+type LocalizedDiscoverSectionText struct {
+	Ar *DiscoverSectionText `json:"ar,omitempty"`
+	En *DiscoverSectionText `json:"en,omitempty"`
+	Id *DiscoverSectionText `json:"id,omitempty"`
+}
+
+// LocalizedDocumentText defines model for LocalizedDocumentText.
+type LocalizedDocumentText struct {
+	Ar *DocumentText `json:"ar,omitempty"`
+	En *DocumentText `json:"en,omitempty"`
+	Id *DocumentText `json:"id,omitempty"`
 }
 
 // LocalizedProfileText Texts per interface language; at least one language is needed to publish
@@ -393,12 +491,14 @@ type Problem struct {
 // Profile defines model for Profile.
 type Profile struct {
 	// Complete Whether the public card and vCard are published
-	Complete  bool             `json:"complete"`
-	Email     *string          `json:"email,omitempty"`
-	FirstName string           `json:"firstName"`
-	FullName  string           `json:"fullName"`
-	Languages []SpokenLanguage `json:"languages"`
-	LastName  string           `json:"lastName"`
+	Complete    bool             `json:"complete"`
+	Email       *string          `json:"email,omitempty"`
+	FirstName   string           `json:"firstName"`
+	FullName    string           `json:"fullName"`
+	Languages   []SpokenLanguage `json:"languages"`
+	LastName    string           `json:"lastName"`
+	LinkedinUrl *string          `json:"linkedinUrl,omitempty"`
+	MapUrl      *string          `json:"mapUrl,omitempty"`
 
 	// Missing What must be added before the profile is published
 	Missing      []ProfileMissing `json:"missing"`
@@ -407,12 +507,14 @@ type Profile struct {
 	// Phone E.164
 	//
 	// Example: +966125456789
-	Phone    *string `json:"phone,omitempty"`
-	Portrait *Media  `json:"portrait,omitempty"`
+	Phone      *string `json:"phone,omitempty"`
+	Portrait   *Media  `json:"portrait,omitempty"`
+	PostalCode *string `json:"postalCode,omitempty"`
 
 	// Translations Texts per interface language; at least one language is needed to publish
 	Translations LocalizedProfileText `json:"translations"`
 	UpdatedAt    time.Time            `json:"updatedAt"`
+	VcardPhoto   *Media               `json:"vcardPhoto,omitempty"`
 
 	// Whatsapp E.164
 	Whatsapp *string `json:"whatsapp,omitempty"`
@@ -430,6 +532,12 @@ type ProfileInput struct {
 	Languages *[]SpokenLanguage `json:"languages,omitempty"`
 	LastName  *string           `json:"lastName,omitempty"`
 
+	// LinkedinUrl https link to a linkedin.com page
+	LinkedinUrl *string `json:"linkedinUrl,omitempty"`
+
+	// MapUrl https link to the office on a map
+	MapUrl *string `json:"mapUrl,omitempty"`
+
 	// Organization Example: Sheraton Makkah Jabal Al Kaaba Hotel
 	Organization *string `json:"organization,omitempty"`
 
@@ -439,14 +547,27 @@ type ProfileInput struct {
 	// PortraitMediaId An image from the media library
 	PortraitMediaId *openapi_types.UUID `json:"portraitMediaId,omitempty"`
 
+	// PostalCode Example: 24231
+	PostalCode *string `json:"postalCode,omitempty"`
+
 	// Translations Texts per interface language; at least one language is needed to publish
 	Translations LocalizedProfileText `json:"translations"`
-	Whatsapp     *string              `json:"whatsapp,omitempty"`
+
+	// VcardPhotoMediaId Image saved with the downloaded contact card; the portrait when left out
+	VcardPhotoMediaId *openapi_types.UUID `json:"vcardPhotoMediaId,omitempty"`
+	Whatsapp          *string             `json:"whatsapp,omitempty"`
 }
 
 // ProfileTranslation defines model for ProfileTranslation.
 type ProfileTranslation struct {
-	Bio *string `json:"bio,omitempty"`
+	// Address Office address as written in one language
+	Address *Address `json:"address,omitempty"`
+	Bio     *string  `json:"bio,omitempty"`
+
+	// DisplayName The full name as written in this language; defaults to first and last name
+	//
+	// Example: مؤمن توفيق الكسواني
+	DisplayName *string `json:"displayName,omitempty"`
 
 	// Tagline One-line slogan under the name
 	Tagline *string `json:"tagline,omitempty"`
@@ -456,6 +577,38 @@ type ProfileTranslation struct {
 
 	// WhatsappMessage Text pre-filled in WhatsApp when a visitor starts a chat
 	WhatsappMessage *string `json:"whatsappMessage,omitempty"`
+}
+
+// PublicAddress defines model for PublicAddress.
+type PublicAddress struct {
+	City       string `json:"city"`
+	Country    string `json:"country"`
+	PostalCode string `json:"postalCode"`
+	Street     string `json:"street"`
+}
+
+// PublicDiscoverSection defines model for PublicDiscoverSection.
+type PublicDiscoverSection struct {
+	Body      string             `json:"body"`
+	Documents []PublicDocument   `json:"documents"`
+	Eyebrow   string             `json:"eyebrow"`
+	Id        openapi_types.UUID `json:"id"`
+	Title     string             `json:"title"`
+}
+
+// PublicDocument defines model for PublicDocument.
+type PublicDocument struct {
+	ByteSize    int64              `json:"byteSize"`
+	DownloadUrl string             `json:"downloadUrl"`
+	FileName    string             `json:"fileName"`
+	Id          openapi_types.UUID `json:"id"`
+
+	// Language Interface language
+	Language  Locale    `json:"language"`
+	PageCount *int32    `json:"pageCount,omitempty"`
+	Title     string    `json:"title"`
+	UpdatedAt time.Time `json:"updatedAt"`
+	Url       string    `json:"url"`
 }
 
 // PublicImage defines model for PublicImage.
@@ -470,15 +623,21 @@ type PublicImage struct {
 
 // PublicProfile defines model for PublicProfile.
 type PublicProfile struct {
-	Bio       *string          `json:"bio,omitempty"`
-	Email     *string          `json:"email,omitempty"`
-	FirstName string           `json:"firstName"`
-	FullName  string           `json:"fullName"`
-	Languages []SpokenLanguage `json:"languages"`
-	LastName  string           `json:"lastName"`
+	Address *PublicAddress `json:"address,omitempty"`
+	Bio     *string        `json:"bio,omitempty"`
+
+	// DisplayName The name as written in the response language
+	DisplayName string           `json:"displayName"`
+	Email       *string          `json:"email,omitempty"`
+	FirstName   string           `json:"firstName"`
+	FullName    string           `json:"fullName"`
+	Languages   []SpokenLanguage `json:"languages"`
+	LastName    string           `json:"lastName"`
+	LinkedinUrl *string          `json:"linkedinUrl,omitempty"`
 
 	// Locale Interface language
 	Locale       Locale           `json:"locale"`
+	MapUrl       *string          `json:"mapUrl,omitempty"`
 	Organization string           `json:"organization"`
 	Phone        *PhoneNumber     `json:"phone,omitempty"`
 	Portrait     *PublicImage     `json:"portrait,omitempty"`
@@ -487,10 +646,43 @@ type PublicProfile struct {
 	Whatsapp     *WhatsAppContact `json:"whatsapp,omitempty"`
 }
 
+// PublicSite defines model for PublicSite.
+type PublicSite struct {
+	// Locale Interface language
+	Locale   Locale                  `json:"locale"`
+	Profile  *PublicProfile          `json:"profile,omitempty"`
+	Sections []PublicDiscoverSection `json:"sections"`
+	Tour     *PublicTour             `json:"tour,omitempty"`
+}
+
+// PublicTour defines model for PublicTour.
+type PublicTour struct {
+	Url string `json:"url"`
+}
+
+// SectionOrder defines model for SectionOrder.
+type SectionOrder struct {
+	Ids []openapi_types.UUID `json:"ids"`
+}
+
 // SessionInfo defines model for SessionInfo.
 type SessionInfo struct {
 	// AccessTokenExpiresAt When to refresh; the access cookie stops being sent after this instant
 	AccessTokenExpiresAt time.Time `json:"accessTokenExpiresAt"`
+}
+
+// Settings defines model for Settings.
+type Settings struct {
+	TourUrl *string `json:"tourUrl,omitempty"`
+
+	// UpdatedAt Zero time until saved for the first time
+	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// SettingsInput defines model for SettingsInput.
+type SettingsInput struct {
+	// TourUrl https link to the 360° virtual tour; the tour section is hidden without it
+	TourUrl *string `json:"tourUrl,omitempty"`
 }
 
 // SpokenLanguage ISO 639-1 code of a language the sales manager speaks
@@ -507,11 +699,28 @@ type WhatsAppContact struct {
 	Url string `json:"url"`
 }
 
+// DocumentId defines model for DocumentId.
+type DocumentId = openapi_types.UUID
+
 // LocaleQuery Interface language
 type LocaleQuery = Locale
 
 // MediaId defines model for MediaId.
 type MediaId = openapi_types.UUID
+
+// SectionId defines model for SectionId.
+type SectionId = openapi_types.UUID
+
+// UploadDocumentMultipartBody defines parameters for UploadDocument.
+type UploadDocumentMultipartBody struct {
+	File     openapi_types.File `json:"file"`
+	Metadata DocumentInput      `json:"metadata"`
+}
+
+// ReplaceDocumentFileMultipartBody defines parameters for ReplaceDocumentFile.
+type ReplaceDocumentFileMultipartBody struct {
+	File openapi_types.File `json:"file"`
+}
 
 // ListMediaParams defines parameters for ListMedia.
 type ListMediaParams struct {
@@ -522,6 +731,12 @@ type ListMediaParams struct {
 // UploadMediaMultipartBody defines parameters for UploadMedia.
 type UploadMediaMultipartBody struct {
 	File openapi_types.File `json:"file"`
+}
+
+// GetPublicDocumentParams defines parameters for GetPublicDocument.
+type GetPublicDocumentParams struct {
+	Download    *bool   `form:"download,omitempty" json:"download,omitempty"`
+	IfNoneMatch *string `json:"If-None-Match,omitempty"`
 }
 
 // GetPublicMediaParams defines parameters for GetPublicMedia.
@@ -541,6 +756,30 @@ type GetProfileVCardParams struct {
 	Locale *LocaleQuery `form:"locale,omitempty" json:"locale,omitempty"`
 }
 
+// GetPublicSiteParams defines parameters for GetPublicSite.
+type GetPublicSiteParams struct {
+	// Locale Preferred interface language
+	Locale *LocaleQuery `form:"locale,omitempty" json:"locale,omitempty"`
+}
+
+// ReorderDiscoverSectionsJSONRequestBody defines body for ReorderDiscoverSections for application/json ContentType.
+type ReorderDiscoverSectionsJSONRequestBody = SectionOrder
+
+// CreateDiscoverSectionJSONRequestBody defines body for CreateDiscoverSection for application/json ContentType.
+type CreateDiscoverSectionJSONRequestBody = DiscoverSectionInput
+
+// UpdateDiscoverSectionJSONRequestBody defines body for UpdateDiscoverSection for application/json ContentType.
+type UpdateDiscoverSectionJSONRequestBody = DiscoverSectionInput
+
+// UploadDocumentMultipartRequestBody defines body for UploadDocument for multipart/form-data ContentType.
+type UploadDocumentMultipartRequestBody UploadDocumentMultipartBody
+
+// UpdateDocumentJSONRequestBody defines body for UpdateDocument for application/json ContentType.
+type UpdateDocumentJSONRequestBody = DocumentInput
+
+// ReplaceDocumentFileMultipartRequestBody defines body for ReplaceDocumentFile for multipart/form-data ContentType.
+type ReplaceDocumentFileMultipartRequestBody ReplaceDocumentFileMultipartBody
+
 // UploadMediaMultipartRequestBody defines body for UploadMedia for multipart/form-data ContentType.
 type UploadMediaMultipartRequestBody UploadMediaMultipartBody
 
@@ -550,6 +789,9 @@ type UpdateMediaAltTextJSONRequestBody = LocalizedAltText
 // UpdateProfileJSONRequestBody defines body for UpdateProfile for application/json ContentType.
 type UpdateProfileJSONRequestBody = ProfileInput
 
+// UpdateSettingsJSONRequestBody defines body for UpdateSettings for application/json ContentType.
+type UpdateSettingsJSONRequestBody = SettingsInput
+
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -558,6 +800,33 @@ type ChangePasswordJSONRequestBody = ChangePasswordRequest
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+	// ReorderDiscoverSections Reorder the topics
+	// (PUT /api/v1/admin/discover/section-order)
+	ReorderDiscoverSections(w http.ResponseWriter, r *http.Request)
+	// ListDiscoverSections List the topics with their documents
+	// (GET /api/v1/admin/discover/sections)
+	ListDiscoverSections(w http.ResponseWriter, r *http.Request)
+	// CreateDiscoverSection Add a topic
+	// (POST /api/v1/admin/discover/sections)
+	CreateDiscoverSection(w http.ResponseWriter, r *http.Request)
+	// DeleteDiscoverSection Delete a topic and its documents
+	// (DELETE /api/v1/admin/discover/sections/{sectionId})
+	DeleteDiscoverSection(w http.ResponseWriter, r *http.Request, sectionId SectionId)
+	// UpdateDiscoverSection Replace a topic's texts
+	// (PUT /api/v1/admin/discover/sections/{sectionId})
+	UpdateDiscoverSection(w http.ResponseWriter, r *http.Request, sectionId SectionId)
+	// UploadDocument Add a PDF to a topic
+	// (POST /api/v1/admin/discover/sections/{sectionId}/documents)
+	UploadDocument(w http.ResponseWriter, r *http.Request, sectionId SectionId)
+	// DeleteDocument Delete a document
+	// (DELETE /api/v1/admin/documents/{documentId})
+	DeleteDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId)
+	// UpdateDocument Replace a document's titles and language
+	// (PUT /api/v1/admin/documents/{documentId})
+	UpdateDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId)
+	// ReplaceDocumentFile Upload a new version of the PDF
+	// (PUT /api/v1/admin/documents/{documentId}/file)
+	ReplaceDocumentFile(w http.ResponseWriter, r *http.Request, documentId DocumentId)
 	// ListMedia List images
 	// (GET /api/v1/admin/media)
 	ListMedia(w http.ResponseWriter, r *http.Request, params ListMediaParams)
@@ -579,6 +848,12 @@ type ServerInterface interface {
 	// UpdateProfile Replace the profile
 	// (PUT /api/v1/admin/profile)
 	UpdateProfile(w http.ResponseWriter, r *http.Request)
+	// GetSettings Get the site settings
+	// (GET /api/v1/admin/settings)
+	GetSettings(w http.ResponseWriter, r *http.Request)
+	// UpdateSettings Replace the site settings
+	// (PUT /api/v1/admin/settings)
+	UpdateSettings(w http.ResponseWriter, r *http.Request)
 	// Login Sign in
 	// (POST /api/v1/auth/login)
 	Login(w http.ResponseWriter, r *http.Request)
@@ -594,6 +869,9 @@ type ServerInterface interface {
 	// RefreshSession Rotate the session tokens
 	// (POST /api/v1/auth/refresh)
 	RefreshSession(w http.ResponseWriter, r *http.Request)
+	// GetPublicDocument The PDF
+	// (GET /api/v1/public/documents/{documentId})
+	GetPublicDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId, params GetPublicDocumentParams)
 	// GetPublicMedia Image variant
 	// (GET /api/v1/public/media/{file})
 	GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams)
@@ -603,6 +881,9 @@ type ServerInterface interface {
 	// GetProfileVCard Download the contact card
 	// (GET /api/v1/public/profile/vcard)
 	GetProfileVCard(w http.ResponseWriter, r *http.Request, params GetProfileVCardParams)
+	// GetPublicSite Everything the public site shows
+	// (GET /api/v1/public/site)
+	GetPublicSite(w http.ResponseWriter, r *http.Request, params GetPublicSiteParams)
 	// GetLiveness Liveness probe
 	// (GET /healthz)
 	GetLiveness(w http.ResponseWriter, r *http.Request)
@@ -614,6 +895,60 @@ type ServerInterface interface {
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
 
 type Unimplemented struct{}
+
+// ReorderDiscoverSections Reorder the topics
+// (PUT /api/v1/admin/discover/section-order)
+func (_ Unimplemented) ReorderDiscoverSections(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ListDiscoverSections List the topics with their documents
+// (GET /api/v1/admin/discover/sections)
+func (_ Unimplemented) ListDiscoverSections(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// CreateDiscoverSection Add a topic
+// (POST /api/v1/admin/discover/sections)
+func (_ Unimplemented) CreateDiscoverSection(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteDiscoverSection Delete a topic and its documents
+// (DELETE /api/v1/admin/discover/sections/{sectionId})
+func (_ Unimplemented) DeleteDiscoverSection(w http.ResponseWriter, r *http.Request, sectionId SectionId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateDiscoverSection Replace a topic's texts
+// (PUT /api/v1/admin/discover/sections/{sectionId})
+func (_ Unimplemented) UpdateDiscoverSection(w http.ResponseWriter, r *http.Request, sectionId SectionId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UploadDocument Add a PDF to a topic
+// (POST /api/v1/admin/discover/sections/{sectionId}/documents)
+func (_ Unimplemented) UploadDocument(w http.ResponseWriter, r *http.Request, sectionId SectionId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// DeleteDocument Delete a document
+// (DELETE /api/v1/admin/documents/{documentId})
+func (_ Unimplemented) DeleteDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateDocument Replace a document's titles and language
+// (PUT /api/v1/admin/documents/{documentId})
+func (_ Unimplemented) UpdateDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// ReplaceDocumentFile Upload a new version of the PDF
+// (PUT /api/v1/admin/documents/{documentId}/file)
+func (_ Unimplemented) ReplaceDocumentFile(w http.ResponseWriter, r *http.Request, documentId DocumentId) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
 
 // ListMedia List images
 // (GET /api/v1/admin/media)
@@ -657,6 +992,18 @@ func (_ Unimplemented) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetSettings Get the site settings
+// (GET /api/v1/admin/settings)
+func (_ Unimplemented) GetSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// UpdateSettings Replace the site settings
+// (PUT /api/v1/admin/settings)
+func (_ Unimplemented) UpdateSettings(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // Login Sign in
 // (POST /api/v1/auth/login)
 func (_ Unimplemented) Login(w http.ResponseWriter, r *http.Request) {
@@ -687,6 +1034,12 @@ func (_ Unimplemented) RefreshSession(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
+// GetPublicDocument The PDF
+// (GET /api/v1/public/documents/{documentId})
+func (_ Unimplemented) GetPublicDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId, params GetPublicDocumentParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
 // GetPublicMedia Image variant
 // (GET /api/v1/public/media/{file})
 func (_ Unimplemented) GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams) {
@@ -702,6 +1055,12 @@ func (_ Unimplemented) GetPublicProfile(w http.ResponseWriter, r *http.Request, 
 // GetProfileVCard Download the contact card
 // (GET /api/v1/public/profile/vcard)
 func (_ Unimplemented) GetProfileVCard(w http.ResponseWriter, r *http.Request, params GetProfileVCardParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// GetPublicSite Everything the public site shows
+// (GET /api/v1/public/site)
+func (_ Unimplemented) GetPublicSite(w http.ResponseWriter, r *http.Request, params GetPublicSiteParams) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -725,6 +1084,204 @@ type ServerInterfaceWrapper struct {
 }
 
 type MiddlewareFunc func(http.Handler) http.Handler
+
+// ReorderDiscoverSections operation middleware
+func (siw *ServerInterfaceWrapper) ReorderDiscoverSections(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReorderDiscoverSections(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ListDiscoverSections operation middleware
+func (siw *ServerInterfaceWrapper) ListDiscoverSections(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ListDiscoverSections(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// CreateDiscoverSection operation middleware
+func (siw *ServerInterfaceWrapper) CreateDiscoverSection(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.CreateDiscoverSection(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDiscoverSection operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDiscoverSection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sectionId" -------------
+	var sectionId SectionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sectionId", chi.URLParam(r, "sectionId"), &sectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sectionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDiscoverSection(w, r, sectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateDiscoverSection operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDiscoverSection(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sectionId" -------------
+	var sectionId SectionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sectionId", chi.URLParam(r, "sectionId"), &sectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sectionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateDiscoverSection(w, r, sectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UploadDocument operation middleware
+func (siw *ServerInterfaceWrapper) UploadDocument(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "sectionId" -------------
+	var sectionId SectionId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "sectionId", chi.URLParam(r, "sectionId"), &sectionId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "sectionId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UploadDocument(w, r, sectionId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// DeleteDocument operation middleware
+func (siw *ServerInterfaceWrapper) DeleteDocument(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "documentId" -------------
+	var documentId DocumentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "documentId", chi.URLParam(r, "documentId"), &documentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "documentId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.DeleteDocument(w, r, documentId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateDocument operation middleware
+func (siw *ServerInterfaceWrapper) UpdateDocument(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "documentId" -------------
+	var documentId DocumentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "documentId", chi.URLParam(r, "documentId"), &documentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "documentId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateDocument(w, r, documentId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// ReplaceDocumentFile operation middleware
+func (siw *ServerInterfaceWrapper) ReplaceDocumentFile(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "documentId" -------------
+	var documentId DocumentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "documentId", chi.URLParam(r, "documentId"), &documentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "documentId", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.ReplaceDocumentFile(w, r, documentId)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
 
 // ListMedia operation middleware
 func (siw *ServerInterfaceWrapper) ListMedia(w http.ResponseWriter, r *http.Request) {
@@ -892,6 +1449,34 @@ func (siw *ServerInterfaceWrapper) UpdateProfile(w http.ResponseWriter, r *http.
 	handler.ServeHTTP(w, r)
 }
 
+// GetSettings operation middleware
+func (siw *ServerInterfaceWrapper) GetSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// UpdateSettings operation middleware
+func (siw *ServerInterfaceWrapper) UpdateSettings(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.UpdateSettings(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
 // Login operation middleware
 func (siw *ServerInterfaceWrapper) Login(w http.ResponseWriter, r *http.Request) {
 
@@ -953,6 +1538,69 @@ func (siw *ServerInterfaceWrapper) RefreshSession(w http.ResponseWriter, r *http
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.RefreshSession(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPublicDocument operation middleware
+func (siw *ServerInterfaceWrapper) GetPublicDocument(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// ------------- Path parameter "documentId" -------------
+	var documentId DocumentId
+
+	err = runtime.BindStyledParameterWithOptions("simple", "documentId", chi.URLParam(r, "documentId"), &documentId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true, Type: "string", Format: "uuid", ValueIsUnescaped: r.URL.RawPath == ""})
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "documentId", Err: err})
+		return
+	}
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPublicDocumentParams
+
+	// ------------- Optional query parameter "download" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "download", r.URL.Query(), &params.Download, runtime.BindQueryParameterOptions{Type: "boolean", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "download"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "download", Err: err})
+		}
+		return
+	}
+
+	headers := r.Header
+
+	// ------------- Optional header parameter "If-None-Match" -------------
+	if valueList, found := headers[http.CanonicalHeaderKey("If-None-Match")]; found {
+		var IfNoneMatch string
+		n := len(valueList)
+		if n != 1 {
+			siw.ErrorHandlerFunc(w, r, &TooManyValuesForParamError{ParamName: "If-None-Match", Count: n})
+			return
+		}
+
+		err = runtime.BindStyledParameterWithOptions("simple", "If-None-Match", valueList[0], &IfNoneMatch, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""})
+		if err != nil {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "If-None-Match", Err: err})
+			return
+		}
+
+		params.IfNoneMatch = &IfNoneMatch
+
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPublicDocument(w, r, documentId, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1069,6 +1717,39 @@ func (siw *ServerInterfaceWrapper) GetProfileVCard(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetProfileVCard(w, r, params)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// GetPublicSite operation middleware
+func (siw *ServerInterfaceWrapper) GetPublicSite(w http.ResponseWriter, r *http.Request) {
+
+	var err error
+	_ = err
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetPublicSiteParams
+
+	// ------------- Optional query parameter "locale" -------------
+
+	err = runtime.BindQueryParameterWithOptions("form", true, false, "locale", r.URL.Query(), &params.Locale, runtime.BindQueryParameterOptions{Type: "string", Format: ""})
+	if err != nil {
+		var requiredError *runtime.RequiredParameterError
+		if errors.As(err, &requiredError) {
+			siw.ErrorHandlerFunc(w, r, &RequiredParamError{ParamName: "locale"})
+		} else {
+			siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "locale", Err: err})
+		}
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetPublicSite(w, r, params)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -1270,11 +1951,956 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/v1/public/profile/vcard", wrapper.GetProfileVCard)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/admin/discover/sections", wrapper.ListDiscoverSections)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/admin/discover/sections", wrapper.CreateDiscoverSection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/admin/discover/section-order", wrapper.ReorderDiscoverSections)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/admin/discover/sections/{sectionId}", wrapper.DeleteDiscoverSection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/admin/discover/sections/{sectionId}", wrapper.UpdateDiscoverSection)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/v1/admin/discover/sections/{sectionId}/documents", wrapper.UploadDocument)
+	})
+	r.Group(func(r chi.Router) {
+		r.Delete(options.BaseURL+"/api/v1/admin/documents/{documentId}", wrapper.DeleteDocument)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/admin/documents/{documentId}", wrapper.UpdateDocument)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/admin/documents/{documentId}/file", wrapper.ReplaceDocumentFile)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/public/documents/{documentId}", wrapper.GetPublicDocument)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/admin/settings", wrapper.GetSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Put(options.BaseURL+"/api/v1/admin/settings", wrapper.UpdateSettings)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/v1/public/site", wrapper.GetPublicSite)
+	})
 
 	return r
 }
 
 type ProblemApplicationProblemPlusJSONResponse Problem
+
+type ReorderDiscoverSectionsRequestObject struct {
+	Body *ReorderDiscoverSectionsJSONRequestBody
+}
+
+type ReorderDiscoverSectionsResponseObject interface {
+	VisitReorderDiscoverSectionsResponse(w http.ResponseWriter) error
+}
+
+type ReorderDiscoverSections200JSONResponse DiscoverSectionList
+
+func (response ReorderDiscoverSections200JSONResponse) VisitReorderDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReorderDiscoverSections400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ReorderDiscoverSections400ApplicationProblemPlusJSONResponse) VisitReorderDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReorderDiscoverSections401ApplicationProblemPlusJSONResponse Problem
+
+func (response ReorderDiscoverSections401ApplicationProblemPlusJSONResponse) VisitReorderDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReorderDiscoverSections403ApplicationProblemPlusJSONResponse Problem
+
+func (response ReorderDiscoverSections403ApplicationProblemPlusJSONResponse) VisitReorderDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReorderDiscoverSections422ApplicationProblemPlusJSONResponse Problem
+
+func (response ReorderDiscoverSections422ApplicationProblemPlusJSONResponse) VisitReorderDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReorderDiscoverSectionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ReorderDiscoverSectionsdefaultApplicationProblemPlusJSONResponse) VisitReorderDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDiscoverSectionsRequestObject struct {
+}
+
+type ListDiscoverSectionsResponseObject interface {
+	VisitListDiscoverSectionsResponse(w http.ResponseWriter) error
+}
+
+type ListDiscoverSections200JSONResponse DiscoverSectionList
+
+func (response ListDiscoverSections200JSONResponse) VisitListDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDiscoverSections401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ListDiscoverSections401ApplicationProblemPlusJSONResponse) VisitListDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ListDiscoverSectionsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ListDiscoverSectionsdefaultApplicationProblemPlusJSONResponse) VisitListDiscoverSectionsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDiscoverSectionRequestObject struct {
+	Body *CreateDiscoverSectionJSONRequestBody
+}
+
+type CreateDiscoverSectionResponseObject interface {
+	VisitCreateDiscoverSectionResponse(w http.ResponseWriter) error
+}
+
+type CreateDiscoverSection201JSONResponse DiscoverSection
+
+func (response CreateDiscoverSection201JSONResponse) VisitCreateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDiscoverSection400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response CreateDiscoverSection400ApplicationProblemPlusJSONResponse) VisitCreateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDiscoverSection401ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateDiscoverSection401ApplicationProblemPlusJSONResponse) VisitCreateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDiscoverSection403ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateDiscoverSection403ApplicationProblemPlusJSONResponse) VisitCreateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDiscoverSection422ApplicationProblemPlusJSONResponse Problem
+
+func (response CreateDiscoverSection422ApplicationProblemPlusJSONResponse) VisitCreateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type CreateDiscoverSectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response CreateDiscoverSectiondefaultApplicationProblemPlusJSONResponse) VisitCreateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDiscoverSectionRequestObject struct {
+	SectionId SectionId `json:"sectionId"`
+}
+
+type DeleteDiscoverSectionResponseObject interface {
+	VisitDeleteDiscoverSectionResponse(w http.ResponseWriter) error
+}
+
+type DeleteDiscoverSection204Response struct {
+}
+
+func (response DeleteDiscoverSection204Response) VisitDeleteDiscoverSectionResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteDiscoverSection400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteDiscoverSection400ApplicationProblemPlusJSONResponse) VisitDeleteDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDiscoverSection401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteDiscoverSection401ApplicationProblemPlusJSONResponse) VisitDeleteDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDiscoverSection403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteDiscoverSection403ApplicationProblemPlusJSONResponse) VisitDeleteDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDiscoverSection404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteDiscoverSection404ApplicationProblemPlusJSONResponse) VisitDeleteDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDiscoverSectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeleteDiscoverSectiondefaultApplicationProblemPlusJSONResponse) VisitDeleteDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDiscoverSectionRequestObject struct {
+	SectionId SectionId `json:"sectionId"`
+	Body      *UpdateDiscoverSectionJSONRequestBody
+}
+
+type UpdateDiscoverSectionResponseObject interface {
+	VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error
+}
+
+type UpdateDiscoverSection200JSONResponse DiscoverSection
+
+func (response UpdateDiscoverSection200JSONResponse) VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDiscoverSection400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateDiscoverSection400ApplicationProblemPlusJSONResponse) VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDiscoverSection401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDiscoverSection401ApplicationProblemPlusJSONResponse) VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDiscoverSection403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDiscoverSection403ApplicationProblemPlusJSONResponse) VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDiscoverSection404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDiscoverSection404ApplicationProblemPlusJSONResponse) VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDiscoverSection422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDiscoverSection422ApplicationProblemPlusJSONResponse) VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDiscoverSectiondefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateDiscoverSectiondefaultApplicationProblemPlusJSONResponse) VisitUpdateDiscoverSectionResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocumentRequestObject struct {
+	SectionId SectionId `json:"sectionId"`
+	Body      *multipart.Reader
+}
+
+type UploadDocumentResponseObject interface {
+	VisitUploadDocumentResponse(w http.ResponseWriter) error
+}
+
+type UploadDocument201JSONResponse Document
+
+func (response UploadDocument201JSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocument400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UploadDocument400ApplicationProblemPlusJSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocument401ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadDocument401ApplicationProblemPlusJSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocument403ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadDocument403ApplicationProblemPlusJSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocument404ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadDocument404ApplicationProblemPlusJSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocument413ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadDocument413ApplicationProblemPlusJSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocument422ApplicationProblemPlusJSONResponse Problem
+
+func (response UploadDocument422ApplicationProblemPlusJSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UploadDocumentdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UploadDocumentdefaultApplicationProblemPlusJSONResponse) VisitUploadDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocumentRequestObject struct {
+	DocumentId DocumentId `json:"documentId"`
+}
+
+type DeleteDocumentResponseObject interface {
+	VisitDeleteDocumentResponse(w http.ResponseWriter) error
+}
+
+type DeleteDocument204Response struct {
+}
+
+func (response DeleteDocument204Response) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+	w.WriteHeader(204)
+	return nil
+}
+
+type DeleteDocument400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response DeleteDocument400ApplicationProblemPlusJSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocument401ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteDocument401ApplicationProblemPlusJSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocument403ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteDocument403ApplicationProblemPlusJSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocument404ApplicationProblemPlusJSONResponse Problem
+
+func (response DeleteDocument404ApplicationProblemPlusJSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type DeleteDocumentdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response DeleteDocumentdefaultApplicationProblemPlusJSONResponse) VisitDeleteDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDocumentRequestObject struct {
+	DocumentId DocumentId `json:"documentId"`
+	Body       *UpdateDocumentJSONRequestBody
+}
+
+type UpdateDocumentResponseObject interface {
+	VisitUpdateDocumentResponse(w http.ResponseWriter) error
+}
+
+type UpdateDocument200JSONResponse Document
+
+func (response UpdateDocument200JSONResponse) VisitUpdateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDocument400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateDocument400ApplicationProblemPlusJSONResponse) VisitUpdateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDocument401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDocument401ApplicationProblemPlusJSONResponse) VisitUpdateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDocument403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDocument403ApplicationProblemPlusJSONResponse) VisitUpdateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDocument404ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDocument404ApplicationProblemPlusJSONResponse) VisitUpdateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDocument422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateDocument422ApplicationProblemPlusJSONResponse) VisitUpdateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateDocumentdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateDocumentdefaultApplicationProblemPlusJSONResponse) VisitUpdateDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFileRequestObject struct {
+	DocumentId DocumentId `json:"documentId"`
+	Body       *multipart.Reader
+}
+
+type ReplaceDocumentFileResponseObject interface {
+	VisitReplaceDocumentFileResponse(w http.ResponseWriter) error
+}
+
+type ReplaceDocumentFile200JSONResponse Document
+
+func (response ReplaceDocumentFile200JSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFile400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response ReplaceDocumentFile400ApplicationProblemPlusJSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFile401ApplicationProblemPlusJSONResponse Problem
+
+func (response ReplaceDocumentFile401ApplicationProblemPlusJSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFile403ApplicationProblemPlusJSONResponse Problem
+
+func (response ReplaceDocumentFile403ApplicationProblemPlusJSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFile404ApplicationProblemPlusJSONResponse Problem
+
+func (response ReplaceDocumentFile404ApplicationProblemPlusJSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFile413ApplicationProblemPlusJSONResponse Problem
+
+func (response ReplaceDocumentFile413ApplicationProblemPlusJSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(413)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFile422ApplicationProblemPlusJSONResponse Problem
+
+func (response ReplaceDocumentFile422ApplicationProblemPlusJSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type ReplaceDocumentFiledefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response ReplaceDocumentFiledefaultApplicationProblemPlusJSONResponse) VisitReplaceDocumentFileResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
 
 type ListMediaRequestObject struct {
 	Params ListMediaParams
@@ -1935,6 +3561,157 @@ func (response UpdateProfiledefaultApplicationProblemPlusJSONResponse) VisitUpda
 	return err
 }
 
+type GetSettingsRequestObject struct {
+}
+
+type GetSettingsResponseObject interface {
+	VisitGetSettingsResponse(w http.ResponseWriter) error
+}
+
+type GetSettings200JSONResponse Settings
+
+func (response GetSettings200JSONResponse) VisitGetSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettings401ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetSettings401ApplicationProblemPlusJSONResponse) VisitGetSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetSettingsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetSettingsdefaultApplicationProblemPlusJSONResponse) VisitGetSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettingsRequestObject struct {
+	Body *UpdateSettingsJSONRequestBody
+}
+
+type UpdateSettingsResponseObject interface {
+	VisitUpdateSettingsResponse(w http.ResponseWriter) error
+}
+
+type UpdateSettings200JSONResponse Settings
+
+func (response UpdateSettings200JSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettings400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response UpdateSettings400ApplicationProblemPlusJSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettings401ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSettings401ApplicationProblemPlusJSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(401)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettings403ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSettings403ApplicationProblemPlusJSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(403)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettings422ApplicationProblemPlusJSONResponse Problem
+
+func (response UpdateSettings422ApplicationProblemPlusJSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(422)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type UpdateSettingsdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response UpdateSettingsdefaultApplicationProblemPlusJSONResponse) VisitUpdateSettingsResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type LoginRequestObject struct {
 	Body *LoginJSONRequestBody
 }
@@ -2357,6 +4134,118 @@ func (response RefreshSessiondefaultApplicationProblemPlusJSONResponse) VisitRef
 	return err
 }
 
+type GetPublicDocumentRequestObject struct {
+	DocumentId DocumentId `json:"documentId"`
+	Params     GetPublicDocumentParams
+}
+
+type GetPublicDocumentResponseObject interface {
+	VisitGetPublicDocumentResponse(w http.ResponseWriter) error
+}
+
+type GetPublicDocument200ResponseHeaders struct {
+	CacheControl       *string
+	ContentDisposition *string
+	ETag               *string
+}
+
+type GetPublicDocument200ApplicationpdfResponse struct {
+	Body          io.Reader
+	Headers       GetPublicDocument200ResponseHeaders
+	ContentLength int64
+}
+
+func (response GetPublicDocument200ApplicationpdfResponse) VisitGetPublicDocumentResponse(w http.ResponseWriter) error {
+
+	w.Header().Set("Content-Type", "application/pdf")
+	if response.ContentLength != 0 {
+		w.Header().Set("Content-Length", fmt.Sprint(response.ContentLength))
+	}
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	if response.Headers.ContentDisposition != nil {
+		w.Header().Set("Content-Disposition", fmt.Sprint(*response.Headers.ContentDisposition))
+	}
+	if response.Headers.ETag != nil {
+		w.Header().Set("ETag", fmt.Sprint(*response.Headers.ETag))
+	}
+	w.WriteHeader(200)
+
+	if closer, ok := response.Body.(io.ReadCloser); ok {
+		defer closer.Close()
+	}
+	_, err := io.Copy(w, response.Body)
+	return err
+}
+
+type GetPublicDocument304ResponseHeaders struct {
+	CacheControl *string
+	ETag         *string
+}
+
+type GetPublicDocument304Response struct {
+	Headers GetPublicDocument304ResponseHeaders
+}
+
+func (response GetPublicDocument304Response) VisitGetPublicDocumentResponse(w http.ResponseWriter) error {
+	if response.Headers.CacheControl != nil {
+		w.Header().Set("Cache-Control", fmt.Sprint(*response.Headers.CacheControl))
+	}
+	if response.Headers.ETag != nil {
+		w.Header().Set("ETag", fmt.Sprint(*response.Headers.ETag))
+	}
+	w.WriteHeader(304)
+	return nil
+}
+
+type GetPublicDocument400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPublicDocument400ApplicationProblemPlusJSONResponse) VisitGetPublicDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicDocument404ApplicationProblemPlusJSONResponse Problem
+
+func (response GetPublicDocument404ApplicationProblemPlusJSONResponse) VisitGetPublicDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(404)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicDocumentdefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPublicDocumentdefaultApplicationProblemPlusJSONResponse) VisitGetPublicDocumentResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetPublicMediaRequestObject struct {
 	File   string `json:"file"`
 	Params GetPublicMediaParams
@@ -2617,6 +4506,61 @@ func (response GetProfileVCarddefaultApplicationProblemPlusJSONResponse) VisitGe
 	return err
 }
 
+type GetPublicSiteRequestObject struct {
+	Params GetPublicSiteParams
+}
+
+type GetPublicSiteResponseObject interface {
+	VisitGetPublicSiteResponse(w http.ResponseWriter) error
+}
+
+type GetPublicSite200JSONResponse PublicSite
+
+func (response GetPublicSite200JSONResponse) VisitGetPublicSiteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicSite400ApplicationProblemPlusJSONResponse struct {
+	ProblemApplicationProblemPlusJSONResponse
+}
+
+func (response GetPublicSite400ApplicationProblemPlusJSONResponse) VisitGetPublicSiteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(400)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
+type GetPublicSitedefaultApplicationProblemPlusJSONResponse struct {
+	Body       Problem
+	StatusCode int
+}
+
+func (response GetPublicSitedefaultApplicationProblemPlusJSONResponse) VisitGetPublicSiteResponse(w http.ResponseWriter) error {
+
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(response.Body); err != nil {
+		return err
+	}
+	w.Header().Set("Content-Type", "application/problem+json")
+	w.WriteHeader(response.StatusCode)
+	_, err := buf.WriteTo(w)
+	return err
+}
+
 type GetLivenessRequestObject struct {
 }
 
@@ -2709,6 +4653,33 @@ func (response GetReadinessdefaultApplicationProblemPlusJSONResponse) VisitGetRe
 
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
+	// ReorderDiscoverSections Reorder the topics
+	// (PUT /api/v1/admin/discover/section-order)
+	ReorderDiscoverSections(ctx context.Context, request ReorderDiscoverSectionsRequestObject) (ReorderDiscoverSectionsResponseObject, error)
+	// ListDiscoverSections List the topics with their documents
+	// (GET /api/v1/admin/discover/sections)
+	ListDiscoverSections(ctx context.Context, request ListDiscoverSectionsRequestObject) (ListDiscoverSectionsResponseObject, error)
+	// CreateDiscoverSection Add a topic
+	// (POST /api/v1/admin/discover/sections)
+	CreateDiscoverSection(ctx context.Context, request CreateDiscoverSectionRequestObject) (CreateDiscoverSectionResponseObject, error)
+	// DeleteDiscoverSection Delete a topic and its documents
+	// (DELETE /api/v1/admin/discover/sections/{sectionId})
+	DeleteDiscoverSection(ctx context.Context, request DeleteDiscoverSectionRequestObject) (DeleteDiscoverSectionResponseObject, error)
+	// UpdateDiscoverSection Replace a topic's texts
+	// (PUT /api/v1/admin/discover/sections/{sectionId})
+	UpdateDiscoverSection(ctx context.Context, request UpdateDiscoverSectionRequestObject) (UpdateDiscoverSectionResponseObject, error)
+	// UploadDocument Add a PDF to a topic
+	// (POST /api/v1/admin/discover/sections/{sectionId}/documents)
+	UploadDocument(ctx context.Context, request UploadDocumentRequestObject) (UploadDocumentResponseObject, error)
+	// DeleteDocument Delete a document
+	// (DELETE /api/v1/admin/documents/{documentId})
+	DeleteDocument(ctx context.Context, request DeleteDocumentRequestObject) (DeleteDocumentResponseObject, error)
+	// UpdateDocument Replace a document's titles and language
+	// (PUT /api/v1/admin/documents/{documentId})
+	UpdateDocument(ctx context.Context, request UpdateDocumentRequestObject) (UpdateDocumentResponseObject, error)
+	// ReplaceDocumentFile Upload a new version of the PDF
+	// (PUT /api/v1/admin/documents/{documentId}/file)
+	ReplaceDocumentFile(ctx context.Context, request ReplaceDocumentFileRequestObject) (ReplaceDocumentFileResponseObject, error)
 	// ListMedia List images
 	// (GET /api/v1/admin/media)
 	ListMedia(ctx context.Context, request ListMediaRequestObject) (ListMediaResponseObject, error)
@@ -2730,6 +4701,12 @@ type StrictServerInterface interface {
 	// UpdateProfile Replace the profile
 	// (PUT /api/v1/admin/profile)
 	UpdateProfile(ctx context.Context, request UpdateProfileRequestObject) (UpdateProfileResponseObject, error)
+	// GetSettings Get the site settings
+	// (GET /api/v1/admin/settings)
+	GetSettings(ctx context.Context, request GetSettingsRequestObject) (GetSettingsResponseObject, error)
+	// UpdateSettings Replace the site settings
+	// (PUT /api/v1/admin/settings)
+	UpdateSettings(ctx context.Context, request UpdateSettingsRequestObject) (UpdateSettingsResponseObject, error)
 	// Login Sign in
 	// (POST /api/v1/auth/login)
 	Login(ctx context.Context, request LoginRequestObject) (LoginResponseObject, error)
@@ -2745,6 +4722,9 @@ type StrictServerInterface interface {
 	// RefreshSession Rotate the session tokens
 	// (POST /api/v1/auth/refresh)
 	RefreshSession(ctx context.Context, request RefreshSessionRequestObject) (RefreshSessionResponseObject, error)
+	// GetPublicDocument The PDF
+	// (GET /api/v1/public/documents/{documentId})
+	GetPublicDocument(ctx context.Context, request GetPublicDocumentRequestObject) (GetPublicDocumentResponseObject, error)
 	// GetPublicMedia Image variant
 	// (GET /api/v1/public/media/{file})
 	GetPublicMedia(ctx context.Context, request GetPublicMediaRequestObject) (GetPublicMediaResponseObject, error)
@@ -2754,6 +4734,9 @@ type StrictServerInterface interface {
 	// GetProfileVCard Download the contact card
 	// (GET /api/v1/public/profile/vcard)
 	GetProfileVCard(ctx context.Context, request GetProfileVCardRequestObject) (GetProfileVCardResponseObject, error)
+	// GetPublicSite Everything the public site shows
+	// (GET /api/v1/public/site)
+	GetPublicSite(ctx context.Context, request GetPublicSiteRequestObject) (GetPublicSiteResponseObject, error)
 	// GetLiveness Liveness probe
 	// (GET /healthz)
 	GetLiveness(ctx context.Context, request GetLivenessRequestObject) (GetLivenessResponseObject, error)
@@ -2799,6 +4782,276 @@ type strictHandler struct {
 	ssi         StrictServerInterface
 	middlewares []StrictMiddlewareFunc
 	options     StrictHTTPServerOptions
+}
+
+// ReorderDiscoverSections operation middleware
+func (sh *strictHandler) ReorderDiscoverSections(w http.ResponseWriter, r *http.Request) {
+	var request ReorderDiscoverSectionsRequestObject
+
+	var body ReorderDiscoverSectionsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReorderDiscoverSections(ctx, request.(ReorderDiscoverSectionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReorderDiscoverSections")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReorderDiscoverSectionsResponseObject); ok {
+		if err := validResponse.VisitReorderDiscoverSectionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ListDiscoverSections operation middleware
+func (sh *strictHandler) ListDiscoverSections(w http.ResponseWriter, r *http.Request) {
+	var request ListDiscoverSectionsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ListDiscoverSections(ctx, request.(ListDiscoverSectionsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ListDiscoverSections")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ListDiscoverSectionsResponseObject); ok {
+		if err := validResponse.VisitListDiscoverSectionsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// CreateDiscoverSection operation middleware
+func (sh *strictHandler) CreateDiscoverSection(w http.ResponseWriter, r *http.Request) {
+	var request CreateDiscoverSectionRequestObject
+
+	var body CreateDiscoverSectionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.CreateDiscoverSection(ctx, request.(CreateDiscoverSectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "CreateDiscoverSection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(CreateDiscoverSectionResponseObject); ok {
+		if err := validResponse.VisitCreateDiscoverSectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteDiscoverSection operation middleware
+func (sh *strictHandler) DeleteDiscoverSection(w http.ResponseWriter, r *http.Request, sectionId SectionId) {
+	var request DeleteDiscoverSectionRequestObject
+
+	request.SectionId = sectionId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteDiscoverSection(ctx, request.(DeleteDiscoverSectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteDiscoverSection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteDiscoverSectionResponseObject); ok {
+		if err := validResponse.VisitDeleteDiscoverSectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateDiscoverSection operation middleware
+func (sh *strictHandler) UpdateDiscoverSection(w http.ResponseWriter, r *http.Request, sectionId SectionId) {
+	var request UpdateDiscoverSectionRequestObject
+
+	request.SectionId = sectionId
+
+	var body UpdateDiscoverSectionJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateDiscoverSection(ctx, request.(UpdateDiscoverSectionRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateDiscoverSection")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateDiscoverSectionResponseObject); ok {
+		if err := validResponse.VisitUpdateDiscoverSectionResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UploadDocument operation middleware
+func (sh *strictHandler) UploadDocument(w http.ResponseWriter, r *http.Request, sectionId SectionId) {
+	var request UploadDocumentRequestObject
+
+	request.SectionId = sectionId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UploadDocument(ctx, request.(UploadDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UploadDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UploadDocumentResponseObject); ok {
+		if err := validResponse.VisitUploadDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// DeleteDocument operation middleware
+func (sh *strictHandler) DeleteDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId) {
+	var request DeleteDocumentRequestObject
+
+	request.DocumentId = documentId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.DeleteDocument(ctx, request.(DeleteDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "DeleteDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(DeleteDocumentResponseObject); ok {
+		if err := validResponse.VisitDeleteDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateDocument operation middleware
+func (sh *strictHandler) UpdateDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId) {
+	var request UpdateDocumentRequestObject
+
+	request.DocumentId = documentId
+
+	var body UpdateDocumentJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateDocument(ctx, request.(UpdateDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateDocumentResponseObject); ok {
+		if err := validResponse.VisitUpdateDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// ReplaceDocumentFile operation middleware
+func (sh *strictHandler) ReplaceDocumentFile(w http.ResponseWriter, r *http.Request, documentId DocumentId) {
+	var request ReplaceDocumentFileRequestObject
+
+	request.DocumentId = documentId
+
+	if reader, err := r.MultipartReader(); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode multipart body: %w", err))
+		return
+	} else {
+		request.Body = reader
+	}
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.ReplaceDocumentFile(ctx, request.(ReplaceDocumentFileRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "ReplaceDocumentFile")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(ReplaceDocumentFileResponseObject); ok {
+		if err := validResponse.VisitReplaceDocumentFileResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
 }
 
 // ListMedia operation middleware
@@ -2998,6 +5251,61 @@ func (sh *strictHandler) UpdateProfile(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// GetSettings operation middleware
+func (sh *strictHandler) GetSettings(w http.ResponseWriter, r *http.Request) {
+	var request GetSettingsRequestObject
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetSettings(ctx, request.(GetSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetSettingsResponseObject); ok {
+		if err := validResponse.VisitGetSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
+// UpdateSettings operation middleware
+func (sh *strictHandler) UpdateSettings(w http.ResponseWriter, r *http.Request) {
+	var request UpdateSettingsRequestObject
+
+	var body UpdateSettingsJSONRequestBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		sh.options.RequestErrorHandlerFunc(w, r, fmt.Errorf("can't decode JSON body: %w", err))
+		return
+	}
+	request.Body = &body
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.UpdateSettings(ctx, request.(UpdateSettingsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "UpdateSettings")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(UpdateSettingsResponseObject); ok {
+		if err := validResponse.VisitUpdateSettingsResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Login operation middleware
 func (sh *strictHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var request LoginRequestObject
@@ -3132,6 +5440,33 @@ func (sh *strictHandler) RefreshSession(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// GetPublicDocument operation middleware
+func (sh *strictHandler) GetPublicDocument(w http.ResponseWriter, r *http.Request, documentId DocumentId, params GetPublicDocumentParams) {
+	var request GetPublicDocumentRequestObject
+
+	request.DocumentId = documentId
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPublicDocument(ctx, request.(GetPublicDocumentRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPublicDocument")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPublicDocumentResponseObject); ok {
+		if err := validResponse.VisitGetPublicDocumentResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetPublicMedia operation middleware
 func (sh *strictHandler) GetPublicMedia(w http.ResponseWriter, r *http.Request, file string, params GetPublicMediaParams) {
 	var request GetPublicMediaRequestObject
@@ -3211,6 +5546,32 @@ func (sh *strictHandler) GetProfileVCard(w http.ResponseWriter, r *http.Request,
 	}
 }
 
+// GetPublicSite operation middleware
+func (sh *strictHandler) GetPublicSite(w http.ResponseWriter, r *http.Request, params GetPublicSiteParams) {
+	var request GetPublicSiteRequestObject
+
+	request.Params = params
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetPublicSite(ctx, request.(GetPublicSiteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetPublicSite")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetPublicSiteResponseObject); ok {
+		if err := validResponse.VisitGetPublicSiteResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // GetLiveness operation middleware
 func (sh *strictHandler) GetLiveness(w http.ResponseWriter, r *http.Request) {
 	var request GetLivenessRequestObject
@@ -3264,99 +5625,135 @@ func (sh *strictHandler) GetReadiness(w http.ResponseWriter, r *http.Request) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
-	"YjfUyr7hUi08q+de3//vAA==",
+	"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",
+	"rg32e+5934gF4rteLGqWhCRkF9zszWqL9tovR/9rNF9c1cSraA5DjsLLCC5PLo5OyIldDE7b7odlknz4",
+	"pU1vNJk9LvVnoRQxHbS/cBFi1jg3KKCrYpfriI8bxeCn6BnUaXX5pGVxZol4K3IrZs20x+IUaKbT93NR",
+	"9w0gK22FmBEdjIuTKSJLzrEqlLxyZg3Ep4okUABPgMcYQguB/yU7A25bnN4a+J6bndn1hwB4VO+CYq/O",
+	"GweI36S5B7SZIqQulYbcAcC4Y9c7fwXyjMVg0g1tHhzRkuJlbBvkTcm9k1jClCltSqAqgFxaEAWB8sbc",
+	"tPuZoYId6rqrVcaLb9Mp9wY7d7eWZuu47qJMmgQkN441FRQWoE17eLtL8XfvkCnaS3UtP+34MWjuHfzk",
+	"b3/5H04i4MOGsC8wNFBqUKbxqWkV6tuAuz7BVXPTTcN+3eoCDlzpMzKBJ4Vgpogv8zSx6S52rjaq7tcu",
+	"A7fTq6j7VhOmrbzPtsO3c666ocYBPTvQWoHucj5yz8RQbf5nZao7PTQBXCM+ZDloY1m5u9zzQzB3qtFz",
+	"/CtFEteotaWWV43HzpxO6V5c51Z+CPXdUz7OUykFvul63eYWW5+MpYjTUoKq31w5zWZfjYKtj/WTVVYT",
+	"UWWcepk/o1I0wFNniM3EyJYIIaOECF4pIY2XGjn77ur/DwA=",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

@@ -10,14 +10,13 @@ import (
 	"slices"
 	"strings"
 	"time"
-	"unicode"
-	"unicode/utf8"
 
 	"github.com/google/uuid"
 	"github.com/nyaruka/phonenumbers"
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/apperr"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/media"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/validation"
 )
 
 // Locales that may carry texts, in fallback order; mirrored by the profile_translations CHECK.
@@ -49,12 +48,18 @@ const (
 	maxGreetingRunes     = 500
 	maxEmailBytes        = 254
 	maxLanguages         = 20
+	maxDisplayNameRunes  = 120
+	maxStreetRunes       = 200
+	maxCityRunes         = 80
+	maxCountryRunes      = 80
+	maxPostalCodeRunes   = 20
 )
 
 var (
 	errPhoneCountryCode = errors.New("must start with the country code, e.g. +966")
 	errPhoneInvalid     = errors.New("is not a valid phone number")
 	errEmailInvalid     = errors.New("is not a valid e-mail address")
+	errLinkedInInvalid  = errors.New("must be a linkedin.com address")
 )
 
 type Translation struct {
@@ -62,24 +67,71 @@ type Translation struct {
 	Tagline         string
 	Bio             string
 	WhatsAppMessage string
+	// DisplayName is the full name as written in this language; empty means FullName.
+	DisplayName string
+	Address     Address
 }
+
+// Address is the office address as written in one language.
+type Address struct {
+	Street  string
+	City    string
+	Country string
+}
+
+func (a Address) IsZero() bool { return a == Address{} }
 
 type Profile struct {
 	FirstName    string
 	LastName     string
 	Organization string
 	Portrait     *media.Media
+	// VCardPhoto is saved with the downloaded contact card; nil means the portrait is.
+	VCardPhoto *media.Media
 	// Phone and WhatsApp are E.164; empty when not set, like Email.
 	Phone        string
 	WhatsApp     string
 	Email        string
 	Languages    []string
+	PostalCode   string
+	MapURL       string
+	LinkedInURL  string
 	Translations map[string]Translation
 	UpdatedAt    time.Time
 }
 
 func (p *Profile) FullName() string {
 	return strings.TrimSpace(p.FirstName + " " + p.LastName)
+}
+
+// NameIn is the name as written in t's language, the Latin-script name otherwise.
+func (p *Profile) NameIn(t Translation) string {
+	if t.DisplayName != "" {
+		return t.DisplayName
+	}
+	return p.FullName()
+}
+
+// AddressIn is t's address or, when it has none, the first one written in Locales order:
+// an address in another language beats no address.
+func (p *Profile) AddressIn(t Translation) Address {
+	if !t.Address.IsZero() {
+		return t.Address
+	}
+	for _, loc := range Locales {
+		if a := p.Translations[loc].Address; !a.IsZero() {
+			return a
+		}
+	}
+	return Address{}
+}
+
+// CardPhoto is the image saved with the contact card.
+func (p *Profile) CardPhoto() *media.Media {
+	if p.VCardPhoto != nil {
+		return p.VCardPhoto
+	}
+	return p.Portrait
 }
 
 // Missing lists what must be added before the profile is published: a title in at least
@@ -113,37 +165,47 @@ func (p *Profile) Localized(locale string) (string, Translation) {
 
 // Input is a full replacement of the profile. Nil Languages means DefaultLanguages.
 type Input struct {
-	FirstName       string
-	LastName        string
-	Organization    string
-	PortraitMediaID *uuid.UUID
-	Phone           string
-	WhatsApp        string
-	Email           string
-	Languages       []string
-	Translations    map[string]Translation
+	FirstName         string
+	LastName          string
+	Organization      string
+	PortraitMediaID   *uuid.UUID
+	VCardPhotoMediaID *uuid.UUID
+	Phone             string
+	WhatsApp          string
+	Email             string
+	Languages         []string
+	PostalCode        string
+	MapURL            string
+	LinkedInURL       string
+	Translations      map[string]Translation
 }
 
 // normalize trims and validates in, converting phone numbers to E.164 and lower-casing the
 // e-mail domain. It reports every invalid field at once.
 func normalize(in Input) (Input, []apperr.FieldError) {
-	var fields []apperr.FieldError
-	fail := func(field, msg string) { fields = append(fields, apperr.FieldError{Field: field, Message: msg}) }
-
-	out := Input{PortraitMediaID: in.PortraitMediaID, Translations: map[string]Translation{}}
-	out.FirstName = singleLine("firstName", in.FirstName, 1, maxNameRunes, fail)
-	out.LastName = singleLine("lastName", in.LastName, 0, maxNameRunes, fail)
-	out.Organization = singleLine("organization", in.Organization, 0, maxOrganizationRunes, fail)
+	var v validation.Fields
+	out := Input{
+		PortraitMediaID: in.PortraitMediaID, VCardPhotoMediaID: in.VCardPhotoMediaID,
+		Translations: map[string]Translation{},
+	}
+	out.FirstName = v.SingleLine("firstName", in.FirstName, 1, maxNameRunes)
+	out.LastName = v.SingleLine("lastName", in.LastName, 0, maxNameRunes)
+	out.Organization = v.SingleLine("organization", in.Organization, 0, maxOrganizationRunes)
+	out.PostalCode = v.SingleLine("postalCode", in.PostalCode, 0, maxPostalCodeRunes)
+	out.MapURL = v.HTTPSURL("mapUrl", in.MapURL)
 
 	var err error
+	if out.LinkedInURL, err = NormalizeLinkedIn(in.LinkedInURL); err != nil {
+		v.Add("linkedinUrl", err.Error())
+	}
 	if out.Phone, err = NormalizePhone(in.Phone); err != nil {
-		fail("phone", err.Error())
+		v.Add("phone", err.Error())
 	}
 	if out.WhatsApp, err = NormalizePhone(in.WhatsApp); err != nil {
-		fail("whatsapp", err.Error())
+		v.Add("whatsapp", err.Error())
 	}
 	if out.Email, err = NormalizeEmail(in.Email); err != nil {
-		fail("email", err.Error())
+		v.Add("email", err.Error())
 	}
 
 	out.Languages = DefaultLanguages
@@ -152,59 +214,50 @@ func normalize(in Input) (Input, []apperr.FieldError) {
 		for _, l := range in.Languages {
 			switch {
 			case !slices.Contains(SpokenLanguages, l):
-				fail("languages", fmt.Sprintf("%q is not a supported language", l))
+				v.Add("languages", fmt.Sprintf("%q is not a supported language", l))
 			case !slices.Contains(out.Languages, l):
 				out.Languages = append(out.Languages, l)
 			}
 		}
 		if len(out.Languages) > maxLanguages {
-			fail("languages", fmt.Sprintf("must have at most %d items", maxLanguages))
+			v.Add("languages", fmt.Sprintf("must have at most %d items", maxLanguages))
 		}
 	}
 
-	for loc, t := range in.Translations {
+	for loc := range in.Translations {
+		t := in.Translations[loc]
 		if !slices.Contains(Locales, loc) {
-			fail("translations", fmt.Sprintf("%q is not a supported language", loc))
+			v.Add("translations", fmt.Sprintf("%q is not a supported language", loc))
 			continue
 		}
 		prefix := "translations." + loc + "."
 		out.Translations[loc] = Translation{
-			Title:           singleLine(prefix+"title", t.Title, 1, maxTitleRunes, fail),
-			Tagline:         singleLine(prefix+"tagline", t.Tagline, 0, maxTaglineRunes, fail),
-			Bio:             multiLine(prefix+"bio", t.Bio, maxBioRunes, fail),
-			WhatsAppMessage: multiLine(prefix+"whatsappMessage", t.WhatsAppMessage, maxGreetingRunes, fail),
+			Title:           v.SingleLine(prefix+"title", t.Title, 1, maxTitleRunes),
+			Tagline:         v.SingleLine(prefix+"tagline", t.Tagline, 0, maxTaglineRunes),
+			Bio:             v.MultiLine(prefix+"bio", t.Bio, maxBioRunes),
+			WhatsAppMessage: v.MultiLine(prefix+"whatsappMessage", t.WhatsAppMessage, maxGreetingRunes),
+			DisplayName:     v.SingleLine(prefix+"displayName", t.DisplayName, 0, maxDisplayNameRunes),
+			Address: Address{
+				Street:  v.SingleLine(prefix+"address.street", t.Address.Street, 0, maxStreetRunes),
+				City:    v.SingleLine(prefix+"address.city", t.Address.City, 0, maxCityRunes),
+				Country: v.SingleLine(prefix+"address.country", t.Address.Country, 0, maxCountryRunes),
+			},
 		}
 	}
-	return out, fields
+	return out, v.List()
 }
 
-func singleLine(field, s string, minRunes, maxRunes int, fail func(field, msg string)) string {
-	s = strings.TrimSpace(s)
-	if strings.ContainsFunc(s, unicode.IsControl) {
-		fail(field, "must be a single line of text")
-		return s
+// NormalizeLinkedIn accepts a profile or company page on linkedin.com. Empty input yields "".
+func NormalizeLinkedIn(raw string) (string, error) {
+	s, err := validation.HTTPSURL(raw)
+	if err != nil || s == "" {
+		return s, err
 	}
-	checkLength(field, s, minRunes, maxRunes, fail)
-	return s
-}
-
-func multiLine(field, s string, maxRunes int, fail func(field, msg string)) string {
-	s = strings.TrimSpace(strings.ReplaceAll(s, "\r\n", "\n"))
-	if strings.ContainsFunc(s, func(r rune) bool { return unicode.IsControl(r) && r != '\n' }) {
-		fail(field, "must not contain control characters")
-		return s
+	u, _ := url.Parse(s)
+	if host := strings.ToLower(u.Hostname()); host != "linkedin.com" && !strings.HasSuffix(host, ".linkedin.com") {
+		return "", errLinkedInInvalid
 	}
-	checkLength(field, s, 0, maxRunes, fail)
-	return s
-}
-
-func checkLength(field, s string, minRunes, maxRunes int, fail func(field, msg string)) {
-	switch n := utf8.RuneCountInString(s); {
-	case n < minRunes:
-		fail(field, "must not be blank")
-	case n > maxRunes:
-		fail(field, fmt.Sprintf("must be at most %d characters", maxRunes))
-	}
+	return s, nil
 }
 
 // NormalizePhone converts an international number ("+966 12 545 6789", "00966…") to E.164.

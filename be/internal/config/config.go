@@ -53,6 +53,7 @@ type Config struct {
 	Storage      Storage   `envPrefix:"STORAGE_"`
 	S3           S3        `envPrefix:"S3_"`
 	Media        Media     `envPrefix:"MEDIA_"`
+	Documents    Documents `envPrefix:"DOCUMENTS_"`
 }
 
 // CLI is the subset of configuration operational commands need. It deliberately omits
@@ -188,6 +189,7 @@ func (c Config) Validate() error {
 	errs = append(errs, c.RateLimit.validate()...)
 	errs = append(errs, c.Storage.validate(c.S3)...)
 	errs = append(errs, c.Media.validate(c.IsProduction())...)
+	errs = append(errs, c.Documents.validate()...)
 
 	return errors.Join(errs...)
 }

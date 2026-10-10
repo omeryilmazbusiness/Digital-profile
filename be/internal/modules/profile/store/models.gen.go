@@ -45,6 +45,41 @@ type AuthSession struct {
 	UserAgent    *string
 }
 
+type DiscoverSection struct {
+	ID        uuid.UUID
+	Position  int32
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type DiscoverSectionTranslation struct {
+	SectionID uuid.UUID
+	Locale    string
+	Eyebrow   string
+	Title     string
+	Body      string
+}
+
+type Document struct {
+	ID         uuid.UUID
+	SectionID  uuid.UUID
+	Position   int32
+	Language   string
+	StorageKey string
+	FileName   string
+	ByteSize   int64
+	PageCount  *int32
+	Sha256     []byte
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type DocumentTranslation struct {
+	DocumentID uuid.UUID
+	Locale     string
+	Title      string
+}
+
 type Media struct {
 	ID               uuid.UUID
 	Checksum         []byte
@@ -74,17 +109,21 @@ type MediaVariant struct {
 }
 
 type Profile struct {
-	ID              int16
-	FirstName       string
-	LastName        string
-	Organization    string
-	PortraitMediaID *uuid.UUID
-	Phone           *string
-	Whatsapp        *string
-	Email           *string
-	Languages       []string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	ID                int16
+	FirstName         string
+	LastName          string
+	Organization      string
+	PortraitMediaID   *uuid.UUID
+	Phone             *string
+	Whatsapp          *string
+	Email             *string
+	Languages         []string
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	VcardPhotoMediaID *uuid.UUID
+	PostalCode        string
+	MapUrl            string
+	LinkedinUrl       string
 }
 
 type ProfileTranslation struct {
@@ -94,6 +133,10 @@ type ProfileTranslation struct {
 	Tagline         string
 	Bio             string
 	WhatsappMessage string
+	DisplayName     string
+	Street          string
+	City            string
+	Country         string
 }
 
 type RefreshToken struct {
@@ -103,4 +146,11 @@ type RefreshToken struct {
 	ExpiresAt time.Time
 	UsedAt    *time.Time
 	CreatedAt time.Time
+}
+
+type SiteSetting struct {
+	ID        int16
+	TourUrl   string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

@@ -18,9 +18,12 @@ import (
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/config"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/auth"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/discover"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/health"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/media"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/profile"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/settings"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/site"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/database"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/imaging"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/storage"
@@ -130,6 +133,8 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 	}
 	mediaSvc := media.NewService(pool, blobs, proc, cfg.Media.PublicBaseURL, log)
 	profileSvc := profile.NewService(pool, mediaSvc, cfg.PublicOrigin, log)
+	discoverSvc := discover.NewService(pool, blobs, log)
+	settingsSvc := settings.NewService(pool)
 
 	authSvc, guard, authHandler, err := buildAuth(ctx, cfg, log, pool, o)
 	if err != nil {
@@ -153,10 +158,13 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 	handler, err := httpx.NewRouter(httpx.RouterConfig{
 		Log: log,
 		Server: &Server{
-			Handler:        health.NewHandler(healthSvc, version),
-			AuthHandler:    authHandler,
-			MediaHandler:   media.NewHandler(mediaSvc, cfg.Media.MaxUploadBytes),
-			ProfileHandler: profile.NewHandler(profileSvc),
+			Handler:         health.NewHandler(healthSvc, version),
+			AuthHandler:     authHandler,
+			MediaHandler:    media.NewHandler(mediaSvc, cfg.Media.MaxUploadBytes),
+			ProfileHandler:  profile.NewHandler(profileSvc),
+			DiscoverHandler: discover.NewHandler(discoverSvc, cfg.Documents.MaxUploadBytes),
+			SettingsHandler: settings.NewHandler(settingsSvc),
+			SiteHandler:     site.NewHandler(profileSvc, discoverSvc, settingsSvc),
 		},
 		TrustedProxies: trusted,
 		CORSOrigins:    cfg.CORS.AllowedOrigins,
@@ -165,6 +173,12 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 		BodyRules: map[string]httpx.BodyRule{
 			// Room for multipart framing on top of the file itself.
 			http.MethodPost + " /api/v1/admin/media": {MaxBytes: cfg.Media.MaxUploadBytes + 64<<10, Timeout: uploadTimeout},
+			http.MethodPost + " /api/v1/admin/discover/sections/{sectionId}/documents": {
+				MaxBytes: cfg.Documents.MaxUploadBytes + 128<<10, Timeout: uploadTimeout,
+			},
+			http.MethodPut + " /api/v1/admin/documents/{documentId}/file": {
+				MaxBytes: cfg.Documents.MaxUploadBytes + 64<<10, Timeout: uploadTimeout,
+			},
 		},
 		RateLimiter:       limiter,
 		CSRFOrigins:       append([]string{cfg.PublicOrigin}, cfg.CORS.AllowedOrigins...),

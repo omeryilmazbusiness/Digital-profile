@@ -40,7 +40,7 @@ func (h *Handler) GetPublicProfile(ctx context.Context, in api.GetPublicProfileR
 	if err != nil {
 		return nil, err
 	}
-	return api.GetPublicProfile200JSONResponse(toPublicAPI(&p, locale(in.Params.Locale))), nil
+	return api.GetPublicProfile200JSONResponse(ToPublicAPI(&p, locale(in.Params.Locale))), nil
 }
 
 func (h *Handler) GetProfileVCard(ctx context.Context, in api.GetProfileVCardRequestObject) (api.GetProfileVCardResponseObject, error) {
@@ -78,8 +78,9 @@ func locale(l *api.LocaleQuery) string {
 func fromAPI(b *api.ProfileInput) Input {
 	in := Input{
 		FirstName: b.FirstName, LastName: val(b.LastName), Organization: val(b.Organization),
-		PortraitMediaID: b.PortraitMediaId,
-		Phone:           val(b.Phone), WhatsApp: val(b.Whatsapp), Email: val(b.Email),
+		PortraitMediaID: b.PortraitMediaId, VCardPhotoMediaID: b.VcardPhotoMediaId,
+		Phone: val(b.Phone), WhatsApp: val(b.Whatsapp), Email: val(b.Email),
+		PostalCode: val(b.PostalCode), MapURL: val(b.MapUrl), LinkedInURL: val(b.LinkedinUrl),
 		Translations: map[string]Translation{},
 	}
 	if b.Languages != nil {
@@ -90,9 +91,14 @@ func fromAPI(b *api.ProfileInput) Input {
 	}
 	for loc, t := range map[string]*api.ProfileTranslation{"en": b.Translations.En, "id": b.Translations.Id, "ar": b.Translations.Ar} {
 		if t != nil {
-			in.Translations[loc] = Translation{
+			tr := Translation{
 				Title: t.Title, Tagline: val(t.Tagline), Bio: val(t.Bio), WhatsAppMessage: val(t.WhatsappMessage),
+				DisplayName: val(t.DisplayName),
 			}
+			if a := t.Address; a != nil {
+				tr.Address = Address{Street: val(a.Street), City: val(a.City), Country: val(a.Country)}
+			}
+			in.Translations[loc] = tr
 		}
 	}
 	return in
@@ -103,6 +109,7 @@ func toAPI(p *Profile) api.Profile {
 		FirstName: p.FirstName, LastName: p.LastName, FullName: p.FullName(), Organization: p.Organization,
 		Phone: opt(p.Phone), Whatsapp: opt(p.WhatsApp), Email: opt(p.Email),
 		Languages: languages(p.Languages), Complete: p.Complete(), UpdatedAt: p.UpdatedAt,
+		PostalCode: opt(p.PostalCode), MapUrl: opt(p.MapURL), LinkedinUrl: opt(p.LinkedInURL),
 	}
 	for _, m := range p.Missing() {
 		out.Missing = append(out.Missing, api.ProfileMissing(m))
@@ -114,9 +121,18 @@ func toAPI(p *Profile) api.Profile {
 		m := media.ToAPI(p.Portrait)
 		out.Portrait = &m
 	}
-	for loc, t := range p.Translations {
+	if p.VCardPhoto != nil {
+		m := media.ToAPI(p.VCardPhoto)
+		out.VcardPhoto = &m
+	}
+	for loc := range p.Translations {
+		t := p.Translations[loc]
 		at := &api.ProfileTranslation{
 			Title: t.Title, Tagline: opt(t.Tagline), Bio: opt(t.Bio), WhatsappMessage: opt(t.WhatsAppMessage),
+			DisplayName: opt(t.DisplayName),
+		}
+		if !t.Address.IsZero() {
+			at.Address = &api.Address{Street: opt(t.Address.Street), City: opt(t.Address.City), Country: opt(t.Address.Country)}
 		}
 		switch loc {
 		case "en":
@@ -130,12 +146,17 @@ func toAPI(p *Profile) api.Profile {
 	return out
 }
 
-func toPublicAPI(p *Profile, requested string) api.PublicProfile {
+// ToPublicAPI maps the published profile to what visitors see in the requested language.
+func ToPublicAPI(p *Profile, requested string) api.PublicProfile {
 	loc, t := p.Localized(requested)
 	out := api.PublicProfile{
 		Locale: api.Locale(loc), FirstName: p.FirstName, LastName: p.LastName, FullName: p.FullName(),
-		Organization: p.Organization, Title: t.Title, Tagline: opt(t.Tagline), Bio: opt(t.Bio),
-		Email: opt(p.Email), Languages: languages(p.Languages),
+		DisplayName: p.NameIn(t), Organization: p.Organization, Title: t.Title, Tagline: opt(t.Tagline),
+		Bio: opt(t.Bio), Email: opt(p.Email), Languages: languages(p.Languages),
+		MapUrl: opt(p.MapURL), LinkedinUrl: opt(p.LinkedInURL),
+	}
+	if a := p.AddressIn(t); !a.IsZero() || p.PostalCode != "" {
+		out.Address = &api.PublicAddress{Street: a.Street, City: a.City, PostalCode: p.PostalCode, Country: a.Country}
 	}
 	if p.Phone != "" {
 		out.Phone = &api.PhoneNumber{E164: p.Phone, Display: DisplayPhone(p.Phone)}

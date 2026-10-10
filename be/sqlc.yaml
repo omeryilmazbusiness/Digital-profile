@@ -106,3 +106,35 @@ sql:
         output_models_file_name: models.gen.go
         output_querier_file_name: querier.gen.go
         output_files_suffix: .gen
+
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/modules/discover/queries
+    gen:
+      go:
+        package: store
+        out: internal/modules/discover/store
+        sql_package: pgx/v5
+        emit_interface: true
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+        output_db_file_name: db.gen.go
+        output_models_file_name: models.gen.go
+        output_querier_file_name: querier.gen.go
+        output_files_suffix: .gen
+
+  - engine: postgresql
+    schema: db/migrations
+    queries: internal/modules/settings/queries
+    gen:
+      go:
+        package: store
+        out: internal/modules/settings/store
+        sql_package: pgx/v5
+        emit_interface: true
+        emit_empty_slices: true
+        emit_pointers_for_null_types: true
+        output_db_file_name: db.gen.go
+        output_models_file_name: models.gen.go
+        output_querier_file_name: querier.gen.go
+        output_files_suffix: .gen

@@ -28,9 +28,14 @@ const (
 )
 
 var (
-	errNotSetUp      = apperr.NotFound("the profile has not been set up yet")
-	errNotPublished  = apperr.NotFound("the profile is not published yet")
-	errPortraitField = apperr.FieldError{Field: "portraitMediaId", Message: "image not found"}
+	errNotSetUp        = apperr.NotFound("the profile has not been set up yet")
+	errNotPublished    = apperr.NotFound("the profile is not published yet")
+	errPortraitField   = apperr.FieldError{Field: "portraitMediaId", Message: "image not found"}
+	errCardPhotoField  = apperr.FieldError{Field: "vcardPhotoMediaId", Message: "image not found"}
+	imageFieldByFKName = map[string]apperr.FieldError{
+		"profile_portrait_media_id_fkey":    errPortraitField,
+		"profile_vcard_photo_media_id_fkey": errCardPhotoField,
+	}
 )
 
 // Images is the part of the media library the profile needs. *media.Service implements it.
@@ -80,20 +85,35 @@ func (s *Service) Get(ctx context.Context) (Profile, error) {
 	p := Profile{
 		FirstName: row.FirstName, LastName: row.LastName, Organization: row.Organization,
 		Phone: val(row.Phone), WhatsApp: val(row.Whatsapp), Email: val(row.Email),
-		Languages: row.Languages, Translations: make(map[string]Translation, len(translations)),
-		UpdatedAt: row.UpdatedAt.UTC(),
+		Languages: row.Languages, PostalCode: row.PostalCode, MapURL: row.MapUrl, LinkedInURL: row.LinkedinUrl,
+		Translations: make(map[string]Translation, len(translations)),
+		UpdatedAt:    row.UpdatedAt.UTC(),
 	}
-	for _, t := range translations {
-		p.Translations[t.Locale] = Translation{Title: t.Title, Tagline: t.Tagline, Bio: t.Bio, WhatsAppMessage: t.WhatsappMessage}
-	}
-	if row.PortraitMediaID != nil {
-		m, err := s.images.Get(ctx, *row.PortraitMediaID)
-		if err != nil {
-			return Profile{}, err
+	for i := range translations {
+		t := &translations[i]
+		p.Translations[t.Locale] = Translation{
+			Title: t.Title, Tagline: t.Tagline, Bio: t.Bio, WhatsAppMessage: t.WhatsappMessage,
+			DisplayName: t.DisplayName, Address: Address{Street: t.Street, City: t.City, Country: t.Country},
 		}
-		p.Portrait = &m
+	}
+	if p.Portrait, err = s.image(ctx, row.PortraitMediaID); err != nil {
+		return Profile{}, err
+	}
+	if p.VCardPhoto, err = s.image(ctx, row.VcardPhotoMediaID); err != nil {
+		return Profile{}, err
 	}
 	return p, nil
+}
+
+func (s *Service) image(ctx context.Context, id *uuid.UUID) (*media.Media, error) {
+	if id == nil {
+		return nil, nil //nolint:nilnil // no image chosen
+	}
+	m, err := s.images.Get(ctx, *id)
+	if err != nil {
+		return nil, err
+	}
+	return &m, nil
 }
 
 // Published returns the profile only when it is complete, so visitors never see a
@@ -115,9 +135,15 @@ func (s *Service) Published(ctx context.Context) (Profile, error) {
 // Update replaces the profile; translations left out are removed.
 func (s *Service) Update(ctx context.Context, in Input) (Profile, error) {
 	in, fields := normalize(in)
-	if in.PortraitMediaID != nil {
-		if _, err := s.images.Get(ctx, *in.PortraitMediaID); apperr.KindOf(err) == apperr.KindNotFound {
-			fields = append(fields, errPortraitField)
+	for _, img := range []struct {
+		id    *uuid.UUID
+		field apperr.FieldError
+	}{{in.PortraitMediaID, errPortraitField}, {in.VCardPhotoMediaID, errCardPhotoField}} {
+		if img.id == nil {
+			continue
+		}
+		if _, err := s.images.Get(ctx, *img.id); apperr.KindOf(err) == apperr.KindNotFound {
+			fields = append(fields, img.field)
 		} else if err != nil {
 			return Profile{}, err
 		}
@@ -130,9 +156,9 @@ func (s *Service) Update(ctx context.Context, in Input) (Profile, error) {
 		q := s.q(ctx)
 		if _, err := q.UpsertProfile(ctx, store.UpsertProfileParams{
 			FirstName: in.FirstName, LastName: in.LastName, Organization: in.Organization,
-			PortraitMediaID: in.PortraitMediaID,
-			Phone:           opt(in.Phone), Whatsapp: opt(in.WhatsApp), Email: opt(in.Email),
-			Languages: in.Languages,
+			PortraitMediaID: in.PortraitMediaID, VcardPhotoMediaID: in.VCardPhotoMediaID,
+			Phone: opt(in.Phone), Whatsapp: opt(in.WhatsApp), Email: opt(in.Email),
+			Languages: in.Languages, PostalCode: in.PostalCode, MapUrl: in.MapURL, LinkedinUrl: in.LinkedInURL,
 		}); err != nil {
 			return err
 		}
@@ -146,6 +172,7 @@ func (s *Service) Update(ctx context.Context, in Input) (Profile, error) {
 			}
 			if err := q.CreateTranslation(ctx, store.CreateTranslationParams{
 				Locale: loc, Title: t.Title, Tagline: t.Tagline, Bio: t.Bio, WhatsappMessage: t.WhatsAppMessage,
+				DisplayName: t.DisplayName, Street: t.Address.Street, City: t.Address.City, Country: t.Address.Country,
 			}); err != nil {
 				return err
 			}
@@ -153,9 +180,9 @@ func (s *Service) Update(ctx context.Context, in Input) (Profile, error) {
 		return nil
 	})
 	if err != nil {
-		// The portrait was deleted between the check above and the write.
-		if database.ConstraintName(err) == "profile_portrait_media_id_fkey" {
-			return Profile{}, apperr.Invalid("request validation failed", errPortraitField)
+		// An image was deleted between the check above and the write.
+		if field, ok := imageFieldByFKName[database.ConstraintName(err)]; ok {
+			return Profile{}, apperr.Invalid("request validation failed", field)
 		}
 		return Profile{}, database.MapError(err)
 	}
@@ -170,15 +197,17 @@ func (s *Service) VCard(ctx context.Context, locale string) (Profile, []byte, er
 		return Profile{}, nil, err
 	}
 	_, t := p.Localized(locale)
+	addr := p.AddressIn(t)
 	card := Card{
-		FirstName: p.FirstName, LastName: p.LastName, FullName: p.FullName(),
+		FirstName: p.FirstName, LastName: p.LastName, FullName: p.NameIn(t),
 		Organization: p.Organization, Title: t.Title, Note: t.Tagline,
-		Phone: p.Phone, WhatsApp: p.WhatsApp, Email: p.Email, URL: s.siteURL,
+		Phone: p.Phone, WhatsApp: p.WhatsApp, Email: p.Email, URL: s.siteURL, LinkedIn: p.LinkedInURL,
+		Street: addr.Street, City: addr.City, PostalCode: p.PostalCode, Country: addr.Country,
 		Revision: p.UpdatedAt,
 	}
-	if p.Portrait != nil {
-		if card.Photo, err = s.vcardPhoto(ctx, p.Portrait.ID); err != nil {
-			s.log.ErrorContext(ctx, "render vcard photo", "media_id", p.Portrait.ID, "error", err)
+	if photo := p.CardPhoto(); photo != nil {
+		if card.Photo, err = s.vcardPhoto(ctx, photo.ID); err != nil {
+			s.log.ErrorContext(ctx, "render vcard photo", "media_id", photo.ID, "error", err)
 		}
 	}
 	return p, card.Encode(), nil

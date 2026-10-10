@@ -36,6 +36,12 @@ tags:
     description: Image library (admin) and immutable image delivery (public)
   - name: profile
     description: The sales manager's digital business card and its vCard
+  - name: discover
+    description: Topics of the Discover section and their PDF brochures
+  - name: settings
+    description: Site-wide settings such as the virtual tour link
+  - name: site
+    description: Everything the public site shows, in one request
 
 paths:
   /healthz:
@@ -507,8 +513,9 @@ paths:
       operationId: getProfileVCard
       summary: Download the contact card
       description: |
-        vCard 3.0 (UTF-8, CRLF, folded lines) with the portrait embedded as a JPEG, which
-        both iOS Contacts and Google Contacts import. Same availability as the public profile.
+        vCard 3.0 (UTF-8, CRLF, folded lines) with the contact card photo (the portrait unless
+        another image is chosen) embedded as a JPEG, which both iOS Contacts and Google Contacts
+        import. Same availability as the public profile.
       security: []
       parameters:
         - $ref: "#/components/parameters/LocaleQuery"
@@ -532,6 +539,403 @@ paths:
         default:
           $ref: "#/components/responses/Problem"
 
+  /api/v1/admin/discover/sections:
+    get:
+      tags: [discover]
+      operationId: listDiscoverSections
+      summary: List the topics with their documents
+      description: In display order; documents within a topic too.
+      responses:
+        "200":
+          description: All topics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverSectionList"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    post:
+      tags: [discover]
+      operationId: createDiscoverSection
+      summary: Add a topic
+      description: The new topic goes last. A title in at least one language is required.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscoverSectionInput"
+      responses:
+        "201":
+          description: Topic created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverSection"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/discover/section-order:
+    put:
+      tags: [discover]
+      operationId: reorderDiscoverSections
+      summary: Reorder the topics
+      description: "`ids` must list every topic exactly once, in the new order."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SectionOrder"
+      responses:
+        "200":
+          description: All topics in the new order
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverSectionList"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/discover/sections/{sectionId}:
+    parameters:
+      - $ref: "#/components/parameters/SectionId"
+    put:
+      tags: [discover]
+      operationId: updateDiscoverSection
+      summary: Replace a topic's texts
+      description: Languages missing from `translations` are removed.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DiscoverSectionInput"
+      responses:
+        "200":
+          description: The saved topic
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DiscoverSection"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      tags: [discover]
+      operationId: deleteDiscoverSection
+      summary: Delete a topic and its documents
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/discover/sections/{sectionId}/documents:
+    parameters:
+      - $ref: "#/components/parameters/SectionId"
+    post:
+      tags: [discover]
+      operationId: uploadDocument
+      summary: Add a PDF to a topic
+      description: |
+        `metadata` (JSON, `DocumentInput`) describes the file; `file` is the PDF, identified from
+        its content rather than its name. The document goes last within the topic.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [metadata, file]
+              properties:
+                metadata:
+                  $ref: "#/components/schemas/DocumentInput"
+                file:
+                  type: string
+                  format: binary
+            encoding:
+              metadata:
+                contentType: application/json
+              file:
+                contentType: application/pdf
+      responses:
+        "201":
+          description: Document stored
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/documents/{documentId}:
+    parameters:
+      - $ref: "#/components/parameters/DocumentId"
+    put:
+      tags: [discover]
+      operationId: updateDocument
+      summary: Replace a document's titles and language
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DocumentInput"
+      responses:
+        "200":
+          description: The saved document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    delete:
+      tags: [discover]
+      operationId: deleteDocument
+      summary: Delete a document
+      responses:
+        "204":
+          description: Deleted
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/documents/{documentId}/file:
+    parameters:
+      - $ref: "#/components/parameters/DocumentId"
+    put:
+      tags: [discover]
+      operationId: replaceDocumentFile
+      summary: Upload a new version of the PDF
+      description: Titles, language and position stay; the public link keeps working.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+            encoding:
+              file:
+                contentType: application/pdf
+      responses:
+        "200":
+          description: The updated document
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Document"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "413":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/public/documents/{documentId}:
+    parameters:
+      - $ref: "#/components/parameters/DocumentId"
+    get:
+      tags: [discover]
+      operationId: getPublicDocument
+      summary: The PDF
+      description: |
+        Opens in the browser's viewer, or is saved under its file name with `download=true`.
+        The `ETag` is the file's SHA-256, so a new version is fetched as soon as it is uploaded.
+      security: []
+      parameters:
+        - name: download
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: If-None-Match
+          in: header
+          schema:
+            type: string
+            maxLength: 1024
+      responses:
+        "200":
+          description: The PDF
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+            ETag:
+              schema:
+                type: string
+            Content-Disposition:
+              schema:
+                type: string
+                example: inline; filename="Groups-and-Umrah.pdf"
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "304":
+          description: The client copy is current
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+            ETag:
+              schema:
+                type: string
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/admin/settings:
+    get:
+      tags: [settings]
+      operationId: getSettings
+      summary: Get the site settings
+      description: Defaults until saved for the first time.
+      responses:
+        "200":
+          description: The settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "401":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+    put:
+      tags: [settings]
+      operationId: updateSettings
+      summary: Replace the site settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsInput"
+      responses:
+        "200":
+          description: The saved settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+        "400":
+          $ref: "#/components/responses/Problem"
+        "401":
+          $ref: "#/components/responses/Problem"
+        "403":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
+  /api/v1/public/site:
+    get:
+      tags: [site]
+      operationId: getPublicSite
+      summary: Everything the public site shows
+      description: |
+        The published profile (absent until complete), the Discover topics with their documents
+        and the virtual tour link (absent until set), in the requested language with the same
+        fallback as the profile. Topics and documents without any text are left out.
+      security: []
+      parameters:
+        - $ref: "#/components/parameters/LocaleQuery"
+      responses:
+        "200":
+          description: The site content
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublicSite"
+        "400":
+          $ref: "#/components/responses/Problem"
+        default:
+          $ref: "#/components/responses/Problem"
+
 components:
   parameters:
     LocaleQuery:
@@ -543,6 +947,22 @@ components:
 
     MediaId:
       name: mediaId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    SectionId:
+      name: sectionId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+    DocumentId:
+      name: documentId
       in: path
       required: true
       schema:
@@ -841,6 +1261,31 @@ components:
           type: string
           maxLength: 500
           description: Text pre-filled in WhatsApp when a visitor starts a chat
+        displayName:
+          type: string
+          maxLength: 120
+          description: The full name as written in this language; defaults to first and last name
+          example: مؤمن توفيق الكسواني
+        address:
+          $ref: "#/components/schemas/Address"
+
+    Address:
+      type: object
+      additionalProperties: false
+      description: Office address as written in one language
+      properties:
+        street:
+          type: string
+          maxLength: 200
+          example: Ibrahim Al Khalil Street
+        city:
+          type: string
+          maxLength: 80
+          example: Makkah
+        country:
+          type: string
+          maxLength: 80
+          example: Saudi Arabia
 
     LocalizedProfileText:
       type: object
@@ -874,6 +1319,10 @@ components:
           type: string
           format: uuid
           description: An image from the media library
+        vcardPhotoMediaId:
+          type: string
+          format: uuid
+          description: Image saved with the downloaded contact card; the portrait when left out
         phone:
           type: string
           maxLength: 32
@@ -891,6 +1340,18 @@ components:
           uniqueItems: true
           items:
             $ref: "#/components/schemas/SpokenLanguage"
+        postalCode:
+          type: string
+          maxLength: 20
+          example: "24231"
+        mapUrl:
+          type: string
+          maxLength: 500
+          description: https link to the office on a map
+        linkedinUrl:
+          type: string
+          maxLength: 500
+          description: https link to a linkedin.com page
         translations:
           $ref: "#/components/schemas/LocalizedProfileText"
 
@@ -909,6 +1370,8 @@ components:
           type: string
         portrait:
           $ref: "#/components/schemas/Media"
+        vcardPhoto:
+          $ref: "#/components/schemas/Media"
         phone:
           type: string
           description: E.164
@@ -922,6 +1385,12 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SpokenLanguage"
+        postalCode:
+          type: string
+        mapUrl:
+          type: string
+        linkedinUrl:
+          type: string
         translations:
           $ref: "#/components/schemas/LocalizedProfileText"
         complete:
@@ -989,7 +1458,7 @@ components:
     PublicProfile:
       type: object
       additionalProperties: false
-      required: [locale, firstName, lastName, fullName, organization, title, languages]
+      required: [locale, firstName, lastName, fullName, displayName, organization, title, languages]
       properties:
         locale:
           $ref: "#/components/schemas/Locale"
@@ -999,6 +1468,9 @@ components:
           type: string
         fullName:
           type: string
+        displayName:
+          type: string
+          description: The name as written in the response language
         organization:
           type: string
         title:
@@ -1019,3 +1491,271 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/SpokenLanguage"
+        address:
+          $ref: "#/components/schemas/PublicAddress"
+        mapUrl:
+          type: string
+        linkedinUrl:
+          type: string
+
+    PublicAddress:
+      type: object
+      additionalProperties: false
+      required: [street, city, postalCode, country]
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+
+    DiscoverSectionText:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        eyebrow:
+          type: string
+          maxLength: 60
+          description: Short label above the title
+          example: Groups & Umrah
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        body:
+          type: string
+          maxLength: 3000
+          description: Plain text; blank lines separate paragraphs
+
+    LocalizedDiscoverSectionText:
+      type: object
+      additionalProperties: false
+      properties:
+        en:
+          $ref: "#/components/schemas/DiscoverSectionText"
+        id:
+          $ref: "#/components/schemas/DiscoverSectionText"
+        ar:
+          $ref: "#/components/schemas/DiscoverSectionText"
+
+    DiscoverSectionInput:
+      type: object
+      additionalProperties: false
+      required: [translations]
+      properties:
+        translations:
+          $ref: "#/components/schemas/LocalizedDiscoverSectionText"
+
+    DiscoverSection:
+      type: object
+      additionalProperties: false
+      required: [id, position, translations, documents, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        position:
+          type: integer
+          format: int32
+        translations:
+          $ref: "#/components/schemas/LocalizedDiscoverSectionText"
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/Document"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    DiscoverSectionList:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/DiscoverSection"
+
+    SectionOrder:
+      type: object
+      additionalProperties: false
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          maxItems: 200
+          uniqueItems: true
+          items:
+            type: string
+            format: uuid
+
+    DocumentText:
+      type: object
+      additionalProperties: false
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+          example: Groups and Umrah programmes
+
+    LocalizedDocumentText:
+      type: object
+      additionalProperties: false
+      properties:
+        en:
+          $ref: "#/components/schemas/DocumentText"
+        id:
+          $ref: "#/components/schemas/DocumentText"
+        ar:
+          $ref: "#/components/schemas/DocumentText"
+
+    DocumentInput:
+      type: object
+      additionalProperties: false
+      required: [language, translations]
+      properties:
+        language:
+          $ref: "#/components/schemas/Locale"
+        translations:
+          $ref: "#/components/schemas/LocalizedDocumentText"
+
+    Document:
+      type: object
+      additionalProperties: false
+      required: [id, sectionId, language, fileName, byteSize, translations, url, downloadUrl, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        sectionId:
+          type: string
+          format: uuid
+        language:
+          $ref: "#/components/schemas/Locale"
+        fileName:
+          type: string
+          example: Groups-and-Umrah.pdf
+        byteSize:
+          type: integer
+          format: int64
+        pageCount:
+          type: integer
+          format: int32
+          description: Absent when it cannot be read from the file
+        translations:
+          $ref: "#/components/schemas/LocalizedDocumentText"
+        url:
+          type: string
+          description: Opens the PDF in the browser; relative to the API origin
+          example: /api/v1/public/documents/0b0c6c1e-6b8e-4c2e-9d1a-2d9f8c3b7a10
+        downloadUrl:
+          type: string
+          description: Saves the PDF under `fileName`
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    SettingsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        tourUrl:
+          type: string
+          maxLength: 500
+          description: https link to the 360° virtual tour; the tour section is hidden without it
+
+    Settings:
+      type: object
+      additionalProperties: false
+      required: [updatedAt]
+      properties:
+        tourUrl:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+          description: Zero time until saved for the first time
+
+    PublicDocument:
+      type: object
+      additionalProperties: false
+      required: [id, title, language, fileName, byteSize, url, downloadUrl, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        language:
+          $ref: "#/components/schemas/Locale"
+        fileName:
+          type: string
+        byteSize:
+          type: integer
+          format: int64
+        pageCount:
+          type: integer
+          format: int32
+        url:
+          type: string
+        downloadUrl:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+
+    PublicDiscoverSection:
+      type: object
+      additionalProperties: false
+      required: [id, eyebrow, title, body, documents]
+      properties:
+        id:
+          type: string
+          format: uuid
+        eyebrow:
+          type: string
+        title:
+          type: string
+        body:
+          type: string
+        documents:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicDocument"
+
+    PublicTour:
+      type: object
+      additionalProperties: false
+      required: [url]
+      properties:
+        url:
+          type: string
+
+    PublicSite:
+      type: object
+      additionalProperties: false
+      required: [locale, sections]
+      properties:
+        locale:
+          $ref: "#/components/schemas/Locale"
+        profile:
+          $ref: "#/components/schemas/PublicProfile"
+        sections:
+          type: array
+          items:
+            $ref: "#/components/schemas/PublicDiscoverSection"
+        tour:
+          $ref: "#/components/schemas/PublicTour"

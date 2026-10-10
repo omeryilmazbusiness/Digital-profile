@@ -107,7 +107,8 @@ func TestBodyLimit(t *testing.T) {
 
 func TestBodyLimit_RouteRule(t *testing.T) {
 	h := httpx.BodyLimit(8, map[string]httpx.BodyRule{
-		"POST /upload": {MaxBytes: 32, Timeout: time.Minute},
+		"POST /upload":         {MaxBytes: 32, Timeout: time.Minute},
+		"PUT /items/{id}/file": {MaxBytes: 32},
 	})(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if _, err := io.ReadAll(r.Body); err != nil {
 			w.WriteHeader(http.StatusRequestEntityTooLarge)
@@ -123,11 +124,29 @@ func TestBodyLimit_RouteRule(t *testing.T) {
 		{http.MethodPost, "/upload", http.StatusNoContent},
 		{http.MethodPut, "/upload", http.StatusRequestEntityTooLarge},
 		{http.MethodPost, "/other", http.StatusRequestEntityTooLarge},
+		{http.MethodPut, "/items/42/file", http.StatusNoContent},
+		{http.MethodPut, "/items//file", http.StatusRequestEntityTooLarge},
+		{http.MethodPut, "/items/42/file/x", http.StatusRequestEntityTooLarge},
+		{http.MethodPost, "/items/42/file", http.StatusRequestEntityTooLarge},
 	} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(tc.method, tc.path, strings.NewReader(body)))
 		if rec.Code != tc.want {
 			t.Errorf("%s %s: status = %d, want %d", tc.method, tc.path, rec.Code, tc.want)
+		}
+	}
+}
+
+func TestContentDisposition(t *testing.T) {
+	t.Parallel()
+	cases := map[string]string{
+		"Groups & Umrah": `inline; filename="Groups--Umrah.pdf"; filename*=UTF-8''Groups%20&%20Umrah.pdf`,
+		"Rates":          `inline; filename="Rates.pdf"`,
+		"عروض":           `inline; filename="document.pdf"; filename*=UTF-8''%D8%B9%D8%B1%D9%88%D8%B6.pdf`,
+	}
+	for in, want := range cases {
+		if got := httpx.ContentDisposition("inline", in, ".pdf", "document"); got != want {
+			t.Errorf("ContentDisposition(%q) = %s\nwant %s", in, got, want)
 		}
 	}
 }

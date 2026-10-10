@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 )
 
 // maxLineOctets is the vCard line length limit, excluding the CRLF (RFC 2425 §5.8.1).
@@ -24,6 +26,12 @@ type Card struct {
 	WhatsApp string
 	Email    string
 	URL      string
+	LinkedIn string
+	// Work address; left out when every part is empty.
+	Street     string
+	City       string
+	PostalCode string
+	Country    string
 	// Photo is a JPEG, embedded inline so the card is self-contained.
 	Photo    []byte
 	Revision time.Time
@@ -57,8 +65,16 @@ func (c *Card) Encode() []byte {
 	if c.Email != "" {
 		line("EMAIL;TYPE=INTERNET,WORK:" + escape(c.Email))
 	}
+	if c.Street != "" || c.City != "" || c.PostalCode != "" || c.Country != "" {
+		// ADR: post office box; extended address; street; locality; region; postal code; country.
+		line("ADR;TYPE=WORK:;;" + escape(c.Street) + ";" + escape(c.City) + ";;" +
+			escape(c.PostalCode) + ";" + escape(c.Country))
+	}
 	if c.URL != "" {
 		line("URL:" + escape(c.URL))
+	}
+	if c.LinkedIn != "" {
+		line("X-SOCIALPROFILE;TYPE=linkedin:" + escape(c.LinkedIn))
 	}
 	if c.Note != "" {
 		line("NOTE:" + escape(c.Note))
@@ -99,41 +115,5 @@ func writeFolded(b *bytes.Buffer, s string) {
 // Filename returns a Content-Disposition value for a card named after name: an ASCII
 // fallback plus the exact UTF-8 name (RFC 6266), e.g. for Arabic names.
 func Filename(name string) string {
-	ascii := strings.Map(func(r rune) rune {
-		switch {
-		case r >= 'a' && r <= 'z', r >= 'A' && r <= 'Z', r >= '0' && r <= '9', r == '-', r == '_':
-			return r
-		case r == ' ':
-			return '-'
-		default:
-			return -1
-		}
-	}, strings.TrimSpace(name))
-	ascii = strings.Trim(ascii, "-")
-	if ascii == "" {
-		ascii = "contact"
-	}
-	v := `attachment; filename="` + ascii + `.vcf"`
-	if n := strings.TrimSpace(name); n != "" && n != ascii {
-		v += "; filename*=UTF-8''" + encodeExtValue(n+".vcf")
-	}
-	return v
-}
-
-// encodeExtValue percent-encodes every octet outside RFC 5987 attr-char.
-func encodeExtValue(s string) string {
-	const hex = "0123456789ABCDEF"
-	var b strings.Builder
-	for i := range len(s) {
-		c := s[i]
-		if c < utf8.RuneSelf && (c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' ||
-			strings.IndexByte("!#$&+-.^_`|~", c) >= 0) {
-			b.WriteByte(c)
-			continue
-		}
-		b.WriteByte('%')
-		b.WriteByte(hex[c>>4])
-		b.WriteByte(hex[c&0xF])
-	}
-	return b.String()
+	return httpx.ContentDisposition("attachment", name, ".vcf", "contact")
 }

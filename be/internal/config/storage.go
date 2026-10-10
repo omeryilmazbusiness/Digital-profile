@@ -43,6 +43,19 @@ type Media struct {
 	PublicBaseURL string `env:"PUBLIC_BASE_URL"`
 }
 
+// Documents configures the PDF brochures of the Discover section.
+type Documents struct {
+	// MaxUploadBytes caps a single PDF.
+	MaxUploadBytes int64 `env:"MAX_UPLOAD_BYTES" envDefault:"26214400"`
+}
+
+func (d Documents) validate() []error {
+	if d.MaxUploadBytes < 1<<20 || d.MaxUploadBytes > 100<<20 {
+		return []error{fmt.Errorf("DOCUMENTS_MAX_UPLOAD_BYTES must be between 1 MiB and 100 MiB, got %d", d.MaxUploadBytes)}
+	}
+	return nil
+}
+
 func (s Storage) validate(s3 S3) []error {
 	var errs []error
 	switch s.Driver {

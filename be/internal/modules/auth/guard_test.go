@@ -17,11 +17,14 @@ func TestGuard_PublicOperations(t *testing.T) {
 	}
 	g := NewGuard(spec, nil, Cookies{})
 
-	want := []string{"GetLiveness", "GetProfileVCard", "GetPublicMedia", "GetPublicProfile", "GetReadiness", "Login", "Logout", "RefreshSession"}
+	want := []string{
+		"GetLiveness", "GetProfileVCard", "GetPublicDocument", "GetPublicMedia", "GetPublicProfile",
+		"GetPublicSite", "GetReadiness", "Login", "Logout", "RefreshSession",
+	}
 	if got := slices.Sorted(maps.Keys(g.public)); !slices.Equal(got, want) {
 		t.Fatalf("public operations = %v, want %v", got, want)
 	}
-	for _, op := range []string{"GetCurrentAdmin", "ChangePassword", "SomethingNew", ""} {
+	for _, op := range []string{"GetCurrentAdmin", "ChangePassword", "UploadDocument", "UpdateSettings", "SomethingNew", ""} {
 		if g.IsPublic(op) {
 			t.Errorf("%q must be protected", op)
 		}

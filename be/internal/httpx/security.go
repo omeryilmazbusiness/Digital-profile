@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/cors"
@@ -53,14 +54,45 @@ type BodyRule struct {
 	Timeout  time.Duration
 }
 
+// matchRule finds the rule for "METHOD /path"; a "{name}" segment in a rule's path matches
+// any one non-empty segment.
+func matchRule(rules map[string]BodyRule, method, path string) (BodyRule, bool) {
+	if rule, ok := rules[method+" "+path]; ok {
+		return rule, true
+	}
+	segs := strings.Split(path, "/")
+	for key, rule := range rules {
+		m, pattern, _ := strings.Cut(key, " ")
+		if m != method || !strings.Contains(pattern, "{") {
+			continue
+		}
+		want := strings.Split(pattern, "/")
+		if len(want) != len(segs) {
+			continue
+		}
+		ok := true
+		for i, w := range want {
+			isParam := strings.HasPrefix(w, "{") && strings.HasSuffix(w, "}")
+			if (isParam && segs[i] == "") || (!isParam && w != segs[i]) {
+				ok = false
+				break
+			}
+		}
+		if ok {
+			return rule, true
+		}
+	}
+	return BodyRule{}, false
+}
+
 // BodyLimit caps request bodies. Reads beyond limit fail with *http.MaxBytesError, which
 // ErrorWriter renders as 413. Declared oversize bodies are rejected before any handler runs.
-// rules, keyed by "METHOD /path", override the default for specific routes.
+// rules, keyed by "METHOD /path" (see matchRule), override the default for specific routes.
 func BodyLimit(def int64, rules map[string]BodyRule) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			limit := def
-			if rule, ok := rules[r.Method+" "+r.URL.Path]; ok {
+			if rule, ok := matchRule(rules, r.Method, r.URL.Path); ok {
 				limit = rule.MaxBytes
 				if rule.Timeout > 0 {
 					rc := http.NewResponseController(w)

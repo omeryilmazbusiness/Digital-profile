@@ -12,8 +12,12 @@ import (
 )
 
 const createTranslation = `-- name: CreateTranslation :exec
-INSERT INTO profile_translations (profile_id, locale, title, tagline, bio, whatsapp_message)
-VALUES (1, $1, $2, $3, $4, $5)
+INSERT INTO profile_translations (
+    profile_id, locale, title, tagline, bio, whatsapp_message, display_name, street, city, country
+)
+VALUES (
+    1, $1, $2, $3, $4, $5, $6, $7, $8, $9
+)
 `
 
 type CreateTranslationParams struct {
@@ -22,6 +26,10 @@ type CreateTranslationParams struct {
 	Tagline         string
 	Bio             string
 	WhatsappMessage string
+	DisplayName     string
+	Street          string
+	City            string
+	Country         string
 }
 
 func (q *Queries) CreateTranslation(ctx context.Context, arg CreateTranslationParams) error {
@@ -31,6 +39,10 @@ func (q *Queries) CreateTranslation(ctx context.Context, arg CreateTranslationPa
 		arg.Tagline,
 		arg.Bio,
 		arg.WhatsappMessage,
+		arg.DisplayName,
+		arg.Street,
+		arg.City,
+		arg.Country,
 	)
 	return err
 }
@@ -45,7 +57,7 @@ func (q *Queries) DeleteTranslations(ctx context.Context) error {
 }
 
 const getProfile = `-- name: GetProfile :one
-SELECT id, first_name, last_name, organization, portrait_media_id, phone, whatsapp, email, languages, created_at, updated_at FROM profile WHERE id = 1
+SELECT id, first_name, last_name, organization, portrait_media_id, phone, whatsapp, email, languages, created_at, updated_at, vcard_photo_media_id, postal_code, map_url, linkedin_url FROM profile WHERE id = 1
 `
 
 func (q *Queries) GetProfile(ctx context.Context) (Profile, error) {
@@ -63,12 +75,16 @@ func (q *Queries) GetProfile(ctx context.Context) (Profile, error) {
 		&i.Languages,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.VcardPhotoMediaID,
+		&i.PostalCode,
+		&i.MapUrl,
+		&i.LinkedinUrl,
 	)
 	return i, err
 }
 
 const listTranslations = `-- name: ListTranslations :many
-SELECT profile_id, locale, title, tagline, bio, whatsapp_message FROM profile_translations WHERE profile_id = 1 ORDER BY locale
+SELECT profile_id, locale, title, tagline, bio, whatsapp_message, display_name, street, city, country FROM profile_translations WHERE profile_id = 1 ORDER BY locale
 `
 
 func (q *Queries) ListTranslations(ctx context.Context) ([]ProfileTranslation, error) {
@@ -87,6 +103,10 @@ func (q *Queries) ListTranslations(ctx context.Context) ([]ProfileTranslation, e
 			&i.Tagline,
 			&i.Bio,
 			&i.WhatsappMessage,
+			&i.DisplayName,
+			&i.Street,
+			&i.City,
+			&i.Country,
 		); err != nil {
 			return nil, err
 		}
@@ -99,29 +119,43 @@ func (q *Queries) ListTranslations(ctx context.Context) ([]ProfileTranslation, e
 }
 
 const upsertProfile = `-- name: UpsertProfile :one
-INSERT INTO profile (id, first_name, last_name, organization, portrait_media_id, phone, whatsapp, email, languages)
-VALUES (1, $1, $2, $3, $4, $5, $6, $7, $8::text[])
+INSERT INTO profile (
+    id, first_name, last_name, organization, portrait_media_id, vcard_photo_media_id,
+    phone, whatsapp, email, languages, postal_code, map_url, linkedin_url
+)
+VALUES (
+    1, $1, $2, $3, $4, $5,
+    $6, $7, $8, $9::text[], $10, $11, $12
+)
 ON CONFLICT (id) DO UPDATE SET
-    first_name        = EXCLUDED.first_name,
-    last_name         = EXCLUDED.last_name,
-    organization      = EXCLUDED.organization,
-    portrait_media_id = EXCLUDED.portrait_media_id,
-    phone             = EXCLUDED.phone,
-    whatsapp          = EXCLUDED.whatsapp,
-    email             = EXCLUDED.email,
-    languages         = EXCLUDED.languages
-RETURNING id, first_name, last_name, organization, portrait_media_id, phone, whatsapp, email, languages, created_at, updated_at
+    first_name           = EXCLUDED.first_name,
+    last_name            = EXCLUDED.last_name,
+    organization         = EXCLUDED.organization,
+    portrait_media_id    = EXCLUDED.portrait_media_id,
+    vcard_photo_media_id = EXCLUDED.vcard_photo_media_id,
+    phone                = EXCLUDED.phone,
+    whatsapp             = EXCLUDED.whatsapp,
+    email                = EXCLUDED.email,
+    languages            = EXCLUDED.languages,
+    postal_code          = EXCLUDED.postal_code,
+    map_url              = EXCLUDED.map_url,
+    linkedin_url         = EXCLUDED.linkedin_url
+RETURNING id, first_name, last_name, organization, portrait_media_id, phone, whatsapp, email, languages, created_at, updated_at, vcard_photo_media_id, postal_code, map_url, linkedin_url
 `
 
 type UpsertProfileParams struct {
-	FirstName       string
-	LastName        string
-	Organization    string
-	PortraitMediaID *uuid.UUID
-	Phone           *string
-	Whatsapp        *string
-	Email           *string
-	Languages       []string
+	FirstName         string
+	LastName          string
+	Organization      string
+	PortraitMediaID   *uuid.UUID
+	VcardPhotoMediaID *uuid.UUID
+	Phone             *string
+	Whatsapp          *string
+	Email             *string
+	Languages         []string
+	PostalCode        string
+	MapUrl            string
+	LinkedinUrl       string
 }
 
 func (q *Queries) UpsertProfile(ctx context.Context, arg UpsertProfileParams) (Profile, error) {
@@ -130,10 +164,14 @@ func (q *Queries) UpsertProfile(ctx context.Context, arg UpsertProfileParams) (P
 		arg.LastName,
 		arg.Organization,
 		arg.PortraitMediaID,
+		arg.VcardPhotoMediaID,
 		arg.Phone,
 		arg.Whatsapp,
 		arg.Email,
 		arg.Languages,
+		arg.PostalCode,
+		arg.MapUrl,
+		arg.LinkedinUrl,
 	)
 	var i Profile
 	err := row.Scan(
@@ -148,6 +186,10 @@ func (q *Queries) UpsertProfile(ctx context.Context, arg UpsertProfileParams) (P
 		&i.Languages,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.VcardPhotoMediaID,
+		&i.PostalCode,
+		&i.MapUrl,
+		&i.LinkedinUrl,
 	)
 	return i, err
 }

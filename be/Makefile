@@ -6,7 +6,7 @@ REDOCLY               := npx --yes @redocly/cli@2.60.0
 TOOL                  := go tool -modfile=tools/go.mod
 COMPOSE               := docker compose -f deploy/docker-compose.dev.yml --env-file .env
 LOAD_ENV              := set -a && source ./.env && set +a
-GENERATED             := internal/api internal/platform/database/dbgen
+GENERATED             := internal/api internal/platform/database/dbgen internal/modules/*/store
 MIGRATIONS            := db/migrations
 VERSION               ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS               := -s -w -X github.com/omeryilmazbusiness/digital-profile/be/internal/buildinfo.Version=$(VERSION)
