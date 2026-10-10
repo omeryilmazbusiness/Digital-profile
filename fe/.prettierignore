@@ -5,3 +5,5 @@ next-env.d.ts
 package-lock.json
 src/lib/api/schema.gen.ts
 src/features/home/hotel-signature.gen.ts
+src/features/profile/profile-signature.gen.ts
+src/features/profile/vcard-photo.gen.ts

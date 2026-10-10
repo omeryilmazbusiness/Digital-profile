@@ -5,6 +5,11 @@ import { afterEach, vi } from "vitest";
 
 afterEach(cleanup);
 
+// next/font is compiled by Next; tests only need the class names.
+vi.mock("next/font/local", () => ({
+  default: () => ({ className: "font-local", variable: "font-local-variable", style: {} }),
+}));
+
 // Browser APIs that jsdom lacks but the components (and Radix) use.
 if (!window.matchMedia) {
   window.matchMedia = vi.fn((query: string) => ({

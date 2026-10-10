@@ -12,6 +12,7 @@ import { MobileMenu, type MobileMenuProps } from "./mobile-menu";
 import { Wordmark } from "./wordmark";
 
 interface SiteHeaderProps extends Omit<MobileMenuProps, "className"> {
+  /** The highlighted link at the end of the bar on wider screens; left out of the links. */
   cta: NavItem;
 }
 
@@ -21,6 +22,8 @@ interface SiteHeaderProps extends Omit<MobileMenuProps, "className"> {
  */
 export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProps) {
   const overHero = useOverHero();
+  const pathname = usePathname();
+  const links = nav.filter((item) => item.href !== cta.href);
 
   return (
     <header
@@ -37,13 +40,13 @@ export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProp
         Skip to content
       </a>
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-6 px-safe-5">
-        <AnchorLink href="#" aria-label={`${hotelName} — back to top`} className="py-2">
+        <AnchorLink href="/" aria-label={`${hotelName} — home`} className="py-2">
           <Wordmark name={hotelName} />
         </AnchorLink>
 
         <nav aria-label="Main" className="hidden md:block">
           <ul className="flex items-center gap-9">
-            {nav.map((item) => (
+            {links.map((item) => (
               <li key={item.href}>
                 <AnchorLink
                   href={item.href}
@@ -65,9 +68,19 @@ export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProp
             asChild
             size="sm"
             variant={overHero ? "glass" : "filled"}
-            className="hidden md:inline-flex"
+            className={cn(
+              "hidden md:inline-flex",
+              cta.image && "ps-1",
+              !overHero && "bg-label text-bg hover:bg-label/85",
+            )}
           >
-            <AnchorLink href={cta.href}>{cta.label}</AnchorLink>
+            <AnchorLink href={cta.href} aria-current={pathname === cta.href ? "page" : undefined}>
+              {cta.image && (
+                // eslint-disable-next-line @next/next/no-img-element -- a 3 KB pre-sized avatar
+                <img src={cta.image} alt="" width={24} height={24} className="rounded-full" />
+              )}
+              {cta.label}
+            </AnchorLink>
           </Button>
           <MobileMenu
             hotelName={hotelName}
@@ -84,7 +97,11 @@ export function SiteHeader({ hotelName, nav, cta, quickActions }: SiteHeaderProp
 /** Whether dark, full-bleed media (sections marked data-header-overlay) is behind the header. */
 function useOverHero(): boolean {
   const pathname = usePathname();
-  const [over, setOver] = useState(true);
+  // Only the home page opens on dark footage; starting right avoids a flash before the
+  // observer reports.
+  const opensOverMedia = pathname === "/";
+  const [state, setState] = useState({ pathname, over: opensOverMedia });
+  if (state.pathname !== pathname) setState({ pathname, over: opensOverMedia });
 
   useEffect(() => {
     const targets = Array.from(document.querySelectorAll("[data-header-overlay]"));
@@ -96,7 +113,7 @@ function useOverHero(): boolean {
           if (entry.isIntersecting && entry.target !== document.body) behind.add(entry.target);
           else behind.delete(entry.target);
         }
-        setOver(behind.size > 0);
+        setState({ pathname, over: behind.size > 0 });
       },
       { rootMargin: "0px 0px -94% 0px" },
     );
@@ -105,5 +122,5 @@ function useOverHero(): boolean {
     return () => observer.disconnect();
   }, [pathname]);
 
-  return over;
+  return state.over;
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { Dialog } from "radix-ui";
 import { useState } from "react";
 import type * as React from "react";
@@ -34,6 +35,7 @@ export interface MobileMenuProps {
 export function MobileMenu({ hotelName, nav, quickActions, className }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  const pathname = usePathname();
   useScrollLock(open);
 
   return (
@@ -57,7 +59,9 @@ export function MobileMenu({ hotelName, nav, quickActions, className }: MobileMe
         >
           <Dialog.Title className="sr-only">Menu</Dialog.Title>
           <div className="flex h-14 items-center justify-between px-safe-5">
-            <Wordmark name={hotelName} />
+            <AnchorLink href="/" onNavigate={close} aria-label={`${hotelName} — home`}>
+              <Wordmark name={hotelName} />
+            </AnchorLink>
             <Dialog.Close
               aria-label="Close menu"
               className="-me-2.5 grid size-11 pressable place-items-center rounded-full"
@@ -74,15 +78,38 @@ export function MobileMenu({ hotelName, nav, quickActions, className }: MobileMe
                     <AnchorLink
                       href={item.href}
                       onNavigate={close}
-                      className="flex items-baseline gap-4 py-2.5 text-[2.5rem] leading-tight font-semibold tracking-tight"
+                      aria-current={pathname === item.href ? "page" : undefined}
+                      className={cn(
+                        "flex items-baseline gap-4 py-2.5 text-[2.5rem] leading-tight font-semibold tracking-tight",
+                        item.image && "mt-6 items-center border-t border-separator pt-8",
+                      )}
                     >
                       <span
                         aria-hidden
-                        className="w-6 font-mono text-caption-1 text-label-tertiary"
+                        className="w-6 shrink-0 self-baseline font-mono text-caption-1 text-label-tertiary"
                       >
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      {item.label}
+                      <span className="flex min-w-0 flex-1 flex-col">
+                        <span className={cn(item.image && "text-[1.75rem] leading-[1.15]")}>
+                          {item.label}
+                        </span>
+                        {item.caption && (
+                          <span className="mt-1.5 text-caption-1 font-medium tracking-[0.24em] text-label-secondary uppercase">
+                            {item.caption}
+                          </span>
+                        )}
+                      </span>
+                      {item.image && (
+                        // eslint-disable-next-line @next/next/no-img-element -- a 3 KB pre-sized avatar
+                        <img
+                          src={item.image}
+                          alt=""
+                          width={56}
+                          height={56}
+                          className="size-14 shrink-0 rounded-full shadow-card"
+                        />
+                      )}
                     </AnchorLink>
                   </Entrance>
                 </li>

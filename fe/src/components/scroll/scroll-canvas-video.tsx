@@ -90,6 +90,7 @@ function ScrubbedSequence({
 }: ScrollCanvasVideoProps & { active: boolean }) {
   const root = useRef<HTMLElement>(null);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const arrived = useRef(false);
   // Chosen once: switching sets on rotation would reload every frame mid-scroll; cover
   // cropping keeps either set filling the screen.
   const [set] = useState<FrameSetName | null>(() =>
@@ -167,7 +168,18 @@ function ScrubbedSequence({
 
       // Pinning added spacing below the section: positions of later triggers changed.
       ScrollTrigger.refresh();
-      return () => observer.disconnect();
+      // A link into the page (/#tour from another page) was resolved before that spacing
+      // existed. Wait a frame for the loading scroll lock to be released.
+      let frame = 0;
+      if (!arrived.current && location.hash) {
+        const id = decodeURIComponent(location.hash.slice(1));
+        frame = requestAnimationFrame(() => document.getElementById(id)?.scrollIntoView());
+      }
+      arrived.current = true;
+      return () => {
+        cancelAnimationFrame(frame);
+        observer.disconnect();
+      };
     },
     {
       scope: root,

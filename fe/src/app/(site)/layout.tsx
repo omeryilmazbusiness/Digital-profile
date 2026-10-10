@@ -9,7 +9,7 @@ import { SiteHeader } from "@/features/site/site-header";
 export default async function SiteLayout({ children }: LayoutProps<"/">) {
   const { hotel, nav, footer, contact } = await getSiteContent();
   const { profile } = contact;
-  const cta = nav.find((item) => item.href === "#contact") ?? nav[nav.length - 1]!;
+  const cta = nav.find((item) => item.href === profile.href) ?? nav[nav.length - 1]!;
 
   return (
     <SmoothScrollProvider>

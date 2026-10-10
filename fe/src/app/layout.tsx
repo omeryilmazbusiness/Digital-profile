@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from "next";
 
 import { Toaster } from "@/components/ui/toast";
+import { siteUrl } from "@/lib/site-url";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: siteUrl(),
   title: "Sheraton Makkah Jabal Al Kaaba",
   description: "Digital sales experience for travel agencies and tour operators.",
   appleWebApp: { capable: true, statusBarStyle: "default" },

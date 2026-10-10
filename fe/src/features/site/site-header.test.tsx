@@ -6,8 +6,8 @@ import type { NavItem } from "./content";
 import { SiteHeader } from "./site-header";
 
 const nav: NavItem[] = [
-  { label: "Discover", href: "#discover" },
-  { label: "Contact", href: "#contact" },
+  { label: "Discover", href: "/#discover" },
+  { label: "Momen Tawfiq Alkiswani", href: "/momen", caption: "Digital business card" },
 ];
 
 function renderHeader() {
@@ -30,9 +30,10 @@ function mockObserver() {
   let report: IntersectionObserverCallback = () => {};
   vi.stubGlobal(
     "IntersectionObserver",
-    vi.fn(function (callback: IntersectionObserverCallback) {
-      report = callback;
-      return { observe: vi.fn(), disconnect: vi.fn() };
+    vi.fn(function (callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+      // Links observe themselves for prefetching; only the header watches the top strip.
+      if (options?.rootMargin?.endsWith("-94% 0px")) report = callback;
+      return { observe: vi.fn(), unobserve: vi.fn(), disconnect: vi.fn() };
     }),
   );
   return (target: Element, isIntersecting: boolean) =>
@@ -51,7 +52,16 @@ test("links to each section, with a skip link first", () => {
 
   expect(links[0]).toHaveAccessibleName("Skip to content");
   const main = within(banner).getByRole("navigation", { name: "Main" });
-  expect(within(main).getByRole("link", { name: "Discover" })).toHaveAttribute("href", "#discover");
+  expect(within(main).getByRole("link", { name: "Discover" })).toHaveAttribute(
+    "href",
+    "/#discover",
+  );
+  // The highlighted link sits apart from the others.
+  expect(within(main).queryByRole("link", { name: /Momen/ })).toBeNull();
+  expect(within(banner).getByRole("link", { name: "Momen Tawfiq Alkiswani" })).toHaveAttribute(
+    "href",
+    "/momen",
+  );
 });
 
 test("is transparent over the hero and frosted once it has scrolled past", () => {
@@ -85,4 +95,16 @@ test("the phone menu closes and scrolls to the chosen section", async () => {
   // The scroll waits a frame for the menu's scroll lock to be released.
   await vi.waitFor(() => expect(scrollTo).toHaveBeenCalledWith({ top: expect.any(Number) }));
   expect(location.hash).toBe("#discover");
+});
+
+test("the phone menu offers the digital business card by name", async () => {
+  mockObserver();
+  const user = userEvent.setup();
+  renderHeader();
+
+  await user.click(screen.getByRole("button", { name: "Open menu" }));
+  const menu = screen.getByRole("dialog", { name: "Menu" });
+  const card = within(menu).getByRole("link", { name: /Momen Tawfiq Alkiswani/ });
+  expect(card).toHaveAttribute("href", "/momen");
+  expect(card).toHaveTextContent("Digital business card");
 });

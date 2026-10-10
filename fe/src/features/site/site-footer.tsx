@@ -69,6 +69,11 @@ export function SiteFooter({ hotel, nav, footer, profile }: SiteFooterProps) {
                 WhatsApp
               </a>
             </li>
+            <li>
+              <a href={profile.vcardHref} download className={linkClass}>
+                Save contact
+              </a>
+            </li>
           </ul>
         </div>
       </div>

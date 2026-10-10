@@ -196,6 +196,26 @@ Header, footer and sections live in `fe/src/features/site`. All their data comes
 PDF in `fe/public/mock`) until the `GET /public/site` endpoint exists (SET-03). The mock contact
 details are fictitious on purpose.
 
+### Digital business card (`/momen`)
+
+The menu item "Momen Tawfiq Alkiswani" opens his card at `/momen` (`fe/src/features/profile`): the
+portrait settles in on white, his name writes itself beneath it in Bodoni Moda as you scroll, then
+the actions, figures, services, contact details with live office hours, a QR share card and a
+closing call to action follow. `/momen/vcard` serves the contact card with the photo embedded.
+The figures, hours and LinkedIn link in `mock-content.ts` are placeholders.
+
+Set `NEXT_PUBLIC_SITE_URL` (e.g. `https://example.com`) in production so the QR code, canonical
+URL, Open Graph image and JSON-LD use absolute links.
+
+Assets are generated, not edited by hand — rerun after replacing a source:
+
+```sh
+cd fe
+node scripts/prepare-portrait.mjs      # assets/portraits/momen.jpg → public/profile/*, vCard photo
+node scripts/generate-signature.mjs    # the written name (and the hotel signature)
+python3 scripts/build-display-font.py  # Bodoni Moda subset; needs fonttools + brotli
+```
+
 ## Changing the API
 
 1. Edit `be/api/openapi.yaml`.

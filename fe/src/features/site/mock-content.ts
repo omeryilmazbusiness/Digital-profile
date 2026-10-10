@@ -29,12 +29,23 @@ export const mockSiteContent: SiteContent = {
   hotel: {
     name: "Sheraton Makkah Jabal Al Kaaba",
     address: "Jabal Al Kaaba, Ibrahim Al Khalil Street, Makkah 24231, Saudi Arabia",
+    postalAddress: {
+      street: "Jabal Al Kaaba, Ibrahim Al Khalil Street",
+      city: "Makkah",
+      postalCode: "24231",
+      country: "Saudi Arabia",
+    },
     mapUrl: "https://maps.google.com/?q=Sheraton+Makkah+Jabal+Al+Kaaba",
   },
   nav: [
-    { label: "Discover", href: "#discover" },
-    { label: "360° Tour", href: "#tour" },
-    { label: "Contact", href: "#contact" },
+    { label: "Discover", href: "/#discover" },
+    { label: "360° Tour", href: "/#tour" },
+    {
+      label: "Momen Tawfiq Alkiswani",
+      href: "/momen",
+      image: "/profile/momen-avatar.webp",
+      caption: "Digital business card",
+    },
   ],
   discover: {
     eyebrow: "Discover",
@@ -95,13 +106,116 @@ export const mockSiteContent: SiteContent = {
     title: "One person for every booking",
     body: "Questions, quotes or a rooming list at midnight — reach out directly.",
     profile: {
-      name: "Momen",
+      name: "Momen Tawfiq Alkiswani",
+      givenName: "Momen Tawfiq",
+      familyName: "Alkiswani",
       title: "Sales Manager, Travel Trade",
       tagline: "Helping agencies plan stays in Makkah since 2014.",
       languages: ["ar", "en", "id"],
       phone: { e164: "+966500000000", display: "+966 50 000 0000" },
       email: "momen@example.com",
       whatsappUrl: "https://wa.me/966500000000?text=Hello%20Momen%2C%20I%27d%20like%20a%20quote.",
+      portrait: {
+        src: "/profile/momen-1049.webp",
+        srcSet:
+          "/profile/momen-560.webp 560w, /profile/momen-840.webp 840w, /profile/momen-1049.webp 1049w",
+        width: 1049,
+        height: 1024,
+        alt: "Momen Tawfiq Alkiswani in a navy suit, arms folded, smiling",
+        avatar: "/profile/momen-avatar.webp",
+        ogImage: "/profile/momen-og.jpg",
+      },
+      href: "/momen",
+      vcardHref: "/momen/vcard",
+    },
+  },
+  // Figures, hours and links are placeholders to be confirmed by Momen before launch.
+  profile: {
+    eyebrow: "Digital business card",
+    statement:
+      "One direct line for every group you bring to Makkah — from the first quote to the last checkout.",
+    stats: [
+      { value: 12, suffix: "+", label: "Years in Makkah hospitality" },
+      { value: 1200, suffix: "+", label: "Pilgrim groups hosted" },
+      { value: 30, suffix: "+", label: "Partner countries" },
+      { value: 2, prefix: "<", suffix: "h", label: "Typical reply time" },
+    ],
+    about: {
+      eyebrow: "About",
+      title: "Your partner on the ground in Makkah",
+      paragraphs: [
+        "Momen looks after travel agencies and tour operators at Sheraton Makkah Jabal Al Kaaba — quotes, allotments, rooming lists and everything in between.",
+        "He works in Arabic, English and Bahasa Indonesia, so your team and your guests are always understood, in season and out.",
+      ],
+    },
+    services: {
+      eyebrow: "How I can help",
+      title: "Built around your groups",
+      items: [
+        {
+          icon: "groups",
+          title: "Umrah & Hajj groups",
+          body: "Group rates, rooming lists and a dedicated check-in for every arrival.",
+        },
+        {
+          icon: "allotments",
+          title: "Series & allotments",
+          body: "Seasonal allotments and series contracts, with clear release dates.",
+        },
+        {
+          icon: "vip",
+          title: "VIP & family stays",
+          body: "Haram-view suites and connecting rooms, arranged personally.",
+        },
+        {
+          icon: "events",
+          title: "Ramadan & peak season",
+          body: "Early planning for the busiest nights of the year, Suhoor and Iftar included.",
+        },
+      ],
+    },
+    reach: { eyebrow: "Reach me", title: "Whichever way suits you" },
+    availability: {
+      timeZone: "Asia/Riyadh",
+      place: "Makkah",
+      days: [0, 1, 2, 3, 4],
+      opens: "09:00",
+      closes: "18:00",
+      hoursLabel: "Sunday – Thursday, 9:00 – 18:00",
+      responseTime: "Messages outside these hours are answered the next working morning.",
+    },
+    resources: {
+      eyebrow: "From the hotel",
+      title: "Share these with your travellers",
+      links: [
+        {
+          label: "Fact sheets & guides",
+          description: "Rooms, group policies, dining and access — in PDF.",
+          href: "/#discover",
+        },
+        {
+          label: "360° virtual tour",
+          description: "Walk the lobby, rooms and views.",
+          href: "/#tour",
+        },
+        {
+          label: "Directions",
+          description: "Ibrahim Al Khalil Street, Makkah",
+          href: "https://maps.google.com/?q=Sheraton+Makkah+Jabal+Al+Kaaba",
+          external: true,
+        },
+      ],
+    },
+    social: [{ label: "LinkedIn", href: "https://www.linkedin.com/" }],
+    share: {
+      eyebrow: "Share",
+      title: "Pass this card on",
+      body: "Scan to open this card on another phone, or send the link to a colleague.",
+    },
+    closing: {
+      title: "Planning a group stay?",
+      body: "Send the dates and the size of your group — you'll have a quote the same day.",
+      cta: "Message on WhatsApp",
     },
   },
   footer: {

@@ -175,6 +175,9 @@
 
   --shadow-card: var(--shadow-card);
   --shadow-float: var(--shadow-float);
+
+  /* Display serif, loaded only by pages that set --font-bodoni (next/font). */
+  --font-display: var(--font-bodoni), Didot, "Bodoni 72", "Bodoni MT", Georgia, serif;
 }
 
 @theme {
@@ -391,6 +394,21 @@
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+}
+
+/* A soft, layered shadow whose depth follows --lift (0 = flat, 1 = resting): animations raise
+   cards into place by tweening it. Registered so it also transitions on hover. */
+@property --lift {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 1;
+}
+@utility shadow-lift {
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / calc(0.05 * var(--lift))),
+    0 calc(10px * var(--lift)) calc(24px * var(--lift)) -8px rgb(0 0 0 / calc(0.1 * var(--lift))),
+    0 calc(28px * var(--lift)) calc(64px * var(--lift)) -24px rgb(0 0 0 / calc(0.22 * var(--lift)));
+  transition: --lift var(--duration-slow) var(--ease-ios);
 }
 
 /* Safe-area padding (notch, home indicator), optionally plus spacing: pb-safe, pb-safe-4. */

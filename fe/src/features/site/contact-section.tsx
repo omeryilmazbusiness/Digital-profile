@@ -1,5 +1,6 @@
-import { Mail, MessageCircle, Phone } from "lucide-react";
+import { ArrowUpRight, Mail, MessageCircle, Phone } from "lucide-react";
 
+import { AnchorLink } from "@/components/scroll/anchor-link";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,7 +39,7 @@ function ProfileCard({ profile }: { profile: ContactProfile }) {
       className="rounded-[2rem] border-[0.5px] border-separator bg-bg-secondary p-6 shadow-card md:p-8"
     >
       <div className="flex items-center gap-5">
-        <Avatar name={profile.name} src={profile.portraitUrl} size="xl" />
+        <Avatar name={profile.name} src={profile.portrait?.avatar} size="xl" />
         <div className="min-w-0">
           <h3 className="text-title-2 font-semibold">{profile.name}</h3>
           <p className="mt-1 text-subheadline text-label-secondary">{profile.title}</p>
@@ -90,6 +91,22 @@ function ProfileCard({ profile }: { profile: ContactProfile }) {
           <dd className="truncate text-label-secondary">{profile.email}</dd>
         </div>
       </dl>
+
+      <AnchorLink
+        href={profile.href}
+        className="group mt-6 flex pressable items-center justify-between gap-4 rounded-2xl bg-label px-5 py-4 text-bg"
+      >
+        <span className="flex flex-col">
+          <span className="text-caption-2 font-medium tracking-[0.24em] uppercase opacity-60">
+            Digital business card
+          </span>
+          <span className="mt-1 text-headline">View {profile.name}</span>
+        </span>
+        <ArrowUpRight
+          aria-hidden
+          className="size-5 transition-transform duration-300 ease-ios group-hover:translate-x-0.5 group-hover:-translate-y-0.5 rtl:-scale-x-100"
+        />
+      </AnchorLink>
     </article>
   );
 }
