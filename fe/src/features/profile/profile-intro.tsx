@@ -195,7 +195,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
 
         <div
           data-intro="below"
-          className="relative z-10 -mt-[calc(var(--portrait)*0.23)] flex w-full flex-col items-center text-center"
+          className="relative z-10 -mt-[calc(var(--portrait)*0.17)] flex w-full flex-col items-center text-center"
         >
           <h2 id="profile-name" className="sr-only">
             {profile.name}
@@ -205,7 +205,7 @@ export function ProfileIntro({ profile, organization, eyebrow, signature }: Prof
             aria-hidden
             viewBox={`${x} ${y} ${w} ${h}`}
             strokeWidth={0.7}
-            className="block h-auto w-[calc(var(--portrait)*0.95)] overflow-visible"
+            className="block h-auto w-[calc(var(--portrait)*1.02)] overflow-visible"
           >
             {signature.glyphs.map((glyph, i) => (
               <path

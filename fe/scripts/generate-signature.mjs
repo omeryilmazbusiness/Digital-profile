@@ -45,11 +45,13 @@ const OUTPUTS = [
     signatures: [
       {
         lang: "en",
-        font: "assets/fonts/chomsky/Chomsky.otf",
+        font: "assets/fonts/cinzel/Cinzel-wght.ttf",
+        variations: ["wght=900"],
         features: ["-liga"],
-        lines: ["Momen Tawfiq", "Alkiswani"],
-        lineHeight: 1.04,
-        accent: "omen Tawfi",
+        tracking: 0.06,
+        lines: ["MOMEN TAWFIQ", "ALKISWANI"],
+        lineHeight: 1.12,
+        accent: "OMEN TAWFI",
       },
     ],
   },
