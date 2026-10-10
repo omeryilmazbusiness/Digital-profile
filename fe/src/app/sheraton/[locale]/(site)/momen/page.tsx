@@ -6,6 +6,9 @@ import { languageAlternates } from "@/i18n/routing";
 
 import { localeOf } from "../../locale";
 
+// Allowed to block on navigation, like its layout: the whole page depends on the language.
+export const instant = false;
+
 export async function generateMetadata({
   params,
 }: PageProps<"/sheraton/[locale]/momen">): Promise<Metadata> {

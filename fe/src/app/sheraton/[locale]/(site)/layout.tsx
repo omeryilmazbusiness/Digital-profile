@@ -11,6 +11,10 @@ import { localeOf } from "../locale";
 export { metadata, viewport } from "../../../document";
 export { generateStaticParams } from "../locale";
 
+// Everything here, down to <html lang dir>, depends on the language in the URL, so there is no
+// language-independent shell to show first. Each language is prerendered whole instead.
+export const instant = false;
+
 /**
  * The public site in one language: header, footer and smooth scrolling for its scroll-driven
  * storytelling, in a document marked with the language the content is actually in.
