@@ -156,8 +156,9 @@ regardless. The browser talks to the API on the site's own origin: Next forwards
   profile. A blurred 16 px placeholder comes with every image.
 - Variants are served from `/api/v1/public/media/<sha256>.webp` with a one-year `immutable`
   cache. Point `MEDIA_PUBLIC_BASE_URL` at a CDN to serve them from there.
-- Files live in a directory (`STORAGE_DRIVER=local`, `STORAGE_LOCAL_DIR`) or any S3-compatible
-  bucket (`STORAGE_DRIVER=s3`, `S3_*`); `/readyz` checks the storage too.
+- Files live in a directory (`STORAGE_DRIVER=local`, `STORAGE_LOCAL_DIR`), any S3-compatible
+  bucket (`STORAGE_DRIVER=s3`, `S3_*`) or the database itself (`STORAGE_DRIVER=postgres`, table
+  `storage_objects`); `/readyz` checks the storage too.
 - Images referenced by content cannot be deleted (`409`). Uploading the same file again returns the
   existing image.
 
@@ -325,11 +326,11 @@ python3 scripts/build-display-font.py  # Playfair Display subset; needs fonttool
 One project with three services. Both apps build from the repository root (leave the root
 directory empty) with their `Dockerfile`, chosen by `RAILWAY_DOCKERFILE_PATH`.
 
-| Service    | Source             | Settings                                                                                                                                                       |
-| ---------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Postgres` | Railway PostgreSQL | —                                                                                                                                                              |
-| `api`      | this repo          | watch paths `/be/**`; pre-deploy `/app/cli migrate up`; healthcheck `/readyz`; volume at `/data`; **no public domain** (reached only over the private network) |
-| `web`      | this repo          | watch paths `/fe/**`; healthcheck `/sheraton/en`; public domain on port `3000`                                                                                 |
+| Service    | Source             | Settings                                                                                                                                    |
+| ---------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Postgres` | Railway PostgreSQL | —                                                                                                                                           |
+| `api`      | this repo          | watch paths `/be/**`; pre-deploy `/app/cli migrate up`; healthcheck `/readyz`; **no public domain** (reached only over the private network) |
+| `web`      | this repo          | watch paths `/fe/**`; healthcheck `/sheraton/en`; public domain on port `3000`                                                              |
 
 `api` variables:
 
@@ -342,10 +343,7 @@ AUTH_JWT_KEYS=<make -C be jwt-key>
 AUTH_COOKIE_SECURE=true
 # Only the web service reaches the API: trust its private address for the visitor's IP.
 HTTP_TRUSTED_PROXIES=fd00::/8,10.0.0.0/8,100.64.0.0/10,172.16.0.0/12,192.168.0.0/16
-STORAGE_DRIVER=local
-STORAGE_LOCAL_DIR=/data/storage
-# Railway mounts volumes as root; the image runs as an unprivileged user otherwise.
-RAILWAY_RUN_UID=0
+STORAGE_DRIVER=postgres
 ```
 
 `web` variables (also passed to the build):
@@ -357,8 +355,11 @@ NEXT_PUBLIC_SITE_URL=https://${{RAILWAY_PUBLIC_DOMAIN}}   # or the custom domain
 PORT=3000
 ```
 
-The image defaults cover the rest (`HTTP_ADDR=:8080`, JSON logs). For S3-compatible storage
-(e.g. a Railway bucket) instead of the volume, set `STORAGE_DRIVER=s3` and the `S3_*` variables.
+The image defaults cover the rest (`HTTP_ADDR=:8080`, JSON logs). Uploaded images and PDFs live
+in the database, so they survive deploys and are part of its backups. A volume works too
+(`STORAGE_DRIVER=local`, `STORAGE_LOCAL_DIR` under its mount path, `RAILWAY_RUN_UID=0` as Railway
+mounts volumes as root); the API refuses to start with a local directory that isn't on one. For
+S3-compatible storage (e.g. a Railway bucket), set `STORAGE_DRIVER=s3` and the `S3_*` variables.
 Create the admin once the API is up: `railway ssh -s api` then
 `/app/cli admin create -email you@example.com`.
 

@@ -155,3 +155,10 @@ type SiteSetting struct {
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
+
+type StorageObject struct {
+	Key         string
+	ContentType string
+	Data        []byte
+	UpdatedAt   time.Time
+}

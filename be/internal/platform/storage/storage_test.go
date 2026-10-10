@@ -11,6 +11,7 @@ import (
 	"github.com/johannesboyne/gofakes3"
 	"github.com/johannesboyne/gofakes3/backend/s3mem"
 
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/database/dbtest"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/platform/storage"
 )
 
@@ -49,6 +50,10 @@ func TestLocal(t *testing.T) {
 	if err := l.Put(t.Context(), "x.content-type", strings.NewReader("x"), 1, "text/plain"); err == nil {
 		t.Error("reserved sidecar suffix accepted as a key")
 	}
+}
+
+func TestPostgres(t *testing.T) {
+	conformance(t, storage.NewPostgres(dbtest.New(t)))
 }
 
 func TestS3(t *testing.T) {

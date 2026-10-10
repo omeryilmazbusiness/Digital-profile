@@ -166,6 +166,8 @@ func TestLoadFrom_Invalid(t *testing.T) {
 		{"empty local dir", vars(map[string]string{"STORAGE_LOCAL_DIR": " "}), "STORAGE_LOCAL_DIR"},
 		{"s3 without endpoint", vars(map[string]string{"STORAGE_DRIVER": "s3", "S3_BUCKET": "b", "S3_ACCESS_KEY": "a", "S3_SECRET_KEY": "s"}), "S3_ENDPOINT"},
 		{"s3 without credentials", vars(map[string]string{"STORAGE_DRIVER": "s3", "S3_ENDPOINT": "http://localhost:9000"}), "S3_ACCESS_KEY"},
+		{"local dir on railway without a volume", vars(map[string]string{"RAILWAY_ENVIRONMENT_ID": "e", "STORAGE_LOCAL_DIR": "/data/storage"}), "STORAGE_DRIVER=postgres"},
+		{"local dir on railway beside the volume", vars(map[string]string{"RAILWAY_ENVIRONMENT_ID": "e", "RAILWAY_VOLUME_MOUNT_PATH": "/data", "STORAGE_LOCAL_DIR": "/database/storage"}), "STORAGE_LOCAL_DIR"},
 		{"tiny upload limit", vars(map[string]string{"MEDIA_MAX_UPLOAD_BYTES": "1000"}), "MEDIA_MAX_UPLOAD_BYTES"},
 		{"huge pixel limit", vars(map[string]string{"MEDIA_MAX_PIXELS": "999999999"}), "MEDIA_MAX_PIXELS"},
 		{"zero processing concurrency", vars(map[string]string{"MEDIA_PROCESSING_CONCURRENCY": "0"}), "MEDIA_PROCESSING_CONCURRENCY"},
@@ -181,6 +183,19 @@ func TestLoadFrom_Invalid(t *testing.T) {
 			}
 			if !strings.Contains(err.Error(), tt.wantErr) {
 				t.Errorf("error %q does not mention %q", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestLoadFrom_PersistentStorageOnRailway(t *testing.T) {
+	for name, overrides := range map[string]map[string]string{
+		"local dir on the volume": {"RAILWAY_ENVIRONMENT_ID": "e", "RAILWAY_VOLUME_MOUNT_PATH": "/data", "STORAGE_LOCAL_DIR": "/data/storage"},
+		"the database":            {"RAILWAY_ENVIRONMENT_ID": "e", "STORAGE_DRIVER": "postgres"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			if _, err := config.LoadFrom(vars(overrides)); err != nil {
+				t.Fatalf("LoadFrom() error = %v", err)
 			}
 		})
 	}

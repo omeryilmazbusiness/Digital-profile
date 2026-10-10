@@ -4,18 +4,40 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"path/filepath"
 	"strings"
 )
 
 const (
-	StorageLocal = "local"
-	StorageS3    = "s3"
+	StorageLocal    = "local"
+	StorageS3       = "s3"
+	StoragePostgres = "postgres"
 )
 
 type Storage struct {
-	// Driver selects the blob store: "local" (filesystem) or "s3" (any S3-compatible service).
+	// Driver selects the blob store: "local" (filesystem), "s3" (any S3-compatible service)
+	// or "postgres" (the application database).
 	Driver   string `env:"DRIVER"    envDefault:"local"`
 	LocalDir string `env:"LOCAL_DIR" envDefault:"./data/storage"`
+}
+
+// Railway is what Railway tells a service about where it runs.
+type Railway struct {
+	EnvironmentID string `env:"RAILWAY_ENVIRONMENT_ID"`
+	// VolumeMountPath is set when a volume is attached; anything else is lost on redeploy.
+	VolumeMountPath string `env:"RAILWAY_VOLUME_MOUNT_PATH"`
+}
+
+// onVolume reports whether dir survives a redeploy on Railway (always true elsewhere).
+func (r Railway) onVolume(dir string) bool {
+	if r.EnvironmentID == "" {
+		return true
+	}
+	if r.VolumeMountPath == "" || !filepath.IsAbs(dir) {
+		return false
+	}
+	rel, err := filepath.Rel(filepath.Clean(r.VolumeMountPath), filepath.Clean(dir))
+	return err == nil && rel != ".." && !strings.HasPrefix(rel, "../")
 }
 
 // S3 shares its variable names with the development RustFS container (S3_ACCESS_KEY, ...).
@@ -56,13 +78,16 @@ func (d Documents) validate() []error {
 	return nil
 }
 
-func (s Storage) validate(s3 S3) []error {
+func (s Storage) validate(s3 S3, railway Railway) []error {
 	var errs []error
 	switch s.Driver {
 	case StorageLocal:
 		if strings.TrimSpace(s.LocalDir) == "" {
 			errs = append(errs, errors.New("STORAGE_LOCAL_DIR must not be empty"))
+		} else if !railway.onVolume(s.LocalDir) {
+			errs = append(errs, fmt.Errorf("STORAGE_LOCAL_DIR %q is not on a Railway volume, so uploads would be lost on the next deploy: attach a volume there or set STORAGE_DRIVER=postgres", s.LocalDir))
 		}
+	case StoragePostgres:
 	case StorageS3:
 		if u, err := url.Parse(s3.Endpoint); err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") {
 			errs = append(errs, errors.New("S3_ENDPOINT must be an http(s) URL when STORAGE_DRIVER=s3"))
@@ -71,7 +96,7 @@ func (s Storage) validate(s3 S3) []error {
 			errs = append(errs, errors.New("S3_BUCKET, S3_ACCESS_KEY and S3_SECRET_KEY are required when STORAGE_DRIVER=s3"))
 		}
 	default:
-		errs = append(errs, fmt.Errorf("STORAGE_DRIVER %q is not one of local|s3", s.Driver))
+		errs = append(errs, fmt.Errorf("STORAGE_DRIVER %q is not one of local|s3|postgres", s.Driver))
 	}
 	return errs
 }

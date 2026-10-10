@@ -110,7 +110,7 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 	if err != nil {
 		return nil, err
 	}
-	blobs, closeBlobs, err := openStorage(cfg)
+	blobs, closeBlobs, err := openStorage(cfg, pool)
 	if err != nil {
 		return nil, err
 	}
@@ -196,8 +196,10 @@ func Build(ctx context.Context, cfg config.Config, log *slog.Logger, version str
 // uploadTimeout covers a large photo over a slow mobile uplink plus processing.
 const uploadTimeout = 3 * time.Minute
 
-func openStorage(cfg config.Config) (storage.Storage, func(), error) {
+func openStorage(cfg config.Config, pool *pgxpool.Pool) (storage.Storage, func(), error) {
 	switch cfg.Storage.Driver {
+	case config.StoragePostgres:
+		return storage.NewPostgres(pool), func() {}, nil
 	case config.StorageS3:
 		s, err := storage.NewS3(storage.S3Config{
 			Endpoint: cfg.S3.Endpoint, Region: cfg.S3.Region, Bucket: cfg.S3.Bucket,

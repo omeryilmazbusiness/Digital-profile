@@ -25,9 +25,11 @@ RUN apk add --no-cache ca-certificates tzdata \
     && mkdir -p /data/storage && chown -R app:app /data
 WORKDIR /app
 COPY --from=build /out/api /out/cli /app/
+# Uploads live in the database unless STORAGE_DRIVER says otherwise (local needs a volume).
 ENV APP_ENV=production \
     HTTP_ADDR=:8080 \
     LOG_FORMAT=json \
+    STORAGE_DRIVER=postgres \
     STORAGE_LOCAL_DIR=/data/storage
 USER app
 EXPOSE 8080
