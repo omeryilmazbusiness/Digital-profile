@@ -261,6 +261,7 @@
   --animate-pop-in: pop-in var(--duration-base) var(--ease-spring);
   --animate-ken-burns: ken-burns 28s ease-in-out infinite alternate;
   --animate-scroll-hint: scroll-hint 2.2s var(--ease-ios) infinite;
+  --animate-credit-write: credit-write 9s var(--ease-ios) infinite both;
 
   @keyframes shimmer {
     from {
@@ -320,6 +321,38 @@
     }
     to {
       transform: translate3d(0, 200%, 0);
+    }
+  }
+  /* One letter of the studio's signature, staggered by the caller: written in out of a blur,
+     caught by a passing glint, then dissolved and written again. */
+  @keyframes credit-write {
+    0% {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translate3d(0, 0.4em, 0);
+    }
+    10%,
+    40%,
+    52%,
+    86% {
+      opacity: 1;
+      filter: blur(0);
+      transform: translate3d(0, 0, 0);
+      text-shadow: 0 0 0 rgb(255 255 255 / 0);
+    }
+    46% {
+      opacity: 1;
+      filter: blur(0);
+      transform: translate3d(0, -0.06em, 0);
+      text-shadow:
+        0 0 0.5em rgb(255 255 255 / 0.95),
+        0 0 1.4em rgb(255 236 200 / 0.6);
+    }
+    96%,
+    100% {
+      opacity: 0;
+      filter: blur(10px);
+      transform: translate3d(0, -0.3em, 0);
     }
   }
 }

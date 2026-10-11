@@ -44,7 +44,7 @@ const heroScenes = ({ locale, hotelName, hero, ui, credit }: HomeHeroProps): rea
           {hero.lead}
         </p>
         <ScrollHint label={ui.scroll} />
-        <Credit credit={credit} ui={ui} tone="light" className="relative mt-8" />
+        <Credit credit={credit} ui={ui} tone="light" size="hero" className="relative mt-10" />
       </div>
     ),
   },
