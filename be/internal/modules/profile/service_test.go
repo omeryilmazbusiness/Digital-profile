@@ -28,6 +28,7 @@ const siteURL = "https://profile.example.com"
 type env struct {
 	svc   *profile.Service
 	media *media.Service
+	files storage.Storage
 }
 
 func newEnv(t *testing.T) *env {
@@ -45,7 +46,7 @@ func newEnv(t *testing.T) *env {
 	}
 	log := slog.New(slog.DiscardHandler)
 	m := media.NewService(pool, st, proc, "", log)
-	return &env{svc: profile.NewService(pool, m, siteURL, log), media: m}
+	return &env{svc: profile.NewService(pool, m, siteURL, log), media: m, files: st}
 }
 
 func (e *env) portrait(t *testing.T) uuid.UUID {

@@ -404,32 +404,46 @@ func (s *Service) OpenVariant(ctx context.Context, file string) (io.ReadCloser, 
 }
 
 // OpenImage returns the smallest variant at least minWidth wide (the largest when none is),
-// for server-side consumers that need the pixels rather than a URL.
+// for server-side consumers that need the pixels rather than a URL. A variant whose file is
+// missing gives way to the next best one: wider ones first, then narrower.
 func (s *Service) OpenImage(ctx context.Context, id uuid.UUID, minWidth int) (io.ReadCloser, error) {
 	variants, err := s.q(ctx).ListVariants(ctx, []uuid.UUID{id})
 	if err != nil {
 		return nil, database.MapError(err)
 	}
-	if len(variants) == 0 {
-		return nil, errNotFound
+	for _, v := range preferredVariants(variants, minWidth) {
+		rc, _, err := s.storage.Get(ctx, v.StorageKey)
+		if errors.Is(err, storage.ErrNotFound) {
+			s.log.ErrorContext(ctx, "media variant missing from storage", "key", v.StorageKey)
+			continue
+		}
+		if err != nil {
+			return nil, apperr.Unavailable("image storage is unavailable").Wrap(err)
+		}
+		return rc, nil
 	}
-	// Variants are ordered by ascending width.
-	pick := variants[len(variants)-1]
+	return nil, errNotFound
+}
+
+// preferredVariants orders variants (stored by ascending width) by fitness for minWidth: the
+// first at least that wide, the wider ones after it, then the narrower ones, widest first.
+func preferredVariants(variants []store.MediaVariant, minWidth int) []store.MediaVariant {
+	if len(variants) == 0 {
+		return nil
+	}
+	first := len(variants) - 1
 	for i := range variants {
 		if int(variants[i].Width) >= minWidth {
-			pick = variants[i]
+			first = i
 			break
 		}
 	}
-	rc, _, err := s.storage.Get(ctx, pick.StorageKey)
-	if errors.Is(err, storage.ErrNotFound) {
-		s.log.ErrorContext(ctx, "media variant missing from storage", "key", pick.StorageKey)
-		return nil, errNotFound
+	out := make([]store.MediaVariant, 0, len(variants))
+	out = append(out, variants[first:]...)
+	for i := first - 1; i >= 0; i-- {
+		out = append(out, variants[i])
 	}
-	if err != nil {
-		return nil, apperr.Unavailable("image storage is unavailable").Wrap(err)
-	}
-	return rc, nil
+	return out
 }
 
 // assemble loads variants and translations for rows with two queries, whatever the page size.

@@ -291,3 +291,13 @@ func (s *Service) BusinessCardJPEG(ctx context.Context, id uuid.UUID) ([]byte, e
 	s.cardFor, s.card = id, jpg
 	return jpg, nil
 }
+
+// BusinessCardAvailable reports whether the card can be rendered. A card whose files are gone
+// is logged and hidden, so visitors are offered the vCard instead of a broken download.
+func (s *Service) BusinessCardAvailable(ctx context.Context, id uuid.UUID) bool {
+	if _, err := s.BusinessCardJPEG(ctx, id); err != nil {
+		s.log.ErrorContext(ctx, "business card unavailable; re-upload it in the admin", "media_id", id, "error", err)
+		return false
+	}
+	return true
+}

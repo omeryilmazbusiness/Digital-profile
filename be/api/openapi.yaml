@@ -547,7 +547,8 @@ paths:
       description: |
         The uploaded business card as a JPEG (at most 1600 px wide, transparency on white), saved
         under the profile's name. `404` until the profile is published with a business card.
-        The `ETag` follows the image, so a new card is fetched as soon as it is chosen.
+        The `ETag` follows the image, so a new card is fetched as soon as it is chosen. When the
+        card's image files are unavailable, `303` sends the visitor to the vCard instead.
       security: []
       parameters:
         - $ref: "#/components/parameters/LocaleQuery"
@@ -575,6 +576,17 @@ paths:
               schema:
                 type: string
                 format: binary
+        "303":
+          description: The card image is unavailable; the vCard is offered instead
+          headers:
+            Location:
+              required: true
+              schema:
+                type: string
+                example: /api/v1/public/profile/vcard?locale=en
+            Cache-Control:
+              schema:
+                type: string
         "304":
           description: The client copy is current
           headers:

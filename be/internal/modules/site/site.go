@@ -5,6 +5,8 @@ package site
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/apperr"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/discover"
@@ -16,6 +18,7 @@ import (
 type (
 	Profiles interface {
 		Published(ctx context.Context) (profile.Profile, error)
+		BusinessCardAvailable(ctx context.Context, id uuid.UUID) bool
 	}
 	Topics interface {
 		List(ctx context.Context) ([]discover.Section, error)
@@ -47,6 +50,9 @@ func (h *Handler) GetPublicSite(ctx context.Context, in api.GetPublicSiteRequest
 	p, err := h.profiles.Published(ctx)
 	switch {
 	case err == nil:
+		if p.BusinessCard != nil && !h.profiles.BusinessCardAvailable(ctx, p.BusinessCard.ID) {
+			p.BusinessCard = nil
+		}
 		pub := profile.ToPublicAPI(&p, locale)
 		out.Profile = &pub
 	case apperr.KindOf(err) != apperr.KindNotFound:

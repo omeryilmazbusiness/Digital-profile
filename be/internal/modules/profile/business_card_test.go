@@ -16,6 +16,7 @@ import (
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/apperr"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/media"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/profile"
 )
 
@@ -37,6 +38,25 @@ func (e *env) card(t *testing.T) uuid.UUID {
 		t.Fatal(err)
 	}
 	return m.ID
+}
+
+// loseFiles deletes the stored files of an image's variants at least minWidth wide, as an
+// ephemeral disk does on deploy.
+func (e *env) loseFiles(t *testing.T, id uuid.UUID, minWidth int) {
+	t.Helper()
+	m, err := e.media.Get(context.Background(), id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, v := range m.Variants {
+		if v.Width < minWidth {
+			continue
+		}
+		key := "media/" + strings.TrimPrefix(v.URL, media.PublicPath)
+		if err := e.files.Delete(context.Background(), key); err != nil {
+			t.Fatal(err)
+		}
+	}
 }
 
 func withCard(portrait, card *uuid.UUID) profile.Input {
@@ -163,5 +183,64 @@ func TestGetProfileBusinessCard(t *testing.T) {
 	}
 	if rec.Code != http.StatusNotModified || rec.Body.Len() != 0 {
 		t.Errorf("conditional request: status %d, %d bytes", rec.Code, rec.Body.Len())
+	}
+}
+
+func TestBusinessCard_MissingWidestFileFallsBackToNarrower(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	pid, cid := e.portrait(t), e.card(t)
+	if _, err := e.svc.Update(ctx, withCard(&pid, &cid)); err != nil {
+		t.Fatal(err)
+	}
+	e.loseFiles(t, cid, 1600)
+
+	jpg, err := e.svc.BusinessCardJPEG(ctx, cid)
+	if err != nil {
+		t.Fatalf("render from a narrower variant: %v", err)
+	}
+	img, err := jpeg.Decode(bytes.NewReader(jpg))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if w := img.Bounds().Dx(); w >= 1600 || w == 0 {
+		t.Errorf("width = %d, want a narrower variant", w)
+	}
+}
+
+func TestBusinessCard_LostFilesOfferTheVCard(t *testing.T) {
+	e := newEnv(t)
+	ctx := context.Background()
+	pid, cid := e.portrait(t), e.card(t)
+	if _, err := e.svc.Update(ctx, withCard(&pid, &cid)); err != nil {
+		t.Fatal(err)
+	}
+	e.loseFiles(t, cid, 0)
+	h := profile.NewHandler(e.svc)
+
+	loc := api.LocaleQuery("ar")
+	pub, err := h.GetPublicProfile(ctx, api.GetPublicProfileRequestObject{Params: api.GetPublicProfileParams{Locale: &loc}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if u := pub.(api.GetPublicProfile200JSONResponse).BusinessCardUrl; u != nil {
+		t.Errorf("businessCardUrl = %q, want none while the card cannot be rendered", *u)
+	}
+
+	res, err := h.GetProfileBusinessCard(ctx, api.GetProfileBusinessCardRequestObject{
+		Params: api.GetProfileBusinessCardParams{Locale: &loc},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	rec := httptest.NewRecorder()
+	if err := res.VisitGetProfileBusinessCardResponse(rec); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != profile.VCardPath+"?locale=ar" {
+		t.Errorf("status %d, Location %q", rec.Code, rec.Header().Get("Location"))
+	}
+	if rec.Header().Get("Cache-Control") != "no-store" {
+		t.Errorf("Cache-Control = %q", rec.Header().Get("Cache-Control"))
 	}
 }

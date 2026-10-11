@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/api"
+	"github.com/omeryilmazbusiness/digital-profile/be/internal/apperr"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/httpx"
 	"github.com/omeryilmazbusiness/digital-profile/be/internal/modules/media"
 )
@@ -44,6 +45,9 @@ func (h *Handler) GetPublicProfile(ctx context.Context, in api.GetPublicProfileR
 	if err != nil {
 		return nil, err
 	}
+	if p.BusinessCard != nil && !h.svc.BusinessCardAvailable(ctx, p.BusinessCard.ID) {
+		p.BusinessCard = nil
+	}
 	return api.GetPublicProfile200JSONResponse(ToPublicAPI(&p, locale(in.Params.Locale))), nil
 }
 
@@ -67,6 +71,13 @@ func (h *Handler) GetProfileBusinessCard(ctx context.Context, in api.GetProfileB
 		}, nil
 	}
 	jpg, err := h.svc.BusinessCardJPEG(ctx, p.BusinessCard.ID)
+	if apperr.KindOf(err) == apperr.KindNotFound {
+		// Pages rendered before the files went missing still link here.
+		noStore := "no-store"
+		return api.GetProfileBusinessCard303Response{Headers: api.GetProfileBusinessCard303ResponseHeaders{
+			CacheControl: &noStore, Location: VCardPath + "?locale=" + locale(in.Params.Locale),
+		}}, nil
+	}
 	if err != nil {
 		return nil, err
 	}

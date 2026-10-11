@@ -118,6 +118,9 @@ func Filename(name string) string {
 	return httpx.ContentDisposition("attachment", name, ".vcf", "contact")
 }
 
+// VCardPath downloads the contact card.
+const VCardPath = "/api/v1/public/profile/vcard"
+
 // BusinessCardPath downloads the business card image.
 const BusinessCardPath = "/api/v1/public/profile/business-card"
 

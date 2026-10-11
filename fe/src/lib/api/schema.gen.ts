@@ -320,7 +320,8 @@ export interface paths {
          * Download the business card image
          * @description The uploaded business card as a JPEG (at most 1600 px wide, transparency on white), saved
          *     under the profile's name. `404` until the profile is published with a business card.
-         *     The `ETag` follows the image, so a new card is fetched as soon as it is chosen.
+         *     The `ETag` follows the image, so a new card is fetched as soon as it is chosen. When the
+         *     card's image files are unavailable, `303` sends the visitor to the vCard instead.
          */
         get: operations["getProfileBusinessCard"];
         put?: never;
@@ -1477,6 +1478,15 @@ export interface operations {
                 content: {
                     "image/jpeg": string;
                 };
+            };
+            /** @description The card image is unavailable; the vCard is offered instead */
+            303: {
+                headers: {
+                    Location: string;
+                    "Cache-Control"?: string;
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description The client copy is current */
             304: {
