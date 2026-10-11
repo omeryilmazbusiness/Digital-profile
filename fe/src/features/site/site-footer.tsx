@@ -107,11 +107,7 @@ export function SiteFooter({ hotel, nav, footer, profile, ui }: SiteFooterProps)
       <div className="mx-auto mt-14 flex max-w-6xl flex-col gap-2 border-t-[0.5px] border-separator px-safe-5 pt-6 text-caption-1 text-label-secondary md:flex-row md:items-center md:justify-between md:gap-8">
         <p>© {hotel.name}</p>
         <p className="md:text-center">{footer.privacy}</p>
-        <Credit
-          credit={footer.credit}
-          ui={ui}
-          className="text-label-secondary hover:text-label [&_[data-name]]:text-label"
-        />
+        <Credit credit={footer.credit} ui={ui} className="text-label [&_[data-name]]:text-label" />
       </div>
     </footer>
   );

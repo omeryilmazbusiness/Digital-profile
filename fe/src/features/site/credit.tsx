@@ -4,13 +4,13 @@ import { cn } from "@/lib/utils";
 import type { SiteCredit } from "./content";
 
 const tones = {
-  light: "text-white/55 hover:text-white/90 [&_[data-name]]:text-white/80",
-  dark: "text-neutral-500 hover:text-neutral-950 [&_[data-name]]:text-neutral-900",
+  light: "text-white/75 hover:text-white [&_[data-name]]:text-white",
+  dark: "text-neutral-600 hover:text-neutral-950 [&_[data-name]]:text-neutral-950",
 };
 
 const sizes = {
-  sm: "gap-1.5 text-caption-2 [&_[data-label]]:text-footnote",
-  lg: "gap-2.5 text-subheadline sm:text-headline [&_[data-label]]:text-title-3 sm:[&_[data-label]]:text-title-2",
+  sm: "gap-2 text-footnote [&_[data-label]]:text-title-3",
+  lg: "gap-3 text-headline sm:text-title-3 [&_[data-label]]:text-title-1 sm:[&_[data-label]]:text-large-title",
 };
 
 /**
