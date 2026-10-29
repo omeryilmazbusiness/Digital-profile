@@ -1,5 +1,5 @@
 /**
- * Destinations the social hub opens. WhatsApp is 059 219 7039, the call is 059 262 3702.
+ * Destinations the social hub opens. Each line is a Saudi mobile: WhatsApp and a call.
  */
 
 export const SOCIAL_NETWORK_IDS = [
@@ -20,10 +20,14 @@ export interface SocialDestination {
   href: string;
 }
 
+export interface HubLine {
+  e164: string;
+  display: string;
+}
+
 export interface HubDestinations {
   social: readonly SocialDestination[];
-  whatsappUrl: string;
-  phone: { e164: string; display: string };
+  lines: readonly HubLine[];
 }
 
 export const OUTBOUND = { target: "_blank", rel: "noopener noreferrer" } as const;
@@ -31,6 +35,10 @@ export const OUTBOUND = { target: "_blank", rel: "noopener noreferrer" } as cons
 export const HUB_ADDRESS = "Jabal Al Kaaba, Makkah 24231, Saudi Arabia";
 
 const MAPS_QUERY = `Sheraton Makkah Jabal Al Kaaba, ${HUB_ADDRESS}`;
+
+export function whatsappUrl(e164: string): string {
+  return `https://wa.me/${e164.replace(/^\+/, "")}`;
+}
 
 export const hubDestinations: HubDestinations = {
   social: [
@@ -49,6 +57,8 @@ export const hubDestinations: HubDestinations = {
       href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MAPS_QUERY)}`,
     },
   ],
-  whatsappUrl: "https://wa.me/966592197039",
-  phone: { e164: "+966592623702", display: "+966 59 262 3702" },
+  lines: [
+    { e164: "+966592197039", display: "+966 59 219 7039" },
+    { e164: "+966592623702", display: "+966 59 262 3702" },
+  ],
 };

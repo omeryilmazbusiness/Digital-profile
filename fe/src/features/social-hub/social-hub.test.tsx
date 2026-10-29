@@ -3,7 +3,7 @@ import { beforeEach, expect, test, vi } from "vitest";
 
 import { uiStrings } from "@/i18n/ui";
 
-import { hubDestinations } from "./destinations";
+import { hubDestinations, whatsappUrl } from "./destinations";
 import { HUB_CALL, HUB_LOCKUP, SocialHub } from "./social-hub";
 
 const ui = uiStrings("en");
@@ -55,7 +55,7 @@ test("keeps the English lockup on the Arabic page, and never lists Snapchat", ()
   expect(screen.queryByRole("link", { name: /Snapchat/ })).toBeNull();
 });
 
-test("lists each social account, then WhatsApp and a call, as outbound links", () => {
+test("lists each social account, then a WhatsApp and a call for each number", () => {
   renderHub();
   const social = screen.getByRole("navigation", { name: ui.socialMedia });
   expect(within(social).getAllByRole("link")).toHaveLength(hubDestinations.social.length);
@@ -67,12 +67,18 @@ test("lists each social account, then WhatsApp and a call, as outbound links", (
   }
 
   const contact = screen.getByRole("list", { name: ui.contact });
-  const whatsapp = within(contact).getByRole("link", { name: /WhatsApp/ });
-  expect(whatsapp).toHaveAttribute("href", hubDestinations.whatsappUrl);
-  expect(whatsapp).toHaveAttribute("target", "_blank");
-  const call = within(contact).getByRole("link", { name: /Call/ });
-  expect(call).toHaveAttribute("href", `tel:${hubDestinations.phone.e164}`);
-  expect(call).toHaveTextContent(HUB_CALL);
+  const actions = within(contact).getAllByRole("link");
+  expect(actions).toHaveLength(hubDestinations.lines.length * 2);
+  hubDestinations.lines.forEach((line, i) => {
+    const whatsapp = actions[i * 2];
+    const call = actions[i * 2 + 1];
+    expect(whatsapp).toHaveAttribute("href", whatsappUrl(line.e164));
+    expect(whatsapp).toHaveAttribute("target", "_blank");
+    expect(whatsapp).toHaveAccessibleName(expect.stringContaining(line.display));
+    expect(call).toHaveAttribute("href", `tel:${line.e164}`);
+    expect(call).toHaveAccessibleName(`${HUB_CALL} ${line.display}`);
+    expect(call).not.toHaveTextContent(HUB_CALL);
+  });
 });
 
 test("reads the actions in Arabic", () => {
@@ -84,6 +90,6 @@ test("reads the actions in Arabic", () => {
     />,
   );
   expect(screen.getByRole("navigation", { name: "وسائل التواصل" })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /واتساب/ })).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: /اتصال/ })).toBeInTheDocument();
+  expect(screen.getAllByRole("link", { name: /واتساب/ })).toHaveLength(2);
+  expect(screen.getAllByRole("link", { name: new RegExp(HUB_CALL) })).toHaveLength(2);
 });

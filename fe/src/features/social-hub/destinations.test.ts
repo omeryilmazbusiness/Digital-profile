@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 
-import { HUB_ADDRESS, hubDestinations, SOCIAL_NETWORK_IDS } from "./destinations";
+import { HUB_ADDRESS, hubDestinations, SOCIAL_NETWORK_IDS, whatsappUrl } from "./destinations";
 
 test("does not list Snapchat", () => {
   expect(SOCIAL_NETWORK_IDS).not.toContain("snapchat");
@@ -29,10 +29,13 @@ test("opens the hotel's public accounts and the Makkah place", () => {
   expect(href.maps).toContain("Sheraton");
 });
 
-test("points WhatsApp and the call at the hotel's numbers, in the forms the OS expects", () => {
-  expect(hubDestinations.whatsappUrl).toBe("https://wa.me/966592197039");
-  expect(hubDestinations.phone).toEqual({
-    e164: "+966592623702",
-    display: "+966 59 262 3702",
-  });
+test("gives each line a WhatsApp link and a tel: number, in the forms the OS expects", () => {
+  expect(hubDestinations.lines).toEqual([
+    { e164: "+966592197039", display: "+966 59 219 7039" },
+    { e164: "+966592623702", display: "+966 59 262 3702" },
+  ]);
+  for (const line of hubDestinations.lines) {
+    expect(whatsappUrl(line.e164)).toMatch(/^https:\/\/wa\.me\/966\d+$/);
+    expect(line.e164).toMatch(/^\+966\d+$/);
+  }
 });

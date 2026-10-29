@@ -2,8 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
 
 import { mockSiteContentAr } from "@/features/site/mock-content.ar";
-import { hubDestinations } from "@/features/social-hub/destinations";
-import { HUB_LOCKUP } from "@/features/social-hub/social-hub";
+import { hubDestinations, whatsappUrl } from "@/features/social-hub/destinations";
+import { HUB_CALL, HUB_LOCKUP } from "@/features/social-hub/social-hub";
 import { uiStrings } from "@/i18n/ui";
 
 import SocialMediaPage, { generateMetadata } from "./page";
@@ -24,7 +24,7 @@ beforeEach(() => {
   );
 });
 
-test("opens as a hub: mark, social accounts, WhatsApp and a call, and no menu", async () => {
+test("opens as a hub: mark, social accounts, WhatsApp and a call for each number, and no menu", async () => {
   render(await SocialMediaPage(props));
 
   expect(screen.getByRole("heading", { level: 1, name: HUB_LOCKUP })).toBeInTheDocument();
@@ -32,15 +32,15 @@ test("opens as a hub: mark, social accounts, WhatsApp and a call, and no menu", 
   expect(screen.getByRole("navigation", { name: uiStrings("ar").socialMedia })).toBeInTheDocument();
   expect(
     screen.getAllByRole("link").filter((el) => el.getAttribute("target") === "_blank"),
-  ).toHaveLength(hubDestinations.social.length + 1);
-  expect(screen.getByRole("link", { name: /واتساب/ })).toHaveAttribute(
-    "href",
-    hubDestinations.whatsappUrl,
-  );
-  expect(screen.getByRole("link", { name: /اتصال/ })).toHaveAttribute(
-    "href",
-    `tel:${hubDestinations.phone.e164}`,
-  );
+  ).toHaveLength(hubDestinations.social.length + hubDestinations.lines.length);
+  const whatsapp = screen.getAllByRole("link", { name: /واتساب/ });
+  const call = screen.getAllByRole("link", { name: new RegExp(HUB_CALL) });
+  expect(whatsapp).toHaveLength(2);
+  expect(call).toHaveLength(2);
+  hubDestinations.lines.forEach((line, i) => {
+    expect(whatsapp[i]).toHaveAttribute("href", whatsappUrl(line.e164));
+    expect(call[i]).toHaveAttribute("href", `tel:${line.e164}`);
+  });
   expect(screen.queryByRole("button", { name: uiStrings("ar").openMenu })).toBeNull();
 });
 
