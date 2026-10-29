@@ -4,6 +4,7 @@ export const en: UiStrings = {
   formatLocale: "en",
   skipToContent: "Skip to content",
   homeLink: "{hotel} — home",
+  socialMedia: "Social media",
   mainNav: "Main",
   menu: "Menu",
   openMenu: "Open menu",

@@ -6,12 +6,24 @@ import { proxy } from "./proxy";
 const request = (path: string, headers: Record<string, string> = {}) =>
   new NextRequest(new URL(path, "https://example.com"), { headers });
 
-test("opens the site in the visitor's language", () => {
-  const response = proxy(request("/", { "accept-language": "ar-SA,ar;q=0.9" }));
+test("opens the social hub in Arabic, and the hotel site in the visitor's language", () => {
+  const response = proxy(request("/", { "accept-language": "en-US,en;q=0.9" }));
   expect(response.status).toBe(307);
-  expect(response.headers.get("location")).toBe("https://example.com/sheraton/ar");
+  expect(response.headers.get("location")).toBe("https://example.com/ar/social-media");
+  expect(proxy(request("/social-media")).headers.get("location")).toBe(
+    "https://example.com/ar/social-media",
+  );
   expect(proxy(request("/sheraton")).headers.get("location")).toBe(
     "https://example.com/sheraton/en",
+  );
+});
+
+test("lets the hub through and remembers its language", () => {
+  const page = proxy(request("/ar/social-media"));
+  expect(page.headers.get("location")).toBeNull();
+  expect(page.cookies.get("locale")?.value).toBe("ar");
+  expect(proxy(request("/en/social-media", { cookie: "locale=en" })).cookies.get("locale")).toBe(
+    undefined,
   );
 });
 

@@ -4,6 +4,7 @@ export const ar: UiStrings = {
   formatLocale: "ar-u-nu-latn",
   skipToContent: "انتقل إلى المحتوى",
   homeLink: "{hotel} — الصفحة الرئيسية",
+  socialMedia: "وسائل التواصل",
   mainNav: "القائمة الرئيسية",
   menu: "القائمة",
   openMenu: "فتح القائمة",

@@ -14,6 +14,7 @@ export interface UiStrings {
   skipToContent: string;
   /** "{hotel} — home" */
   homeLink: string;
+  socialMedia: string;
   mainNav: string;
   menu: string;
   openMenu: string;

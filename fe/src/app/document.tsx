@@ -31,15 +31,27 @@ export const viewport: Viewport = {
 export function Document({
   lang = defaultLocale,
   ui,
+  theme,
   children,
 }: {
   lang?: Locale;
   ui?: Pick<UiStrings, "notifications">;
+  /** Forces one appearance; omit to follow the OS. */
+  theme?: "light" | "dark";
   children: ReactNode;
 }) {
   return (
-    <html lang={lang} dir={directionOf(lang)}>
-      <body className="min-h-dvh antialiased">
+    <html
+      lang={lang}
+      dir={directionOf(lang)}
+      data-theme={theme}
+      className={theme === "dark" ? "bg-black" : undefined}
+    >
+      <body
+        className={
+          theme === "dark" ? "h-dvh overflow-hidden bg-black antialiased" : "min-h-dvh antialiased"
+        }
+      >
         {children}
         <Toaster label={ui?.notifications} />
       </body>

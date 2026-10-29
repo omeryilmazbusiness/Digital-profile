@@ -2,7 +2,15 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import { LOCALE_COOKIE } from "@/i18n/locales";
 import { negotiateLocale } from "@/i18n/negotiate";
-import { localeOfPath, localizeHref, SITE_BASE } from "@/i18n/routing";
+import {
+  HUB_LANDING_LOCALE,
+  HUB_PATH,
+  hubHref,
+  localeOfHubPath,
+  localeOfPath,
+  localizeHref,
+  SITE_BASE,
+} from "@/i18n/routing";
 
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
@@ -11,13 +19,34 @@ const ACCESS_COOKIES = ["__Host-dp_access", "dp_access"];
 const ADMIN_PAGE = /^\/sheraton\/[^/]+\/admin(?:\/|$)/;
 
 /**
- * Sends addresses without a language — "/", "/sheraton", and the card's short link "/momen"
- * (printed in QR codes) — to their page in the visitor's language, and remembers the language
- * of every page read.
+ * Sends addresses without a language — "/", "/sheraton", the hub's short link "/social-media",
+ * and the card's short link "/momen" (printed in QR codes) — to their page in the visitor's
+ * language, and remembers the language of every page read. "/" opens the hub in Arabic.
  */
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const remembered = request.cookies.get(LOCALE_COOKIE)?.value;
+
+  const hubLocale = localeOfHubPath(pathname);
+  if (hubLocale) {
+    const response = NextResponse.next();
+    if (remembered !== hubLocale) {
+      response.cookies.set(LOCALE_COOKIE, hubLocale, {
+        path: "/",
+        maxAge: ONE_YEAR,
+        sameSite: "lax",
+      });
+    }
+    return response;
+  }
+
+  if (pathname === "/" || pathname === HUB_PATH) {
+    const url = request.nextUrl.clone();
+    url.pathname = hubHref(HUB_LANDING_LOCALE);
+    const response = NextResponse.redirect(url);
+    response.headers.set("Vary", "Accept-Language, Cookie");
+    return response;
+  }
 
   const locale = localeOfPath(pathname);
 
@@ -55,5 +84,12 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/", "/sheraton", "/sheraton/:locale/:path*", "/momen/:path*"],
+  matcher: [
+    "/",
+    "/social-media",
+    "/(en|ar|id)/social-media",
+    "/sheraton",
+    "/sheraton/:locale/:path*",
+    "/momen/:path*",
+  ],
 };

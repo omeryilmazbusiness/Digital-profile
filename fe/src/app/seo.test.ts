@@ -15,10 +15,17 @@ test("lists every page in every language, with its translations", () => {
     "https://example.com/sheraton/en/momen",
     "https://example.com/sheraton/ar/momen",
     "https://example.com/sheraton/id/momen",
+    "https://example.com/en/social-media",
+    "https://example.com/ar/social-media",
+    "https://example.com/id/social-media",
   ]);
   expect(entries[3]!.alternates?.languages).toMatchObject({
     ar: "https://example.com/sheraton/ar/momen",
     "x-default": "https://example.com/sheraton/en/momen",
+  });
+  expect(entries[7]!.alternates?.languages).toMatchObject({
+    ar: "https://example.com/ar/social-media",
+    "x-default": "https://example.com/ar/social-media",
   });
   expect(robots()).toMatchObject({
     rules: { disallow: ["/design", "/sheraton/*/admin"] },

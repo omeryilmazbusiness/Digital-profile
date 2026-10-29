@@ -2,7 +2,7 @@ import { expect, test } from "vitest";
 
 import { directionOf } from "./locales";
 import { negotiateLocale } from "./negotiate";
-import { localeOfPath, localizeHref } from "./routing";
+import { hubHref, localeOfHubPath, localeOfPath, localizeHref } from "./routing";
 import { fill, pageCount, uiStrings } from "./ui";
 
 test("puts site links under /sheraton/<locale>", () => {
@@ -17,6 +17,16 @@ test("reads the language back from a path", () => {
   expect(localeOfPath("/sheraton/id/momen")).toBe("id");
   expect(localeOfPath("/sheraton/fr/momen")).toBeUndefined();
   expect(localeOfPath("/momen")).toBeUndefined();
+});
+
+test("addresses the social hub at /<locale>/social-media", () => {
+  expect(hubHref("ar")).toBe("/ar/social-media");
+  expect(hubHref("en")).toBe("/en/social-media");
+  expect(localeOfHubPath("/ar/social-media")).toBe("ar");
+  expect(localeOfHubPath("/en/social-media/")).toBe("en");
+  expect(localeOfHubPath("/sheraton/ar/social-media")).toBeUndefined();
+  expect(localeOfHubPath("/fr/social-media")).toBeUndefined();
+  expect(localeOfHubPath("/ar/momen")).toBeUndefined();
 });
 
 test("opens in the remembered language, else the browser's best match, else English", () => {

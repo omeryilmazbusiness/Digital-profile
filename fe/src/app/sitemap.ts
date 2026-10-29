@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { locales } from "@/i18n/locales";
-import { languageAlternates, localizeHref } from "@/i18n/routing";
+import { hubHref, hubLanguageAlternates, languageAlternates, localizeHref } from "@/i18n/routing";
 import { siteUrl } from "@/lib/site-url";
 
 const pages = ["/", "/momen"] as const;
@@ -11,14 +11,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const origin = siteUrl();
   if (!origin) return [];
   const absolute = (path: string) => new URL(path, origin).href;
-  return pages.flatMap((page) =>
-    locales.map((locale) => ({
-      url: absolute(localizeHref(locale, page)),
-      alternates: {
-        languages: Object.fromEntries(
-          Object.entries(languageAlternates(page)).map(([lang, path]) => [lang, absolute(path)]),
-        ),
-      },
+  const languages = (map: Record<string, string>) =>
+    Object.fromEntries(Object.entries(map).map(([lang, path]) => [lang, absolute(path)]));
+  return [
+    ...pages.flatMap((page) =>
+      locales.map((locale) => ({
+        url: absolute(localizeHref(locale, page)),
+        alternates: { languages: languages(languageAlternates(page)) },
+      })),
+    ),
+    ...locales.map((locale) => ({
+      url: absolute(hubHref(locale)),
+      alternates: { languages: languages(hubLanguageAlternates()) },
     })),
-  );
+  ];
 }

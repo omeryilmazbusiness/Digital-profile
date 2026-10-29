@@ -1,7 +1,33 @@
 import { defaultLocale, isLocale, type Locale, locales } from "./locales";
 
-/** Every public page lives under /sheraton/<locale>. */
+/** The hotel site lives under /sheraton/<locale>. The social hub is /<locale>/social-media. */
 export const SITE_BASE = "/sheraton";
+
+/** Public address of the social hub, without a language. */
+export const HUB_PATH = "/social-media" as const;
+
+/** Language the hub opens in when the visitor didn't name one. */
+export const HUB_LANDING_LOCALE: Locale = "ar";
+
+/** /ar/social-media — the hub in `locale`. */
+export function hubHref(locale: Locale): `/${string}` {
+  return `/${locale}${HUB_PATH}`;
+}
+
+/** The language a hub path is in, if it is one: /ar/social-media → "ar". */
+export function localeOfHubPath(pathname: string): Locale | undefined {
+  const match = /^\/([^/]+)\/social-media\/?$/.exec(pathname);
+  const locale = match?.[1];
+  return isLocale(locale) ? locale : undefined;
+}
+
+/** Every language's address for the hub (hreflang), plus the default for anyone else. */
+export function hubLanguageAlternates(): Record<string, string> {
+  return Object.fromEntries([
+    ...locales.map((locale) => [locale, hubHref(locale)]),
+    ["x-default", hubHref(HUB_LANDING_LOCALE)],
+  ]);
+}
 
 /**
  * A link written without a language — "/" (the landing page), "/#tour" (one of its sections)

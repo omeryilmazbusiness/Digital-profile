@@ -4,6 +4,7 @@ export const id: UiStrings = {
   formatLocale: "id",
   skipToContent: "Langsung ke konten",
   homeLink: "{hotel} — beranda",
+  socialMedia: "Media sosial",
   mainNav: "Navigasi utama",
   menu: "Menu",
   openMenu: "Buka menu",
