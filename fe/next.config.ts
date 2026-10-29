@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
   experimental: {
     // The site's root layout sits under /sheraton/[locale]: unmatched URLs need their own page.
     globalNotFound: true,
+    agentUpgrade: "security",
   },
   // The API answers on the site's own origin, so session cookies are first-party and the
   // browser makes no cross-origin calls. Read at build time: set API_URL when building.
